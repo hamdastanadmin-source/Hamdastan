@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum v2_UserRole {
+  ADMIN
+  ANALYST
+}
+
+// ─── USER ──────────────────────────────────────────
+model v2_User {
+  id           String      @id @default(cuid())
+  username     String      @unique
+  passwordHash String
+  fullName     String
+  role         v2_UserRole @default(ANALYST)
+  isActive     Boolean     @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  sessions v2_Session[]
+
+  @@index([username])
+  @@index([role])
+  @@map("v2_users")
+}
+
+// ─── SESSION ───────────────────────────────────────
+model v2_Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      v2_User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("v2_sessions")
+}
+
+// --- Add your domain models below ---

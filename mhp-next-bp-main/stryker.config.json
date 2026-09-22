@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker/master/packages/core/schema/stryker-core.json",
+  "_comment": "Mutation testing is too slow for every CI push. Run weekly or on PRs touching src/services/ or src/lib/.",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "mutate": [],
+  "incremental": true,
+  "concurrency": 4,
+  "timeoutMS": 30000,
+  "reporters": ["clear-text", "html"]
+}
