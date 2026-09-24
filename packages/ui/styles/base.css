@@ -1,0 +1,92 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE LAYER
+
+   Document-level defaults that every Hamdastan app shares: RTL direction,
+   Persian line-height, the scrollbar treatment and reduced-motion handling.
+   Imported after tokens.css, which supplies the custom properties used here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  :root {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    direction: rtl;
+    text-align: start;
+    font-family: var(--font-family);
+    line-height: var(--leading-normal); /* 1.6 — Persian needs more breathing room */
+  }
+
+  input, textarea, select {
+    direction: rtl;
+    text-align: start;
+  }
+
+  .ltr {
+    direction: ltr !important;
+    text-align: start !important;
+  }
+
+  .dir-ltr {
+    direction: ltr !important;
+    text-align: start !important;
+  }
+
+  .dir-rtl {
+    direction: rtl !important;
+    text-align: start !important;
+  }
+
+  .bidi-plaintext {
+    unicode-bidi: plaintext;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  .custom-scrollbar:hover {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "extends": "@hamdastan/config/typescript/base.json",
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@hamdastan/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./primitives/*": "./primitives/*.tsx",
+    "./patterns/*": "./patterns/*.tsx",
+    "./icons": "./icons/index.ts",
+    "./tokens": "./tokens/index.ts",
+    "./tokens/*": "./tokens/*",
+    "./styles/*": "./styles/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@hamdastan/config": "*",
+    "@hamdastan/shared": "*",
+    "class-variance-authority": "^0.7.1",
+    "input-otp": "^1.5.0",
+    "lucide-react": "^0.563.0",
+    "radix-ui": "^1.6.7",
+    "sonner": "^2.0.8"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,27 @@
+/**
+ * Stylesheet entry point.
+ *
+ * Holds no design values of its own: colours, spacing, radii and type all
+ * come from `@hamdastan/ui/tokens`. Anything app-specific goes below the
+ * imports, and anything the other apps would also want belongs in the
+ * design system instead.
+ */
+
+@import "tailwindcss";
+@import "@hamdastan/ui/tokens/tokens.css";
+@import "@hamdastan/ui/styles/base.css";
+
+@plugin "tailwindcss-animate";
+
+/* The design system lives outside this app, so Tailwind has to be pointed at
+   it explicitly — class detection only walks the app's own tree. */
+@source "../../../../packages/ui";
+
+/* RTL/LTR variants */
+@custom-variant rtl ([dir="rtl"] &);
+@custom-variant ltr ([dir="ltr"] &);
+
+/* Dark mode is driven by a `.dark` class on <html> (see ThemeToggle), not by
+   the OS preference. Tailwind v4 defaults `dark:` to prefers-color-scheme, so
+   the variant is redefined here to follow the class instead. */
+@custom-variant dark (&:is(.dark *));

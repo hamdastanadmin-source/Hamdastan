@@ -1,0 +1,41 @@
+stages:
+  - verify
+  - build
+  - deploy
+
+# ─── Static checks, once for the whole monorepo ───────────────
+verify:
+  stage: verify
+  image: node:20-slim
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline --no-audit --no-fund
+    - npm run lint
+    - npm run lint:rtl
+    - npm run typecheck
+    - npm test
+
+# ─── Images ───────────────────────────────────────────────────
+# Both build from the monorepo root, so the Dockerfile path is what selects
+# the app.
+include:
+  - component: $CI_SERVER_FQDN/infrastructure/pipeline-components/image-building-components/docker-build@3
+    inputs:
+      job_suffix: web-image
+      dockerfile: apps/web/Dockerfile
+
+  - component: $CI_SERVER_FQDN/infrastructure/pipeline-components/image-building-components/docker-build@3
+    inputs:
+      job_suffix: api-image
+      dockerfile: apps/api/Dockerfile
+
+  - component: $CI_SERVER_FQDN/infrastructure/pipeline-components/deployment-components/helm-tag-trigger@3
+    inputs:
+      cluster: de_cluster
+      namespace: standalone-services
+      service: hamdastan

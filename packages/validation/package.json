@@ -1,0 +1,22 @@
+{
+  "name": "@hamdastan/validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./common": "./common.ts",
+    "./auth": "./auth.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@hamdastan/config": "*",
+    "@hamdastan/types": "*",
+    "typescript": "^5"
+  }
+}

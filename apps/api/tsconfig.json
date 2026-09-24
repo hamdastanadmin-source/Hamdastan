@@ -1,0 +1,10 @@
+{
+  "extends": "@hamdastan/config/typescript/node.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

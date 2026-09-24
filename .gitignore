@@ -144,3 +144,33 @@ vite.config.ts.timestamp-*
 
 # macOS
 .DS_Store
+
+# ─── Hamdastan monorepo ───────────────────────────────────────
+# Generated build output — never tracked.
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/next-env.d.ts
+**/*.tsbuildinfo
+
+# Playwright
+/playwright-report/
+/test-results/
+/blob-report/
+/e2e/.auth/
+.playwright-mcp/
+
+# Editor / agent scratch
+.claude/
+.vscode/
+.idea/
+
+# Certificates & local data dumps
+*.pem
+*.sql
+*.db
+.dolt/
+
+# Vercel
+.vercel

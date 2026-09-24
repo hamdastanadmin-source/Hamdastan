@@ -1,0 +1,31 @@
+{
+  "name": "hamdastan",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @hamdastan/web",
+    "dev:admin": "npm run dev --workspace @hamdastan/admin",
+    "dev:api": "npm run dev --workspace @hamdastan/api",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start --workspace @hamdastan/web",
+    "lint": "eslint .",
+    "lint:rtl": "node scripts/rtl-smoke-check.mjs",
+    "lint:all": "npm run lint && npm run lint:rtl",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "eslint": "^9",
+    "typescript": "^5",
+    "typescript-eslint": "^8.70.1"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

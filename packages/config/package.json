@@ -1,0 +1,16 @@
+{
+  "name": "@hamdastan/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./app": "./app/index.ts",
+    "./app/*": "./app/*.ts",
+    "./eslint/*": "./eslint/*.mjs",
+    "./typescript/*": "./typescript/*"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
