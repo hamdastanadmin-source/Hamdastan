@@ -37,14 +37,25 @@ adding one, not after.
 
 ## Authentication
 
-4.  `apps/web/src/features/auth/services/session.service.ts` is an in-memory
-    skeleton — sessions do not persist across restarts and do not work across
-    multiple instances. Do not deploy it as a real authentication boundary. See
-    the file header for what to replace.
+4.  Users, one-time codes and sessions are held in memory by
+    `createInMemoryAuthRepository()` in
+    `apps/api/src/modules/auth/auth.repository.ts`. Nothing persists across a
+    restart and nothing is shared between processes, so this is not a real
+    authentication boundary and must not be deployed as one. Replacing it means
+    implementing `AuthRepository` against a data layer — the schema is in
+    `docs/architecture/auth-data-model.md`.
+
+5.  A persistent session store keeps **hashes** of session tokens, never the
+    tokens. A persistent challenge store keeps **hashes** of one-time codes,
+    never the codes. The in-memory stand-in already hashes codes; it keeps
+    tokens in plain because the map dies with the process.
+
+6.  `SHOW_DEV_OTP` echoes a one-time code back to the client. It is ignored
+    when `NODE_ENV=production`, and that guard is not to be loosened.
 
 ## Front-end network access
 
-5.  The front-end apps call `apps/api` and nothing else. No component, hook or
+7.  The front-end apps call `apps/api` and nothing else. No component, hook or
     store calls the network directly; requests go through `src/services`. If
     the product needs a third-party service, the backend fronts it. Enforced by
     `npm run lint`.

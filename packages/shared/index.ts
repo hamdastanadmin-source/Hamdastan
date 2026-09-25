@@ -1,6 +1,20 @@
 export { cn } from './cn';
 export { logger } from './logger';
-export { formatNumber, formatCompactNumber } from './format/number';
+export {
+  formatNumber,
+  formatCompactNumber,
+  formatPhone,
+  toPersianDigits,
+} from './format/number';
+export {
+  JALALI_MONTHS,
+  daysInJalaliMonth,
+  isJalaliLeapYear,
+  isoToJalali,
+  jalaliMonthName,
+  jalaliToISO,
+  type JalaliDate,
+} from './format/jalali';
 export {
   createHttpClient,
   HttpError,

@@ -1,18 +1,29 @@
-import { z } from '@hamdastan/validation';
+import {
+  cancelOtpSchema,
+  checkPhoneSchema,
+  registerSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
+  type z,
+} from '@hamdastan/validation';
 
 /**
  * Request validation for the Auth module.
  *
- * Every route validates its input here before the controller runs. Rules the
- * front-end also enforces live in `@hamdastan/validation` — import them
- * rather than restating them, so the two sides cannot drift.
+ * Every rule here comes from `@hamdastan/validation`, which is also what the
+ * login form parses against, so the two sides cannot drift. The schemas
+ * normalise as well as validate — `+98 912…`, `۰۹۱۲…` and `0912…` all reach
+ * the service as one string, so a user cannot end up with two accounts by
+ * typing their number differently.
+ *
+ * Fastify's own `schema` option takes JSON Schema, and no zod type provider is
+ * wired up, so the controller parses bodies with these. That keeps validation
+ * in the HTTP layer, where it belongs, without a second source of truth.
  */
 export const authSchemas = {
-  // e.g. list: { querystring: paginationQuerySchema },
-} satisfies Record<string, unknown>;
-
-export type AuthSchemas = typeof authSchemas;
-
-// Re-exported so this module's own schemas can be written without a second
-// zod import.
-export { z };
+  checkPhone: checkPhoneSchema,
+  sendOtp: sendOtpSchema,
+  cancelOtp: cancelOtpSchema,
+  verifyOtp: verifyOtpSchema,
+  register: registerSchema,
+} satisfies Record<string, z.ZodType>;

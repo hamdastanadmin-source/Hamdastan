@@ -1,3 +1,4 @@
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -7,6 +8,7 @@ import { API_PREFIX } from '@hamdastan/config';
 import { env } from './config';
 import { registerErrorHandler } from './middleware';
 import { moduleRoutes } from './modules';
+import { createInMemoryAuthRepository, setAuthRepository } from './modules/auth';
 import { ok } from './shared/response';
 
 /**
@@ -31,6 +33,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     trustProxy: true,
   });
 
+  // Sessions travel in an httpOnly cookie, so the auth controller needs to be
+  // able to read and write one.
+  await app.register(cookie);
   await app.register(helmet);
   await app.register(cors, {
     origin: env.corsOrigins,
@@ -39,6 +44,21 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   registerErrorHandler(app);
+
+  /**
+   * No data layer has been chosen yet, so the auth module runs on the in-memory
+   * stand-in declared beside its port. Binding it here rather than in
+   * `server.ts` means the tests drive the same wiring the process does, and a
+   * fresh `buildApp()` starts from an empty store.
+   *
+   * Not in production, though: a per-instance user store that loses everybody
+   * on restart must fail loudly rather than serve traffic, so there the
+   * repository stays unbound and every auth route answers 501 until a real
+   * implementation is bound here — see database/README.md.
+   */
+  if (!env.isProduction) {
+    setAuthRepository(createInMemoryAuthRepository());
+  }
 
   /**
    * Liveness probe, outside the versioned prefix so it survives a version

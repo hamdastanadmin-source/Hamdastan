@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @hamdastan/web",
+    "dev": "npm run dev:api & npm run dev:web & wait",
+    "dev:web": "npm run dev --workspace @hamdastan/web",
     "dev:admin": "npm run dev --workspace @hamdastan/admin",
     "dev:api": "npm run dev --workspace @hamdastan/api",
     "build": "npm run build --workspaces --if-present",

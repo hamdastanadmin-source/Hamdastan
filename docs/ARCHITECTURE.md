@@ -53,6 +53,7 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | A validation rule both sides apply | `packages/validation` |
 | A helper one feature uses | that feature's `utils/` |
 | A helper genuinely shared | `packages/shared` |
+| A date shown to a user (Jalali) or stored (ISO Gregorian) | `packages/shared/format/jalali.ts` |
 | A colour, spacing or radius value | `packages/ui/tokens` |
 | A design source file (PSD, AI, Figma export) | `assets/` |
 | An image the browser loads | `apps/<app>/public/images/…` |
@@ -95,9 +96,14 @@ A feature grows the directories it needs and no others:
 ```
 feature/
 ├── components/  hooks/  services/  types/  utils/
+├── __tests__/   unit tests for the above (optional)
 ├── index.ts     public, client-safe
 └── server.ts    public, server-only (optional)
 ```
+
+A feature's own unit tests go in its `__tests__/`, next to what they cover, and
+import it by relative path. `apps/web/src/__tests__/` is for the app as a whole
+— the test setup, MSW, anything that is not one feature's.
 
 `index.ts` and `server.ts` are the feature's entire surface. Reaching past them
 (`@/features/auth/hooks/use-auth`) is a lint error — it is what turns a feature
@@ -105,8 +111,10 @@ into a tangle. `auth` is the worked example; the rest are empty on purpose.
 
 Splitting `index.ts` from `server.ts` keeps a client component from pulling
 server-only code into its bundle. `apps/web/src/features/auth` shows the shape:
-the provider and hooks in `index.ts`, the session lookup and route guards in
-`server.ts`.
+the flow, the provider and the hooks in `index.ts`, the session lookup and
+route guards in `server.ts`. Its `/login` route renders `<AuthFlow />` and
+passes it nothing, so the steps and their order stay inside the feature — see
+`docs/architecture/auth-flow.md`.
 
 ### Two rules the linter enforces
 
@@ -135,7 +143,7 @@ src/
 ├── middleware/    cross-cutting request handling
 ├── config/        environment, parsed once at boot
 ├── integrations/  outbound adapters (SMS, payment, storage)
-├── shared/        errors, the repository seam, response helpers
+├── shared/        errors, the repository seam, response and request helpers
 ├── app.ts         builds the server
 └── server.ts      owns the process
 ```
@@ -182,6 +190,35 @@ Every response leaves as `ApiResponse<T>` from `@hamdastan/types` — `ok` and
 `shared/errors.ts`; `middleware/error-handler.ts` is the one place a thrown
 error becomes a status code.
 
+### Request validation
+
+Fastify's own `schema` option takes JSON Schema, and no zod type provider is
+wired up, so a module's `*.schema.ts` holds zod schemas and the **controller**
+parses the body with them through `parseRequest` in `shared/validate.ts` — one
+helper, so every module reports a malformed body with the same code and the same
+`details` shape. Validation stays in the
+HTTP layer, where it belongs, and the rules stay in `packages/validation`, so
+the front-end and the backend cannot drift. `modules/auth` is the worked
+example. If a zod type provider is added later, the schemas move into the route
+declarations and the controllers stop parsing — the schemas themselves do not
+change.
+
+### Outbound adapters
+
+`integrations/` is the outbound mirror of the repository seam: an interface per
+capability, one implementation per vendor, chosen by environment in that
+directory's `index.ts`. A service depends on the capability and never on the
+vendor.
+
+```
+integrations/
+└── otp/   delivery of one-time codes — mock only; no gateway contracted
+```
+
+The front-end never calls an external service itself. If the product needs one,
+it goes here and `apps/api` exposes a route. See
+`docs/architecture/auth-sms-integration.md`.
+
 ### The data layer seam
 
 **No database, ORM or persistence technology has been chosen.** Nothing in the
@@ -194,6 +231,19 @@ Each module declares its data needs as an interface — a *port* — in
 `usersRepository()` and knows nothing more. Until an implementation is bound,
 the call throws `DataLayerNotConfiguredError` (HTTP 501) rather than returning
 fake data, so an unimplemented endpoint cannot pass for a working one.
+
+`auth` is the exception, because the product cannot be used at all without it:
+its `*.repository.ts` also exports `createInMemoryAuthRepository()`, a
+development stand-in bound in `app.ts`. Binding it there rather than in
+`server.ts` means the tests drive the same wiring the process does. A module may
+ship such a stand-in in its port file, and only there — it is deleted when a real
+data layer is bound. Its schema is designed in
+`docs/architecture/auth-data-model.md`.
+
+The binding is guarded by `!env.isProduction`: a stand-in that loses every user
+on restart must not quietly serve traffic, so in production the slot stays empty
+and the 501 above is what answers. A stand-in is a development convenience, and
+the guard is what keeps it one.
 
 Binding one later is three lines in `server.ts`:
 
@@ -237,9 +287,13 @@ Tailwind utility; where a real CSS string is required (canvas, a chart
 library), import from `@hamdastan/ui/tokens`. If a value is missing, add it to
 `tokens.css` first.
 
-The whole colour system has one input: `--brand-hue` and `--brand-saturation`
-at the top of `tokens.css`. The brand ramp, `--primary` and `--success` all
-derive from them.
+The whole colour system has one input: `--brand-hue`, `--brand-saturation` and
+`--brand-lightness` at the top of `tokens.css`. The brand ramp and `--primary`
+derive from them; the brand is navy, `#000080`.
+
+The semantic colours are deliberately independent of it — `--success-hue`,
+`--destructive-hue`, `--warning-hue` and `--info-hue` sit beside the brand
+inputs, so a green success state survives a change of brand.
 
 ---
 
@@ -264,4 +318,4 @@ Exporting from `assets/` into `public/` is a deliberate step. Nothing under
 | `npm run lint:rtl` | Logical utilities only; Radix confined to primitives |
 | `npm test` | Vitest |
 | `npm run build` | Production build of both Next apps |
-| `npm run test:e2e` | Playwright against the real `apps/web` |
+| `npm run test:e2e` | Playwright against the real `apps/web` **and** `apps/api` |

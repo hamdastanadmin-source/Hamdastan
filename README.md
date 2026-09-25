@@ -7,14 +7,18 @@ CSS 4 and shadcn/ui, as an npm-workspaces monorepo.
 
 ```bash
 ./setup.sh          # or: npm install && cp .env.example .env
-npm run dev         # apps/web    → http://localhost:3000
+npm run dev         # apps/web → :3000 and apps/api → :4000, together
 ```
 
-The other two apps run the same way:
+`npm run dev` starts both because signing in is a conversation between them —
+`apps/api` owns the codes, the users and the sessions, so with it down the login
+screen can only report that it cannot reach the server. Either half runs alone
+if you want it to:
 
 ```bash
-npm run dev:admin   # apps/admin  → http://localhost:3001
+npm run dev:web     # apps/web    → http://localhost:3000
 npm run dev:api     # apps/api    → http://localhost:4000/health
+npm run dev:admin   # apps/admin  → http://localhost:3001
 ```
 
 Or the whole stack: `docker compose up --build`.
@@ -24,12 +28,16 @@ directory, so `setup.sh` symlinks `apps/web/.env` and `apps/admin/.env` to it �
 edit the root file and both apps see the change. `apps/api` reads the same file
 via `--env-file-if-exists`, and `docker compose` via `env_file`.
 
-`.env.example` ships with `SKIP_AUTH=false`, so you get the real login flow.
-Set it to `true` to bypass the login screen and run as a mock admin while
-building UI.
+### Signing in
 
-Seed credentials: `admin` / `admin123` (admin) and `analyst` / `analyst123`
-(analyst).
+Sign-in is passwordless: a mobile number, then a four-digit code.
+
+There is no SMS gateway yet. `.env.example` ships with `SHOW_DEV_OTP=true`, so
+the generated code is shown on the verify screen (and written to the `apps/api`
+log). It is ignored when `NODE_ENV=production`.
+
+There are no seed accounts — the store starts empty, so the first number you
+type registers. `docs/architecture/auth-flow.md` has the whole flow.
 
 ## Tech Stack
 
@@ -40,7 +48,7 @@ Seed credentials: `admin` / `admin123` (admin) and `analyst` / `analyst123`
 | UI Components | shadcn/ui (Radix) behind RTL-safe wrappers in `packages/ui` |
 | Validation | zod, shared between front-end and backend |
 | Database | **None chosen yet** — see `database/README.md` |
-| Auth | Cookie sessions, in-memory skeleton (`apps/web/src/features/auth`) |
+| Auth | Mobile number + one-time code, cookie sessions (`apps/api/src/modules/auth`) |
 | Deployment | Docker (standalone Next.js output), one image per app |
 
 ## Project Structure
@@ -75,7 +83,8 @@ Run from the repo root; they cover every workspace.
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` / `dev:admin` / `dev:api` | Start one app |
+| `npm run dev` | Start the product: `apps/web` and `apps/api` together |
+| `npm run dev:web` / `dev:api` / `dev:admin` | Start one app |
 | `npm run build` | Production build of every app |
 | `npm run typecheck` | TypeScript across every workspace |
 | `npm run lint` | ESLint, including the architecture boundaries |
@@ -106,11 +115,16 @@ Run from the repo root; they cover every workspace.
 The colour system has one input. In `packages/ui/tokens/tokens.css`:
 
 ```css
---brand-hue: 142;        /* 0-360 on the HSL wheel */
---brand-saturation: 69%; /* 0% grey → 100% vivid */
+--brand-hue: 240;         /* 0-360 on the HSL wheel */
+--brand-saturation: 100%; /* 0% grey → 100% vivid */
+--brand-lightness: 25%;   /* how dark the brand colour itself is */
 ```
 
-The brand scale, `--primary` and `--success` all derive from those two values.
+Together they are `#000080`, navy. The brand scale and `--primary` derive from
+them, in both themes. The semantic colours deliberately do not — `--success-hue`
+keeps success green whatever the brand becomes, and sits beside
+`--destructive-hue`, `--warning-hue` and `--info-hue`.
+
 TypeScript consumers read the same tokens through `@hamdastan/ui/tokens`, which
 references the custom properties rather than copying them.
 

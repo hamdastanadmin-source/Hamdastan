@@ -9,8 +9,9 @@ import {
   Badge,
 } from '@hamdastan/ui';
 import { useSidebar } from './SidebarContext';
-import { logoutAction, useAuth } from '@/features/auth';
+import { useAuth, useLogout } from '@/features/auth';
 import { ThemeToggle } from '@hamdastan/ui';
+import { formatPhone } from '@hamdastan/shared';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'خانه',
@@ -21,6 +22,7 @@ export function Header() {
   const pathname = usePathname();
   const { isCollapsed, toggleCollapse, setMobileOpen } = useSidebar();
   const user = useAuth();
+  const { logout, isPending: isLoggingOut } = useLogout();
 
   const title =
     PAGE_TITLES[pathname] ||
@@ -85,7 +87,10 @@ export function Header() {
                       </Badge>
                     )}
                   </div>
-                  <div className="text-muted-foreground">{user.username}</div>
+                  {/* rtl-ok: a phone number reads left-to-right. */}
+                  <div dir="ltr" className="text-muted-foreground">
+                    {formatPhone(user.phone)}
+                  </div>
                 </div>
                 <Avatar className="h-9 w-9 border-2 border-background ring-1 ring-border">
                   <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
@@ -96,7 +101,10 @@ export function Header() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">{user.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{user.username}</p>
+                  {/* rtl-ok: a phone number reads left-to-right. */}
+                  <p dir="ltr" className="text-xs text-muted-foreground">
+                    {formatPhone(user.phone)}
+                  </p>
                   {user.role === 'ADMIN' && (
                     <div className="flex items-center gap-1 text-xs text-primary">
                       <Shield className="h-3 w-3" />
@@ -108,7 +116,8 @@ export function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive cursor-pointer"
-                onClick={() => logoutAction()}
+                disabled={isLoggingOut}
+                onClick={logout}
               >
                 <LogOut className="h-4 w-4 me-2" />
                 خروج

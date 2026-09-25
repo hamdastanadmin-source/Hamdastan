@@ -1,4 +1,22 @@
-export type { UserRole, AuthUser } from './auth';
+export type {
+  UserRole,
+  Gender,
+  AuthUser,
+  OtpPurpose,
+  OtpChallenge,
+  CheckPhoneRequest,
+  CheckPhoneResponse,
+  SendOtpRequest,
+  SendOtpResponse,
+  RegisterRequest,
+  RegisterResponse,
+  VerifyOtpRequest,
+  CancelOtpRequest,
+  AuthResponse,
+  VerifyOtpResponse,
+  SessionResponse,
+  AuthErrorCode,
+} from './auth';
 export type {
   ApiErrorBody,
   ApiSuccess,

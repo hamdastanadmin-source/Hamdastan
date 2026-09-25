@@ -13,39 +13,52 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    COLOR SYSTEM — SINGLE SOURCE OF TRUTH
 
-   To change the brand color for your project, edit ONLY these two values:
-     --brand-hue:        142;    ← Hue on the HSL color wheel (0-360)
-     --brand-saturation: 69%;   ← Color intensity (0% = grey, 100% = vivid)
+   To change the brand color for your project, edit ONLY these three values:
+     --brand-hue:        240;   ← Hue on the HSL color wheel (0-360)
+     --brand-saturation: 100%;  ← Color intensity (0% = grey, 100% = vivid)
+     --brand-lightness:  25%;   ← How dark the brand color itself is
 
-   Everything else (brand scale, primary, success) derives automatically.
+   The brand is navy: hsl(240 100% 25%) is exactly #000080.
+
+   Everything else (the brand scale and primary) derives automatically. The
+   semantic colors do not — success is green whatever the brand is, because it
+   means "this worked" and not "this is us", so it has its own hue below.
+
+   The brand is the same colour in both themes. The dark block below only
+   restates the *scale* around it, as it always has.
 
    Common brand hues:
      Red: 0    Orange: 30    Yellow: 45    Green: 142    Teal: 173
-     Blue: 210  Indigo: 230  Purple: 270   Pink: 330     Rose: 350
+     Blue: 210  Indigo: 230  Navy: 240     Purple: 270   Rose: 350
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
     /* ─── Brand Configuration (EDIT THESE) ──────────────────────── */
-    --brand-hue: 142;
-    --brand-saturation: 69%;
+    --brand-hue: 240;
+    --brand-saturation: 100%;
+    --brand-lightness: 25%;
 
     /* ─── Semantic Color Hues (EDIT THESE if needed) ────────────── */
     --destructive-hue: 0;
     --warning-hue: 30;
     --info-hue: 210;
+    /* Independent of the brand: a success message is green even when the
+       product is navy. */
+    --success-hue: 142;
+    --success-saturation: 69%;
 
     /* ─── Brand Scale (auto-derived) ────────────────────────────── */
     --brand-50:  calc(var(--brand-hue) - 4) 76% 97%;
     --brand-100: calc(var(--brand-hue) - 1) 84% 93%;
     --brand-200: calc(var(--brand-hue) - 1) 79% 85%;
     --brand-300: var(--brand-hue) 77% 73%;
-    --brand-400: var(--brand-hue) var(--brand-saturation) 58%;
+    --brand-400: var(--brand-hue) var(--brand-saturation) var(--brand-lightness);
     --brand-500: var(--brand-hue) 71% 45%;
     --brand-600: var(--brand-hue) 76% 36%;
 
     /* ─── Primary = Brand ───────────────────────────────────────── */
-    --primary: var(--brand-hue) var(--brand-saturation) 58%;
+    --primary: var(--brand-hue) var(--brand-saturation) var(--brand-lightness);
     --primary-foreground: 0 0% 98%;
 
     /* ─── Neutral Surfaces ──────────────────────────────────────── */
@@ -70,7 +83,7 @@
     --destructive-foreground: 0 0% 98%;
     --destructive-200: var(--destructive-hue) 100% 99.4%;
 
-    --success: var(--brand-hue) var(--brand-saturation) 58%;
+    --success: var(--success-hue) var(--success-saturation) 45%;
     --success-foreground: 0 0% 98%;
 
     --warning: var(--warning-hue) 80% 48%;
@@ -115,17 +128,24 @@
   }
 
   .dark {
+    /* `--brand-lightness` is deliberately not redefined here: the brand is
+       #000080 in both themes. Navy on a near-black surface is a narrow
+       luminance step, but the hue difference and the near-white label carry
+       it, and a brand that changed shade with the theme would not be one. */
+
     /* ─── Brand Scale (dark mode — auto-derived) ────────────────── */
     --brand-50:  var(--brand-hue) 50% 6%;
     --brand-100: var(--brand-hue) 50% 4%;
     --brand-200: var(--brand-hue) 60% 8%;
     --brand-300: var(--brand-hue) 60% 12%;
-    --brand-400: var(--brand-hue) var(--brand-saturation) 58%;
-    --brand-500: calc(var(--brand-hue) + 13) 100% 19.2%;
-    --brand-600: calc(var(--brand-hue) + 13) 100% 25%;
+    --brand-400: var(--brand-hue) var(--brand-saturation) var(--brand-lightness);
+    /* The +13 hue shift these used to carry was tuned for a green brand; on a
+       navy one it turns the deep steps violet, so they stay on the brand hue. */
+    --brand-500: var(--brand-hue) 100% 19.2%;
+    --brand-600: var(--brand-hue) 100% 25%;
 
     /* ─── Primary = Brand ───────────────────────────────────────── */
-    --primary: var(--brand-hue) var(--brand-saturation) 58%;
+    --primary: var(--brand-hue) var(--brand-saturation) var(--brand-lightness);
     --primary-foreground: 0 0% 98%;
 
     /* ─── Neutral Surfaces ──────────────────────────────────────── */
@@ -150,7 +170,7 @@
     --destructive-foreground: 0 0% 98%;
     --destructive-200: calc(var(--destructive-hue) + 11) 23.4% 9.2%;
 
-    --success: var(--brand-hue) var(--brand-saturation) 58%;
+    --success: var(--success-hue) var(--success-saturation) 58%;
     --success-foreground: 0 0% 98%;
 
     --warning: var(--warning-hue) 80% 48%;

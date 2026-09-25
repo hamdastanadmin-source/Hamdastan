@@ -40,9 +40,13 @@ the rule to that document before writing the code.
   Both live in `packages/ui/tokens/` so the pre-paint script and `applyTheme`
   cannot drift. Each app's `globals.css` redefines the `dark:` variant to follow
   that class. Do not add `next-themes` — it would fight the same class.
-- Colours come from one place: `--brand-hue` and `--brand-saturation` at the top
-  of `packages/ui/tokens/tokens.css`. The brand scale, `--primary` and
-  `--success` all derive from them. Change the hue, not the individual colours.
+- Colours come from one place: `--brand-hue`, `--brand-saturation` and
+  `--brand-lightness` at the top of `packages/ui/tokens/tokens.css`. The brand
+  scale and `--primary` derive from them — the brand is navy, `hsl(240 100% 25%)`
+  = `#000080`. Change those three, not the individual colours.
+- The semantic colours do **not** follow the brand: `--success` has its own
+  `--success-hue` (green), alongside `--destructive-hue`, `--warning-hue` and
+  `--info-hue`. Success means "this worked", not "this is us".
 - **Never hard-code a design value.** In a `className`, use the Tailwind
   utility. Where a real CSS string is needed, import from
   `@hamdastan/ui/tokens` — those files reference the custom properties rather
@@ -73,15 +77,46 @@ the rule to that document before writing the code.
 
 ### Authentication
 
-`apps/web/src/features/auth/services/session.service.ts` is a skeleton: users
-and sessions are in memory, passwords are plain text, and nothing survives a
-restart. It is deliberately the only module that knows this. When a real backend
-arrives, rewrite the bodies there and leave the exported signatures
-(`getSession`, `requireAuth`, `requireAdmin`, `login`, `logout`) alone.
+Sign-in is passwordless: a mobile number, then a four-digit code. There are no
+passwords or usernames anywhere in the product.
 
-It still lives in the web app rather than in `apps/api/src/modules/auth`, which
-is a skeleton. Moving it is a separate task: the in-memory session store cannot
-simply be split across two processes.
+`apps/api/src/modules/auth` owns all of it — users, codes and sessions — and is
+the only thing that decides anything. `apps/web/src/features/auth` renders the
+steps; `services/session.service.ts` there reads the session cookie and asks the
+backend who it belongs to, and exports `getSession`, `requireAuth` and
+`requireAdmin` for server components. It stores nothing.
+
+The session cookie is issued and cleared by `apps/api`, so signing in and
+signing out are browser-to-backend calls. Clearing the cookie from the web app
+would leave a usable session on the server.
+
+Users and sessions live in memory: `createInMemoryAuthRepository()` in
+`auth.repository.ts`, bound in `app.ts` and only when `NODE_ENV` is not
+`production` — in production the slot stays empty and auth answers 501 rather
+than silently serving a per-instance user store. Nothing survives a restart and
+nothing is shared between processes. That function is deliberately the only place that
+knows it — when a data layer arrives, implement `AuthRepository` against it,
+bind it in `server.ts`, and delete the stand-in. The schema to build is in
+`docs/architecture/auth-data-model.md`; session tokens must be stored hashed.
+
+Delivery is an adapter (`apps/api/src/integrations/otp/`). Only a mock exists —
+it logs the code. With `SHOW_DEV_OTP=true` outside production the backend echoes
+the code into the response and the verify screen shows it, which is how the flow
+is walked locally and in the e2e tests. The front-end never generates a code.
+
+`npm run dev` starts both apps, because the login screen is useless without
+`apps/api` — `npm run dev:web` and `npm run dev:api` run either half alone.
+
+Read `docs/architecture/auth-flow.md` before changing any of it.
+
+### Dates
+
+The UI is Persian, so a date a user picks or reads is **Jalali**; a date that
+crosses the wire or gets stored is **ISO Gregorian** (`YYYY-MM-DD`), because
+that is what every other system understands. `packages/shared/format/jalali.ts`
+is the only place that converts, and it asks the platform's own Persian calendar
+(`Intl` with `ca-persian`) rather than implementing leap rules. Do not add a
+date library without being asked.
 
 ### Database
 
@@ -112,8 +147,9 @@ shadow the root one.
 - `npm run lint:all` — ESLint (architecture boundaries included) plus the RTL
   check. Run for non-trivial changes.
 - `npm test` — unit tests (Vitest).
-- `npm run test:e2e` — end-to-end tests (Playwright). Starts its own dev server
-  with `SKIP_AUTH=false` so the real login flow is exercised.
+- `npm run test:e2e` — end-to-end tests (Playwright). Starts both `apps/web`
+  and `apps/api`, because signing in is a conversation between them, with
+  `SHOW_DEV_OTP=true` so the tests can read the code off the screen.
 
 ---
 

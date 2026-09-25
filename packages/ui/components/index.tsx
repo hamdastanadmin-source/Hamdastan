@@ -99,7 +99,10 @@ import {
   PopoverTrigger,
 } from '../primitives/popover';
 import { Progress } from '../primitives/progress';
-import { RadioGroup, RadioGroupItem } from '../primitives/radio-group';
+import {
+  RadioGroup as RadioGroupPrimitive,
+  RadioGroupItem,
+} from '../primitives/radio-group';
 import { ScrollArea, ScrollBar } from '../primitives/scroll-area';
 import {
   Select as SelectPrimitive,
@@ -224,7 +227,7 @@ export {
   PopoverDescription,
 };
 export { Progress };
-export { RadioGroup, RadioGroupItem };
+export { RadioGroupItem };
 export { ScrollArea, ScrollBar };
 export {
   SelectGroup,
@@ -302,6 +305,19 @@ export const DropdownMenu = ({
 }: React.ComponentProps<typeof DropdownMenuPrimitive> & {
   dir?: 'ltr' | 'rtl';
 }) => <DropdownMenuPrimitive dir={dir ?? APP_DIR} {...props} />;
+
+/**
+ * Radix writes `dir="ltr"` onto the radiogroup itself when nothing tells it
+ * otherwise, which flips the row the items sit in and reverses what the arrow
+ * keys do. It is not portalled — it is simply opinionated — so it needs the
+ * same treatment as the portalled components above.
+ */
+export const RadioGroup = ({
+  dir,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive> & { dir?: 'ltr' | 'rtl' }) => (
+  <RadioGroupPrimitive dir={dir ?? APP_DIR} {...props} />
+);
 
 /** Tables default to start-aligned text so Persian content reads correctly. */
 export const Table = ({

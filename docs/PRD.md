@@ -2,7 +2,7 @@
 
 **Product:** hamdastan
 **Version:** 1.0
-**Last Updated:** 2026-09-22
+**Last Updated:** 2026-09-25
 **Status:** Active Development
 
 ---
@@ -35,9 +35,9 @@
 |---------------|------------------------------------------------|
 | Frontend      | Next.js 16 (App Router), React 19, Tailwind 4   |
 | UI            | shadcn/ui on Radix, with local RTL wrappers     |
-| Backend       | Next.js Server Actions + API Routes            |
+| Backend       | Fastify 5 (`apps/api`), layered route → controller → service → repository |
 | Database      | None yet — see RULES.md before adding one       |
-| Auth          | Cookie sessions, in-memory skeleton             |
+| Auth          | Mobile number + one-time code (OTP), cookie sessions |
 | Deployment    | Docker (standalone Next.js output)              |
 
 ---
@@ -65,31 +65,67 @@
 
 ## 5. User Flows
 
-### 5.1 Flow Name
+### 5.1 Sign in / sign up
+
+There is one door into the product, at `/login`, and no passwords. Full detail
+in [architecture/auth-flow.md](./architecture/auth-flow.md).
 
 ```
-User navigates to /path
+User opens the app
   |
-  +-- Step 1
-  +-- Step 2
-  +-- Step 3
+  +-- enters a mobile number
+  |     |
+  |     +-- the backend checks whether it is registered
+  |
+  +-- registered ──→ a 4-digit code is sent
+  |                    |
+  |                    +-- enters the code  ──→ signed in
+  |
+  +-- not registered ─→ registration form (name, surname, date of birth in the
+  |                      Jalali calendar, gender)
+                         |
+                         +-- a 4-digit code is sent
+                              |
+                              +-- enters the code ──→ account created ──→ signed in
 ```
+
+On the code screen the user sees the number the code went to, a two-minute
+countdown, a resend that unlocks when the countdown ends, and **ویرایش شماره**,
+which cancels the code in flight and returns to the first step.
+
+A user account exists only after a code has been verified. Submitting the
+registration form on its own creates nothing.
 
 ---
 
 ## 6. Data Model
 
+No database has been chosen, so nothing here is implemented. What is designed:
+
 ### 6.1 Entity Relationship Diagram
 
 ```
-+------------+       +------------+
-|   Entity1  |--1:N--|   Entity2  |
-+------------+       +------------+
++------------+       +--------------------------+
+|    User    |--1:N--|         Session          |
++------------+       +--------------------------+
+      |
+      | by phone number, not by key
+      |
++--------------------------+
+|  VerificationChallenge   |   at most one live per number
++--------------------------+
 ```
 
 ### 6.2 Key Relationships
 
-- Describe relationships between entities.
+- A **User** has many **Sessions**; deleting the user ends all of them.
+- A **VerificationChallenge** belongs to a phone *number*, not to a user — a
+  code is issued before an account exists, which is what lets registration
+  require a verified phone.
+
+Fields, constraints, indexes and the lifecycle of each entity are in
+[architecture/auth-data-model.md](./architecture/auth-data-model.md). Nothing
+outside authentication is designed yet.
 
 ---
 
@@ -97,15 +133,26 @@ User navigates to /path
 
 ### 7.1 REST API Routes
 
-| Method | Endpoint              | Description              |
-|--------|-----------------------|--------------------------|
-| GET    | `/api/example`        | Example endpoint         |
+`apps/api`, mounted under `/api/v1`. Reference:
+[api/auth.md](./api/auth.md).
+
+| Method | Endpoint                 | Description                                  |
+|--------|--------------------------|----------------------------------------------|
+| GET    | `/health`                | Liveness probe, outside the version prefix   |
+| POST   | `/api/v1/auth/check-phone` | Is this number registered?                 |
+| POST   | `/api/v1/auth/register`  | Hold a new user's profile, send a code       |
+| POST   | `/api/v1/auth/otp/send`  | Send a code — and, called again, the resend  |
+| POST   | `/api/v1/auth/otp/verify`| Verify a code: creates the session           |
+| POST   | `/api/v1/auth/otp/cancel`| Cancel the code in flight (ویرایش شماره)     |
+| GET    | `/api/v1/auth/session`   | Who the session cookie belongs to            |
+| POST   | `/api/v1/auth/logout`    | Invalidate the session                       |
+
+Every other module (`users`, `worlds`, `content`, …) is mounted and empty.
 
 ### 7.2 Server Actions (RPC)
 
-| Action              | Module  | Description              |
-|---------------------|---------|--------------------------|
-| `exampleAction()`   | Example | Example action           |
+None. The front-end reaches the backend through `src/services` over HTTP, so
+there is one request path rather than two.
 
 ---
 
@@ -115,9 +162,10 @@ User navigates to /path
 
 | Token          | Value                          |
 |----------------|--------------------------------|
-| Brand Color    | `--brand-hue: 142` (green)     |
+| Brand Color    | `#000080` navy — `--brand-hue: 240`, `--brand-lightness: 25%` |
 | Font Family    | Yekan Bakh (Persian typeface)  |
 | Theme          | Dark mode (default)            |
+| Calendar       | Jalali in the UI, ISO Gregorian on the wire |
 | Layout         | RTL                            |
 | Framework      | Tailwind CSS v4 + CVA variants |
 | Components     | shadcn/ui (new-york style)     |

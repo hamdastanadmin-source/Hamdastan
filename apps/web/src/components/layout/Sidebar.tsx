@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
 } from '@hamdastan/ui';
 import { useSidebar } from './SidebarContext';
-import { logoutAction, useAuth } from '@/features/auth';
+import { useAuth, useLogout } from '@/features/auth';
 
 type NavItem = {
     label: string;
@@ -93,6 +93,7 @@ function NavItemContent({ item, isActive, collapsed }: { item: NavItem; isActive
 function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
     const pathname = usePathname();
     const user = useAuth();
+    const { logout } = useLogout();
     const isAdmin = user.role === 'ADMIN';
 
     // Filter groups based on role
@@ -171,7 +172,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <button
-                                    onClick={() => logoutAction()}
+                                    onClick={logout}
                                     className="flex items-center justify-center px-3 py-2 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 w-full"
                                 >
                                     <LogOut className="w-4.5 h-4.5 shrink-0" />
@@ -184,7 +185,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                     </TooltipProvider>
                 ) : (
                     <button
-                        onClick={() => logoutAction()}
+                        onClick={logout}
                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 w-full"
                     >
                         <LogOut className="w-4.5 h-4.5 shrink-0" />
@@ -225,7 +226,7 @@ export function Sidebar() {
                 {!isCollapsed && (
                     <div className="px-4 py-3 border-t border-border/60">
                         <p className="text-2xs text-muted-foreground/50 text-center">
-                            هم‌دستان
+                            هم‌داستان
                         </p>
                     </div>
                 )}
@@ -243,7 +244,7 @@ export function Sidebar() {
                     <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
                     <div className="px-4 py-3 border-t border-border/60">
                         <p className="text-2xs text-muted-foreground/50 text-center">
-                            هم‌دستان
+                            هم‌داستان
                         </p>
                     </div>
                 </SheetContent>

@@ -36,3 +36,25 @@ export function formatCompactNumber(num: number | null | undefined): string {
   const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
   return `${formatted}m`;
 }
+
+const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+
+/**
+ * ASCII digits to Persian ones, digit by digit.
+ *
+ * Unlike `formatNumber` it leaves everything else alone, which is what a
+ * countdown, a phone number or a one-time code needs — they are digit strings,
+ * not quantities, and must not pick up thousands separators.
+ */
+export function toPersianDigits(value: string | number): string {
+  return String(value).replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)]);
+}
+
+/**
+ * An Iranian mobile number as it is read aloud: `09123456789` becomes
+ * `۰۹۱۲ ۳۴۵ ۶۷۸۹`. Anything that is not eleven digits is returned
+ * with its digits converted and nothing else assumed.
+ */
+export function formatPhone(phone: string): string {
+  return toPersianDigits(phone.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3'));
+}

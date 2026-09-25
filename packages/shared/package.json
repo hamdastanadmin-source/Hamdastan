@@ -8,10 +8,12 @@
     "./cn": "./cn.ts",
     "./logger": "./logger.ts",
     "./http": "./http.ts",
-    "./format/number": "./format/number.ts"
+    "./format/number": "./format/number.ts",
+    "./format/jalali": "./format/jalali.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@hamdastan/config": "*",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.1"
   }
 }

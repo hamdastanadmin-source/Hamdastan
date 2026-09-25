@@ -5,7 +5,7 @@
  * alike. App-specific configuration belongs in that app, not in this file.
  */
 
-export const APP_NAME = 'هم‌دستان';
+export const APP_NAME = 'هم‌داستان';
 export const APP_SLUG = 'hamdastan';
 
 /** Default ports each app listens on in development. */
@@ -28,3 +28,12 @@ export const API_BASE_URL =
 
 /** Prefix every backend route is mounted under. */
 export const API_PREFIX = '/api/v1';
+
+/**
+ * Name of the session cookie.
+ *
+ * `apps/api` sets and clears it; the front-end apps read it server-side to
+ * forward the session when they render. Both sides have to agree on the name,
+ * so it is spelled once, here.
+ */
+export const SESSION_COOKIE_NAME = 'session';

@@ -26,6 +26,18 @@ export class ValidationError extends AppError {
   }
 }
 
+/**
+ * A rejected request whose reason the client has to tell apart from other
+ * rejections — so, like `TooManyRequestsError`, the code comes first. Use
+ * `ValidationError` for a malformed body; this is for a body that parsed and
+ * still cannot be honoured.
+ */
+export class BadRequestError extends AppError {
+  constructor(code: string, message: string, details?: unknown) {
+    super(400, code, message, details);
+  }
+}
+
 export class UnauthorizedError extends AppError {
   constructor(message = 'برای این درخواست باید وارد شوید') {
     super(401, 'UNAUTHORIZED', message);
@@ -33,8 +45,20 @@ export class UnauthorizedError extends AppError {
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message = 'اجازهٔ دسترسی به این بخش را ندارید') {
-    super(403, 'FORBIDDEN', message);
+  /** `code` narrows the refusal where the client reacts to the reason. */
+  constructor(message = 'اجازهٔ دسترسی به این بخش را ندارید', code = 'FORBIDDEN') {
+    super(403, code, message);
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  /**
+   * Rate limits are told apart by their code, not their message — the UI
+   * reacts differently to a resend cooldown and to a locked-out code — so the
+   * code comes first here rather than being fixed per class.
+   */
+  constructor(code: string, message: string, details?: unknown) {
+    super(429, code, message, details);
   }
 }
 
@@ -47,6 +71,13 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(message = 'این مورد از قبل وجود دارد') {
     super(409, 'CONFLICT', message);
+  }
+}
+
+/** A service this API depends on failed, and the failure is not the caller's. */
+export class UpstreamUnavailableError extends AppError {
+  constructor(code: string, message: string, details?: unknown) {
+    super(502, code, message, details);
   }
 }
 
