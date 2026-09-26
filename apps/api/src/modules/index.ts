@@ -1,10 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify';
 
+import { adminAuthRoutes } from './admin-auth';
+import { adminUsersRoutes } from './admin-users';
 import { authRoutes } from './auth';
 import { commerceRoutes } from './commerce';
 import { communityRoutes } from './community';
 import { contentRoutes } from './content';
 import { eventsRoutes } from './events';
+import { adminFormsRoutes, publicFormsRoutes } from './forms';
 import { missionsRoutes } from './missions';
 import { notificationsRoutes } from './notifications';
 import { progressRoutes } from './progress';
@@ -24,6 +27,14 @@ export const moduleRoutes: ReadonlyArray<{
   routes: FastifyPluginAsync;
 }> = [
   { prefix: '/auth', routes: authRoutes },
+  // The admin panel. Separate from `/auth` in every sense — its own module, its
+  // own cookie, its own user store, and no way from one into the other.
+  { prefix: '/admin/auth', routes: adminAuthRoutes },
+  { prefix: '/admin/users', routes: adminUsersRoutes },
+  { prefix: '/admin/forms', routes: adminFormsRoutes },
+  // The respondent's half of the same module: open to whoever a form's
+  // audience allows, which is why it is not under /admin.
+  { prefix: '/forms', routes: publicFormsRoutes },
   { prefix: '/users', routes: usersRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
   { prefix: '/content', routes: contentRoutes },

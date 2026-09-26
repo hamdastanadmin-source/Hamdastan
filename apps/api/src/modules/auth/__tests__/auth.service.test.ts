@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OTP_CODE_LENGTH } from '@hamdastan/validation';
 
-import { mockOtpProvider } from '../../../integrations/otp';
+import { mockSmsProvider } from '../../../integrations/sms';
 import { AppError } from '../../../shared/errors';
 import { createInMemoryAuthRepository, setAuthRepository } from '../auth.repository';
 import { authService } from '../auth.service';
@@ -44,7 +44,7 @@ async function expectFailure(promise: Promise<unknown>, code: string) {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
-  mockOtpProvider.clear();
+  mockSmsProvider.clear();
   setAuthRepository(createInMemoryAuthRepository());
 });
 

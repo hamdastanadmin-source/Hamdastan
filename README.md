@@ -28,7 +28,7 @@ directory, so `setup.sh` symlinks `apps/web/.env` and `apps/admin/.env` to it �
 edit the root file and both apps see the change. `apps/api` reads the same file
 via `--env-file-if-exists`, and `docker compose` via `env_file`.
 
-### Signing in
+### Signing in to the product
 
 Sign-in is passwordless: a mobile number, then a four-digit code.
 
@@ -39,6 +39,47 @@ log). It is ignored when `NODE_ENV=production`.
 There are no seed accounts — the store starts empty, so the first number you
 type registers. `docs/architecture/auth-flow.md` has the whole flow.
 
+### Signing in to the admin panel
+
+The panel is a different door: a username and a password, and no way to
+register. Run it with the backend:
+
+```bash
+npm run dev:api & npm run dev:admin    # → http://localhost:3001
+```
+
+Outside production `apps/api` seeds one admin, because admins cannot create
+themselves:
+
+| | |
+| --- | --- |
+| Username | `Admin` |
+| Password | `Admin1234` |
+
+It starts owing a password change, so the first thing it does is send you to
+`/change-password` — that is the flow working, not a problem. The new password
+needs 8+ characters with an uppercase letter, a lowercase letter, a digit and a
+special character.
+
+Creating an admin from the panel generates a six-digit temporary password and
+"texts" it (the mock gateway writes it to the `apps/api` log).
+`.env.example` ships with `SHOW_DEV_CREDENTIALS=true`, so it is also shown in
+the dialog — ignored when `NODE_ENV=production`, like `SHOW_DEV_OTP`.
+
+`docs/architecture/admin-auth-flow.md` has the whole flow.
+
+### Forms & surveys
+
+The panel's «فرم‌ها و نظرسنجی‌ها» builds forms; the product is where people
+answer them. `apps/api` ships seeded Persian sample data — four forms, six
+templates and forty-eight responses — so the dashboard, the builder and the
+charts all show something real on a fresh checkout.
+
+A published form is answered at `http://localhost:3000/forms/{id}`, which is the
+link the panel's share dialog gives you. Try
+`/forms/form-support-satisfaction`. `docs/architecture/forms-module.md` has the
+whole module.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -48,7 +89,7 @@ type registers. `docs/architecture/auth-flow.md` has the whole flow.
 | UI Components | shadcn/ui (Radix) behind RTL-safe wrappers in `packages/ui` |
 | Validation | zod, shared between front-end and backend |
 | Database | **None chosen yet** — see `database/README.md` |
-| Auth | Mobile number + one-time code, cookie sessions (`apps/api/src/modules/auth`) |
+| Auth | Product: mobile number + one-time code (`modules/auth`). Panel: username + password (`modules/admin-auth`, `modules/admin-users`) |
 | Deployment | Docker (standalone Next.js output), one image per app |
 
 ## Project Structure

@@ -16,3 +16,24 @@ export type PaginationQueryInput = z.input<typeof paginationQuerySchema>;
 export type PaginationQueryOutput = z.output<typeof paginationQuerySchema>;
 
 export const sortDirectionSchema = z.enum(['asc', 'desc']).default('asc');
+
+/** Persian and Arabic-Indic digit forms to ASCII, so ۰۹۱۲ and 0912 are one number. */
+export function toLatinDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+}
+
+/**
+ * A person's name, as every form in the product collects it.
+ *
+ * Shared by the product's registration form and the admin panel's create-user
+ * form so the two cannot disagree about what a name is. `label` is what the
+ * message names, which is why it is a factory rather than a constant.
+ */
+export const personNameSchema = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(2, `${label} باید حداقل ۲ نویسه باشد`)
+    .max(50, `${label} طولانی‌تر از حد مجاز است`);

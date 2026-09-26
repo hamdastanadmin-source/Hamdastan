@@ -25,6 +25,13 @@ const layoutFiles = [
 ];
 const scanExt = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const disallowedClassRegex = /(^|[\s"'`{(])((?:ml|mr|pl|pr|left|right)-[^\s"'`})]+)/g;
+
+// Alignment is direction too, and it is the one that shows: a `text-left`
+// header sits over right-aligned data. Matched separately because these are
+// whole class names rather than a prefix, and a variant may precede them
+// (`sm:text-left`).
+const disallowedAlignmentRegex =
+  /(^|[\s"'`{(])((?:[a-z-]+:)*(?:text-left|text-right|float-left|float-right))(?=[\s"'`})]|$)/g;
 const violations = [];
 
 function walk(dir) {
@@ -83,6 +90,17 @@ function checkFile(filePath) {
         filePath,
         i + 1,
         `Physical direction utility '${token}' is forbidden. Use logical utilities (ms/me/ps/pe/start/end).`,
+      );
+    }
+
+    disallowedAlignmentRegex.lastIndex = 0;
+    while ((match = disallowedAlignmentRegex.exec(line)) !== null) {
+      const token = match[2];
+      const logical = token.replace('left', 'start').replace('right', 'end');
+      addViolation(
+        filePath,
+        i + 1,
+        `Physical alignment '${token}' is forbidden. Use '${logical}'.`,
       );
     }
   }

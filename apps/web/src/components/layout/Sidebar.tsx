@@ -6,15 +6,12 @@ import { usePathname } from 'next/navigation';
 import type { ComponentType } from 'react';
 import { Home, Layers, LogOut } from 'lucide-react';
 import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@hamdastan/ui';
-import { useSidebar } from './SidebarContext';
+import { useSidebar } from './sidebar.store';
 import { useAuth, useLogout } from '@/features/auth';
 
 type NavItem = {
@@ -90,7 +87,7 @@ function NavItemContent({ item, isActive, collapsed }: { item: NavItem; isActive
     );
 }
 
-function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+function SidebarNav({ collapsed }: { collapsed: boolean }) {
     const pathname = usePathname();
     const user = useAuth();
     const { logout } = useLogout();
@@ -124,9 +121,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                                         {!item.href || item.comingSoon ? (
                                             <div>{content}</div>
                                         ) : (
-                                            <Link href={item.href} onClick={onNavigate}>
-                                                {content}
-                                            </Link>
+                                            <Link href={item.href}>{content}</Link>
                                         )}
                                     </TooltipTrigger>
                                     <TooltipContent side="left" sideOffset={8}>
@@ -139,9 +134,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                             !item.href || item.comingSoon ? (
                                 <div>{content}</div>
                             ) : (
-                                <Link href={item.href} onClick={onNavigate}>
-                                    {content}
-                                </Link>
+                                <Link href={item.href}>{content}</Link>
                             )
                         );
 
@@ -198,57 +191,39 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 }
 
 export function Sidebar() {
-    const { isCollapsed, isMobileOpen, setMobileOpen } = useSidebar();
+    const { isCollapsed } = useSidebar();
 
+    // Tablet and up only. The drawer that used to bring this on a phone was
+    // opened by the header's hamburger and by nothing else, so it went with it
+    // — there is no navigation on a phone at the moment.
     return (
-        <>
-            {/* Desktop / Tablet sidebar */}
-            <aside
-                className={`
-                    sticky top-0 h-screen shrink-0 border-l border-border bg-card/60 backdrop-blur-xl
-                    flex-col z-50 transition-[width] duration-300 ease-in-out overflow-hidden
-                    hidden md:flex
-                    ${isCollapsed ? 'w-16' : 'w-60'}
-                `}
-            >
-                <div className="h-14 shrink-0 flex items-center justify-center px-5 border-b border-border">
-                    <Link href="/">
-                        {isCollapsed ? (
-                            <Image src="/images/brand/logo.svg" alt="Logo" width={32} height={32} className="h-8 w-8 object-contain" priority />
-                        ) : (
-                            <Image src="/images/brand/logo.svg" alt="Logo" width={120} height={40} className="h-8 w-auto" priority />
-                        )}
-                    </Link>
+        <aside
+            className={`
+                sticky top-0 h-screen shrink-0 border-l border-border bg-card/60 backdrop-blur-xl
+                flex-col z-50 transition-[width] duration-300 ease-in-out overflow-hidden
+                hidden md:flex
+                ${isCollapsed ? 'w-16' : 'w-60'}
+            `}
+        >
+            <div className="h-14 shrink-0 flex items-center justify-center px-5 border-b border-border">
+                <Link href="/">
+                    {isCollapsed ? (
+                        <Image src="/images/brand/logo.svg" alt="هم‌داستان" width={32} height={32} className="h-8 w-8 object-contain" priority />
+                    ) : (
+                        <Image src="/images/brand/logo.svg" alt="هم‌داستان" width={120} height={40} className="h-8 w-auto" priority />
+                    )}
+                </Link>
+            </div>
+
+            <SidebarNav collapsed={isCollapsed} />
+
+            {!isCollapsed && (
+                <div className="px-4 py-3 border-t border-border/60">
+                    <p className="text-2xs text-muted-foreground/50 text-center">
+                        هم‌داستان
+                    </p>
                 </div>
-
-                <SidebarNav collapsed={isCollapsed} />
-
-                {!isCollapsed && (
-                    <div className="px-4 py-3 border-t border-border/60">
-                        <p className="text-2xs text-muted-foreground/50 text-center">
-                            هم‌داستان
-                        </p>
-                    </div>
-                )}
-            </aside>
-
-            {/* Mobile Sheet drawer */}
-            <Sheet open={isMobileOpen} onOpenChange={setMobileOpen}>
-                <SheetContent side="right" className="w-60 p-0 flex flex-col">
-                    <SheetTitle className="sr-only">منوی ناوبری</SheetTitle>
-                    <div className="h-14 shrink-0 flex items-center justify-center px-5 border-b border-border">
-                        <Link href="/" onClick={() => setMobileOpen(false)}>
-                            <Image src="/images/brand/logo.svg" alt="Logo" width={120} height={40} className="h-8 w-auto" priority />
-                        </Link>
-                    </div>
-                    <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
-                    <div className="px-4 py-3 border-t border-border/60">
-                        <p className="text-2xs text-muted-foreground/50 text-center">
-                            هم‌داستان
-                        </p>
-                    </div>
-                </SheetContent>
-            </Sheet>
-        </>
+            )}
+        </aside>
     );
 }

@@ -44,11 +44,18 @@ test.describe('registration', () => {
     await verifyAndLand(page);
 
     await expect(page).toHaveURL('/');
+
+    // The first name typed into the form is the name the app greets them by.
     await expect(
-      page.locator('#main-content').getByRole('heading', { name: 'داشبورد' })
+      page
+        .locator('#main-content')
+        .getByRole('heading', { name: `سلام ${REGISTRATION.firstName}`, exact: false })
     ).toBeVisible();
-    // The name typed into the form is the name the app greets them by.
-    await expect(page.locator('#main-content')).toContainText('آزمون کاربر');
+
+    // And the quizzes are there, waiting rather than clickable.
+    await expect(
+      page.locator('#main-content').getByRole('heading', { name: 'آزمون‌ها' })
+    ).toBeVisible();
 
     // The date was picked as ۲۰ مرداد ۱۳۷۰ and has to have been stored as the
     // Gregorian day it means — the whole point of the Jalali conversion.

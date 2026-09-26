@@ -44,6 +44,17 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+/**
+ * A rejected sign-in whose reason the client has to tell apart from a missing
+ * session — the admin login form shows a wrong password differently from an
+ * expired one. Like `TooManyRequestsError`, the code comes first.
+ */
+export class AuthenticationFailedError extends AppError {
+  constructor(code: string, message: string, details?: unknown) {
+    super(401, code, message, details);
+  }
+}
+
 export class ForbiddenError extends AppError {
   /** `code` narrows the refusal where the client reacts to the reason. */
   constructor(message = 'اجازهٔ دسترسی به این بخش را ندارید', code = 'FORBIDDEN') {

@@ -1,28 +1,19 @@
 /**
- * Delivery of one-time codes — the outbound side of the auth module.
+ * Delivery of one-time codes — the outbound side of the product's auth module.
  *
- * `otpProvider()` is the only thing the service calls. Which adapter answers
- * is an environment decision, made here and nowhere else.
+ * `otpProvider()` is the only thing `modules/auth` calls. It is a thin template
+ * over `integrations/sms`: a code becomes a Persian message and leaves through
+ * the one gateway adapter the project has, so contracting a vendor is one
+ * implementation in `sms/`, not one per message type.
  */
 
-import { env } from '../../config';
-
-import { mockOtpProvider } from './mock-otp-provider';
+import { smsOtpProvider } from './sms-otp-provider';
 import type { OtpProvider } from './otp-provider';
 
-const providers: Record<typeof env.OTP_PROVIDER, () => OtpProvider> = {
-  mock: () => mockOtpProvider,
-};
-
-/**
- * When a real gateway arrives: add its implementation beside
- * `mock-otp-provider.ts`, add it to the map above, and set `OTP_PROVIDER`.
- * Nothing in `modules/auth` changes.
- */
 export function otpProvider(): OtpProvider {
-  return providers[env.OTP_PROVIDER]();
+  return smsOtpProvider;
 }
 
 export { OtpDeliveryError } from './otp-provider';
 export type { OtpMessage, OtpProvider } from './otp-provider';
-export { mockOtpProvider } from './mock-otp-provider';
+export { smsOtpProvider } from './sms-otp-provider';

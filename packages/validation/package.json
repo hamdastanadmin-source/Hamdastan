@@ -6,13 +6,16 @@
   "exports": {
     ".": "./index.ts",
     "./common": "./common.ts",
-    "./auth": "./auth.ts"
+    "./auth": "./auth.ts",
+    "./admin": "./admin.ts",
+    "./forms": "./forms.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "@hamdastan/shared": "*"
   },
   "devDependencies": {
     "@hamdastan/config": "*",

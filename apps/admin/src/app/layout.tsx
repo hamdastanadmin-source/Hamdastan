@@ -37,7 +37,10 @@ export default function AdminRootLayout({
       <body
         className={`${yekanBakh.className} font-sans antialiased bg-background text-foreground`}
       >
-        <main id="main-content">{children}</main>
+        {/* No landmark here: the page provides it — `AdminShell` for the
+            dashboard, the sign-in screens for themselves. Two nested <main>
+            elements with one id is invalid and confuses a screen reader. */}
+        {children}
         <Toaster />
       </body>
     </html>

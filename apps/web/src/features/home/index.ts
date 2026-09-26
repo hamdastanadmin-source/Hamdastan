@@ -1,20 +1,13 @@
 /**
- * Home — صفحهٔ خانه: فید شخصی‌سازی‌شده و میان‌برهای ورود به دنیاها.
+ * Home — صفحهٔ خانه: خوش‌آمدگویی و آزمون‌هایی که کاربر می‌تواند بدهد.
  *
  * Public surface of the feature. Nothing outside it imports past this file.
+ * `/` renders `HomeScreen` and passes it the signed-in user's first name; the
+ * layout of the screen is a detail of this feature.
  *
- * Add the directories below as the feature needs them, not before:
- *   components/  UI that only this feature uses
- *   hooks/       React state and effects for this feature
- *   services/    calls to apps/api, through `@/services`
- *   types/       types private to this feature
- *   utils/       helpers private to this feature
- *
- * Anything a second feature starts needing moves out: shared UI to
- * `@hamdastan/ui`, shared types to `@hamdastan/types`, shared helpers to
- * `@hamdastan/shared`. See docs/ARCHITECTURE.md.
- *
- * A server-only surface, when one is needed, goes in `./server.ts`.
+ * The quizzes are placeholders: no backend endpoint lists them yet — see the
+ * note in `components/HomeScreen.tsx`. When one exists, this feature grows a
+ * `services/` directory and the constant there goes away.
  */
 
-export {};
+export { HomeScreen } from './components/HomeScreen';

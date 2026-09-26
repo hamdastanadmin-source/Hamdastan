@@ -6,7 +6,9 @@
   "exports": {
     ".": "./index.ts",
     "./auth": "./auth.ts",
-    "./api": "./api.ts"
+    "./api": "./api.ts",
+    "./admin": "./admin.ts",
+    "./forms": "./forms.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

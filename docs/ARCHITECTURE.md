@@ -53,6 +53,8 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | A validation rule both sides apply | `packages/validation` |
 | A helper one feature uses | that feature's `utils/` |
 | A helper genuinely shared | `packages/shared` |
+| A role's permissions (admin RBAC) | `packages/shared/rbac/admin-rbac.ts` |
+| An authorisation guard (backend) | `apps/api/src/middleware` |
 | A date shown to a user (Jalali) or stored (ISO Gregorian) | `packages/shared/format/jalali.ts` |
 | A colour, spacing or radius value | `packages/ui/tokens` |
 | A design source file (PSD, AI, Figma export) | `assets/` |
@@ -63,8 +65,11 @@ Two rules cover the rest:
 - **Every file has one responsibility.** If you cannot name it in a sentence,
   it is two files.
 - **No circular dependencies.** Dependencies point one way:
-  `apps → packages`, and inside `packages`, `ui → shared → types`.
-  Nothing in `packages/` imports from `apps/`, and no app imports another app.
+  `apps → packages`, and inside `packages`,
+  `ui → shared → types` and `validation → shared`. (`validation` reads the admin
+  role catalogue from `shared/rbac` so that a role the panel offers is by
+  construction a role the schemas accept.) Nothing in `packages/` imports from
+  `apps/`, and no app imports another app.
 
 ---
 
@@ -85,10 +90,21 @@ src/
 
 ### Features
 
+`apps/web`:
+
 ```
 features/
-├── auth/  onboarding/  home/  worlds/  play/  community/
+├── auth/  onboarding/  home/  worlds/  play/  community/  forms/
 └── profile/  events/  commerce/  notifications/  search/
+```
+
+`apps/admin`, which is a different product with a different sign-in:
+
+```
+features/
+├── auth/   username + password, and the forced password change
+├── users/  «مدیریت کاربران» — the admin accounts themselves
+└── forms/  «فرم‌ها و نظرسنجی‌ها» — the builder, and what answers it collected
 ```
 
 A feature grows the directories it needs and no others:
@@ -107,7 +123,8 @@ import it by relative path. `apps/web/src/__tests__/` is for the app as a whole
 
 `index.ts` and `server.ts` are the feature's entire surface. Reaching past them
 (`@/features/auth/hooks/use-auth`) is a lint error — it is what turns a feature
-into a tangle. `auth` is the worked example; the rest are empty on purpose.
+into a tangle. In `apps/web`, `auth` and `forms` are the worked examples and the
+rest are empty on purpose.
 
 Splitting `index.ts` from `server.ts` keeps a client component from pulling
 server-only code into its bundle. `apps/web/src/features/auth` shows the shape:
@@ -116,10 +133,37 @@ route guards in `server.ts`. Its `/login` route renders `<AuthFlow />` and
 passes it nothing, so the steps and their order stay inside the feature — see
 `docs/architecture/auth-flow.md`.
 
+`apps/admin/src/features/auth` is the same shape for the panel: the two forms
+and the hooks in `index.ts`; `getAdminSession`, `requireAdmin`,
+`requirePermission` and `requirePasswordChange` in `server.ts`. Those guards
+**redirect** — they do not authorise. A page that renders because
+`requirePermission` let it through still gets its data from a backend route that
+checks the same permission again, which is where the decision is actually made.
+See `docs/architecture/admin-auth-flow.md`.
+
+The panel's shell — `AdminShell`, `AdminSidebar`, `AdminHeader` — is in
+`apps/admin/src/components/layout`, because it belongs to the app rather than to
+a feature. It is a desktop dashboard that stays usable on a phone (sidebar →
+collapsed strip → `Sheet` drawer), which is the one way the admin app's layout
+rules differ from `apps/web`'s mobile-first ones.
+
+It carries **no brand lockup**: no logo and no product name, on the login screen
+or inside the shell. The panel is an internal tool reached by people who know
+what they are signing in to, so the sidebar's top row is the plain heading
+«پنل مدیریت» and the login card leads with its own title, start-aligned like
+every other card. The product name survives only in each route's `<title>`,
+which is what tells one browser tab from another. `apps/web` is where the brand
+belongs.
+
 ### Two rules the linter enforces
 
 **Business logic does not live in a React component.** A component renders.
 Decisions belong in a service; state machinery belongs in a hook or a store.
+
+**One `<main id="main-content">` per page.** Whichever shell owns the page
+provides it — the app shell for a signed-in page, the page itself for one that
+renders bare. Two nested landmarks with the same id is invalid markup, and React
+reports it as a hydration mismatch rather than as the markup bug it is.
 
 **A component never calls the network.** `fetch` is banned in `app/`,
 `components/`, `stores/` and a feature's `components/` and `hooks/`. Requests
@@ -143,16 +187,17 @@ src/
 ├── middleware/    cross-cutting request handling
 ├── config/        environment, parsed once at boot
 ├── integrations/  outbound adapters (SMS, payment, storage)
-├── shared/        errors, the repository seam, response and request helpers
+├── shared/        errors, the repository seam, response, request, password
+│                  and date helpers
 ├── app.ts         builds the server
 └── server.ts      owns the process
 ```
 
 ### Modules
 
-`auth`, `users`, `worlds`, `content`, `missions`, `trivia`, `community`,
-`progress`, `events`, `commerce`, `notifications`, `search` — each with the
-same seven files:
+`auth`, `admin-auth`, `admin-users`, `forms`, `users`, `worlds`, `content`,
+`missions`, `trivia`, `community`, `progress`, `events`, `commerce`,
+`notifications`, `search` — each with the same seven files:
 
 ```
 module/
@@ -190,6 +235,64 @@ Every response leaves as `ApiResponse<T>` from `@hamdastan/types` — `ok` and
 `shared/errors.ts`; `middleware/error-handler.ts` is the one place a thrown
 error becomes a status code.
 
+### CORS
+
+`app.ts` names the methods it allows explicitly. The default is `GET,HEAD,POST`,
+and the browser enforces it: without `PATCH` and `DELETE` in that list, every
+edit, autosave and delete fails in the browser while working perfectly from
+`curl` and from `app.inject()`. A backend test suite cannot see it, so the list
+is spelled out rather than inherited.
+
+### Guards
+
+Authorisation is cross-cutting request handling, so it lives in `middleware/`
+rather than in a module. `requireAdmin(permission?)` in
+`middleware/admin-guard.ts` returns a Fastify `preHandler`; a route declares the
+permission it needs and the decision is made in one place:
+
+```ts
+app.get('/', { preHandler: requireAdmin('users.view') }, adminUsersController.list);
+```
+
+A route may import a guard — it is not a service, and the lint rule that stops a
+route reaching a service is about business logic, not about who is allowed
+through the door. The guard itself calls `adminAuthService`, which is where
+every access decision for the panel is made.
+
+### Two modules over one entity
+
+`admin-auth` and `admin-users` are two views of one thing: an admin account,
+seen once as something to authenticate and once as something to manage. They
+follow the port rule rather than a table: each declares the data *it* needs, so
+`AdminUser` appears in both ports and a data layer implements both against the
+same rows.
+
+That makes them the one place a module reaches into another. The direction is
+fixed, `admin-auth → admin-users`, and the imports are to **leaf files** rather
+than to `index.ts`:
+
+```ts
+// admin-auth.repository.ts
+import type { AdminUserStore } from '../admin-users/admin-users.repository';
+```
+
+Importing the other module's `index.ts` would pull its routes in and make the
+graph circular once `admin-users.routes.ts` imports the guard. Importing the
+leaf file it actually needs keeps the dependency one-way. If a third module ever
+needs the same thing, the answer is to move the shared type rather than to add a
+second exception.
+
+### A module with two audiences
+
+`forms` mounts **two** route plugins: `/admin/forms`, guarded by admin
+permissions, and `/forms`, which anybody a form's audience allows may call. One
+module, because they are one domain with one set of rules — splitting them would
+put "may this person answer?" in two services.
+
+The public half uses `middleware/session-user.ts`, the mirror image of the admin
+guard: it resolves the product's session cookie if there is one and demands
+nothing, leaving the decision to the service that knows the form's audience.
+
 ### Request validation
 
 Fastify's own `schema` option takes JSON Schema, and no zod type provider is
@@ -212,8 +315,15 @@ vendor.
 
 ```
 integrations/
-└── otp/   delivery of one-time codes — mock only; no gateway contracted
+├── sms/   sending a text message — mock only; no gateway contracted
+└── otp/   one-time codes, as a template over sms/
 ```
+
+`otp/` is not a second gateway: it composes a code into a message and hands it
+to `sms/`, which is the only place a vendor is ever named. The admin panel's
+credentials go straight to `sms/`, because their wording is a business decision
+and lives in `admin-users.service.ts`. One adapter to write when a gateway is
+contracted, not one per kind of message.
 
 The front-end never calls an external service itself. If the product needs one,
 it goes here and `apps/api` exposes a route. See
@@ -232,9 +342,9 @@ Each module declares its data needs as an interface — a *port* — in
 the call throws `DataLayerNotConfiguredError` (HTTP 501) rather than returning
 fake data, so an unimplemented endpoint cannot pass for a working one.
 
-`auth` is the exception, because the product cannot be used at all without it:
-its `*.repository.ts` also exports `createInMemoryAuthRepository()`, a
-development stand-in bound in `app.ts`. Binding it there rather than in
+`auth` and the two admin modules are the exception, because neither the product
+nor the panel can be used at all without them: their `*.repository.ts` files
+also export in-memory stand-ins, bound in `app.ts`. Binding it there rather than in
 `server.ts` means the tests drive the same wiring the process does. A module may
 ship such a stand-in in its port file, and only there — it is deleted when a real
 data layer is bound. Its schema is designed in
@@ -261,7 +371,8 @@ No service, controller or route changes. See `database/README.md`.
 packages/ui/
 ├── components/  the public barrel, with the RTL wrappers
 ├── primitives/  shadcn/Radix building blocks — the only place Radix is imported
-├── patterns/    composed, reusable pieces (SectionHeader, ThemeToggle)
+├── patterns/    composed, reusable pieces (SectionHeader, ThemeToggle,
+│                JalaliDateField, QuestionField, FormRunner)
 ├── icons/       the dynamic icon loader
 ├── tokens/      colors, typography, spacing, radius, shadows
 └── styles/      the shared base layer
@@ -286,6 +397,12 @@ Never hard-code a design value in a component. In a `className`, use the
 Tailwind utility; where a real CSS string is required (canvas, a chart
 library), import from `@hamdastan/ui/tokens`. If a value is missing, add it to
 `tokens.css` first.
+
+Three patterns are there because **two apps need the same thing**, which is the
+rule in §2 rather than an exception to it: `JalaliDateField` collects a date in
+the calendar people read, and `QuestionField` and `FormRunner` render a form.
+The admin panel previews with the same `FormRunner` the product answers with, so
+"preview shows what end users see" is a fact about the code.
 
 The whole colour system has one input: `--brand-hue`, `--brand-saturation` and
 `--brand-lightness` at the top of `tokens.css`. The brand ramp and `--primary`

@@ -13,6 +13,7 @@ export {
   isoToJalali,
   jalaliMonthName,
   jalaliToISO,
+  formatJalaliDate,
   type JalaliDate,
 } from './format/jalali';
 export {
@@ -22,3 +23,22 @@ export {
   type HttpClientOptions,
   type RequestOptions,
 } from './http';
+export {
+  ADMIN_PERMISSIONS,
+  ADMIN_ROLE_CODES,
+  ADMIN_ROLES,
+  adminRoleName,
+  adminRolePermissions,
+  findAdminRole,
+  hasAdminPermission,
+  isAdminRoleCode,
+} from './rbac/admin-rbac';
+export {
+  answerOf,
+  answerText,
+  isEmptyAnswer,
+  matchesCondition,
+  nextPageOverride,
+  visibleQuestionIds,
+  type LogicContext,
+} from './forms/logic';

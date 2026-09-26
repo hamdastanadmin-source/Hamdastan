@@ -129,7 +129,10 @@ import {
 } from '../primitives/sheet';
 import { Skeleton } from '../primitives/skeleton';
 import { Toaster } from '../primitives/sonner';
-import { Slider } from '../primitives/slider';
+// The imperative half of the toaster. Exported here so an app never imports
+// `sonner` itself and the two halves cannot come from different copies of it.
+import { toast } from 'sonner';
+import { Slider as SliderPrimitive } from '../primitives/slider';
 import { Spinner } from '../primitives/spinner';
 import { DotStepper, ProgressStepper, Stepper } from '../primitives/stepper';
 import type { StepperProps } from '../primitives/stepper';
@@ -251,8 +254,7 @@ export {
   SheetDescription,
 };
 export { Skeleton };
-export { Toaster };
-export { Slider };
+export { Toaster, toast };
 export { Spinner };
 export { Stepper, DotStepper, ProgressStepper };
 export type { StepperProps };
@@ -305,6 +307,18 @@ export const DropdownMenu = ({
 }: React.ComponentProps<typeof DropdownMenuPrimitive> & {
   dir?: 'ltr' | 'rtl';
 }) => <DropdownMenuPrimitive dir={dir ?? APP_DIR} {...props} />;
+
+/**
+ * A slider fills from the side it starts on, and Radix decides which side that
+ * is from `dir`. Without this the fill grows from the wrong edge in an RTL
+ * layout, so 0→100 runs backwards and the handle sits at the wrong end.
+ */
+export const Slider = ({
+  dir,
+  ...props
+}: React.ComponentProps<typeof SliderPrimitive> & { dir?: 'ltr' | 'rtl' }) => (
+  <SliderPrimitive dir={dir ?? APP_DIR} {...props} />
+);
 
 /**
  * Radix writes `dir="ltr"` onto the radiogroup itself when nothing tells it

@@ -142,17 +142,23 @@ browser only sends credentials to origins the API echoes back.
 
 ## 5. Delivery
 
-No SMS gateway is contracted yet. Delivery sits behind an adapter in
-`apps/api/src/integrations/otp/`:
+No SMS gateway is contracted yet. Delivery sits behind two adapters: the code
+becomes a message, and the message goes to a gateway.
 
 ```
-auth.service ─→ otpProvider() ─→ MockOtpProvider   (writes the code to the log)
-                                 └── a real gateway goes here
+auth.service ─→ otpProvider() ─→ smsOtpProvider ─→ smsProvider() ─→ mockSmsProvider
+                                 (Persian template)                 (logs it)
+                                                                    └── a real
+                                                                        gateway
+                                                                        goes here
 ```
 
-The service depends on the `OtpProvider` interface, not on a vendor, so a real
-gateway is one more implementation plus a change to `OTP_PROVIDER`. No business
-logic moves. See [external SMS integration](./auth-sms-integration.md).
+The service depends on the `OtpProvider` interface, not on a vendor, and the
+vendor is named one layer further down — in `integrations/sms/`, which is also
+where the admin panel's credentials leave from. So a real gateway is one more
+implementation plus a change to `SMS_PROVIDER`, and it serves every message the
+product sends. No business logic moves. See
+[external SMS integration](./auth-sms-integration.md).
 
 ### Walking the flow without a gateway
 

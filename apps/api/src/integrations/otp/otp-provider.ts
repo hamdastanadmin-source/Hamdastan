@@ -1,9 +1,11 @@
 /**
  * The contract for delivering a one-time code.
  *
- * The auth service depends on this interface and never on a vendor. Adding a
- * real SMS gateway means writing one more implementation and pointing
- * `OTP_PROVIDER` at it — no business logic moves.
+ * The auth service depends on this interface and never on a vendor. The only
+ * implementation is `sms-otp-provider.ts`, which renders the code into a
+ * message and hands it to `integrations/sms` — so adding a real gateway means
+ * writing one SMS adapter and pointing `SMS_PROVIDER` at it. No business logic
+ * moves, and nothing here knows which vendor answered.
  *
  * Deliberately narrow: a provider delivers a message and reports whether it
  * managed to. It does not generate the code, decide when it expires, or know

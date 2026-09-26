@@ -1,26 +1,27 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Menu, PanelLeftClose, PanelLeftOpen, LogOut, Shield } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, LogOut, Shield } from 'lucide-react';
 import {
   Avatar, AvatarFallback, Separator, Button,
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
   Badge,
 } from '@hamdastan/ui';
-import { useSidebar } from './SidebarContext';
+import { APP_NAME } from '@hamdastan/config';
+import { useSidebar } from './sidebar.store';
 import { useAuth, useLogout } from '@/features/auth';
 import { ThemeToggle } from '@hamdastan/ui';
 import { formatPhone } from '@hamdastan/shared';
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'خانه',
+  '/': APP_NAME,
   '/components': 'کتابخانه کامپوننت‌ها',
 };
 
 export function Header() {
   const pathname = usePathname();
-  const { isCollapsed, toggleCollapse, setMobileOpen } = useSidebar();
+  const { isCollapsed, toggleCollapse } = useSidebar();
   const user = useAuth();
   const { logout, isPending: isLoggingOut } = useLogout();
 
@@ -42,16 +43,6 @@ export function Header() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 w-full items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="منوی ناوبری"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-
           <Button
             variant="ghost"
             size="icon"

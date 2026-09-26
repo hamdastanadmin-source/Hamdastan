@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { API_PREFIX, SESSION_COOKIE_NAME } from '@hamdastan/config';
 
 import { buildApp } from '../../../app';
-import { mockOtpProvider } from '../../../integrations/otp';
+import { mockSmsProvider } from '../../../integrations/sms';
 import { PHONE, PROFILE, sentCode, WRONG_CODE } from './fixtures';
 
 /**
@@ -42,7 +42,7 @@ async function registerAndVerify() {
 }
 
 beforeEach(async () => {
-  mockOtpProvider.clear();
+  mockSmsProvider.clear();
   // A fresh app rebinds the in-memory store, so no test inherits another's users.
   app = await buildApp();
   await app.ready();

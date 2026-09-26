@@ -8,6 +8,8 @@
 
 import { z } from 'zod';
 
+import { personNameSchema, toLatinDigits } from './common';
+
 /** Iranian mobile numbers, once normalised. */
 export const IRAN_MOBILE_PATTERN = /^09\d{9}$/;
 
@@ -28,13 +30,6 @@ export const PHONE_NUMBER_LENGTH = 11;
 export const OTP_CODE_LENGTH = 4;
 
 const OTP_CODE_PATTERN = new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`);
-
-/** Persian and Arabic-Indic digit forms to ASCII, so ۰۹۱۲ and 0912 are one number. */
-export function toLatinDigits(value: string): string {
-  return value
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
-}
 
 /**
  * One phone number has many spellings — `+98 912 …`, `0098912…`, `۰۹۱۲…`,
@@ -70,13 +65,6 @@ export const otpCodeSchema = z
 export const genderSchema = z.enum(['MALE', 'FEMALE'], {
   message: 'جنسیت را انتخاب کنید',
 });
-
-const nameSchema = (label: string) =>
-  z
-    .string()
-    .trim()
-    .min(2, `${label} باید حداقل ۲ نویسه باشد`)
-    .max(50, `${label} طولانی‌تر از حد مجاز است`);
 
 /**
  * The earliest birth year the product offers, as a Jalali year.
@@ -123,8 +111,8 @@ export const birthDateSchema = z
 
 /** The profile a new user fills in. Held as a draft until the code is verified. */
 export const registrationSchema = z.object({
-  firstName: nameSchema('نام'),
-  lastName: nameSchema('نام خانوادگی'),
+  firstName: personNameSchema('نام'),
+  lastName: personNameSchema('نام خانوادگی'),
   birthDate: birthDateSchema,
   gender: genderSchema,
 });

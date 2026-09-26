@@ -9,7 +9,9 @@
     "./logger": "./logger.ts",
     "./http": "./http.ts",
     "./format/number": "./format/number.ts",
-    "./format/jalali": "./format/jalali.ts"
+    "./format/jalali": "./format/jalali.ts",
+    "./rbac": "./rbac/admin-rbac.ts",
+    "./forms/logic": "./forms/logic.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

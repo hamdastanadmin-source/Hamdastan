@@ -1,6 +1,6 @@
 import { OTP_CODE_LENGTH } from '@hamdastan/validation';
 
-import { mockOtpProvider } from '../../../integrations/otp';
+import { mockSmsProvider } from '../../../integrations/sms';
 
 /**
  * Shared by the service and controller tests, so the fixture data cannot drift
@@ -22,11 +22,16 @@ export const PROFILE = {
 } as const;
 
 /**
- * The code the backend just delivered — read from the mock gateway's memory,
+ * The code the backend just delivered — read out of the mock gateway's outbox,
  * which is the one thing in these tests a real client could not do.
+ *
+ * The message is composed by `integrations/otp/sms-otp-provider.ts` and the
+ * code is the only run of digits of that length in it, so pulling it back out
+ * needs no template parsing.
  */
 export function sentCode(phone: string = PHONE): string {
-  const code = mockOtpProvider.lastCodeFor(phone);
+  const message = mockSmsProvider.lastMessageFor(phone);
+  const code = message?.text.match(new RegExp(`\\d{${OTP_CODE_LENGTH}}`))?.[0];
   if (!code) throw new Error(`no code was delivered to ${phone}`);
   return code;
 }

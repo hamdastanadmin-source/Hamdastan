@@ -118,3 +118,24 @@ export function jalaliToISO({ year, month, day }: JalaliDate): string | null {
 export function jalaliMonthName(month: number): string {
   return JALALI_MONTHS[month - 1] ?? '';
 }
+
+/**
+ * A stored ISO date as a reader sees it: `۲۰ مرداد ۱۳۷۰`.
+ *
+ * Every screen that shows a stored date wants exactly this, so it is written
+ * once rather than in each table. The digits are converted here rather than
+ * through `toPersianDigits` because this module imports nothing — see the note
+ * at the top of `number.ts` for why that matters.
+ *
+ * Returns the input unchanged if it is not a date, so a malformed value shows
+ * as itself instead of as `NaN`.
+ */
+export function formatJalaliDate(iso: string): string {
+  const parts = isoToJalali(iso.slice(0, 10));
+  if (!parts) return iso;
+
+  const persian = (value: number) =>
+    String(value).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
+
+  return `${persian(parts.day)} ${jalaliMonthName(parts.month)} ${persian(parts.year)}`;
+}

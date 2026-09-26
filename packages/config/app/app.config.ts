@@ -26,6 +26,19 @@ export const API_BASE_URL =
   process.env.API_BASE_URL ??
   `http://localhost:${DEFAULT_PORTS.api}`;
 
+/**
+ * Where the product itself is served.
+ *
+ * The admin panel needs it to build the link a published form is answered at
+ * (`{WEB_BASE_URL}/forms/{id}`) — the form lives in the product, not in the
+ * panel. Same shape as `API_BASE_URL`: the public variable is what the browser
+ * sees.
+ */
+export const WEB_BASE_URL =
+  process.env.NEXT_PUBLIC_WEB_BASE_URL ??
+  process.env.WEB_BASE_URL ??
+  `http://localhost:${DEFAULT_PORTS.web}`;
+
 /** Prefix every backend route is mounted under. */
 export const API_PREFIX = '/api/v1';
 
@@ -37,3 +50,13 @@ export const API_PREFIX = '/api/v1';
  * so it is spelled once, here.
  */
 export const SESSION_COOKIE_NAME = 'session';
+
+/**
+ * Name of the admin panel's session cookie.
+ *
+ * Deliberately a different cookie from `SESSION_COOKIE_NAME`: an admin session
+ * and a product session are separate things with separate lifetimes, and one
+ * browser may hold both — signing out of the product must not sign anybody out
+ * of the panel, or the reverse.
+ */
+export const ADMIN_SESSION_COOKIE_NAME = 'admin_session';

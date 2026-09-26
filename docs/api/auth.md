@@ -20,6 +20,11 @@ become two accounts.
 The flow these endpoints make up is described in
 [../architecture/auth-flow.md](../architecture/auth-flow.md).
 
+These are the **product's** users. The admin panel signs in with a username and
+a password through a separate module — see
+[admin-auth.md](./admin-auth.md) — and neither flow can sign anybody into the
+other's surface.
+
 ---
 
 ## POST /auth/check-phone
@@ -208,7 +213,7 @@ cookie is cleared either way so a stale one stops being retried.
 | `OTP_MAX_ATTEMPTS` | `5` | Wrong codes before the challenge locks. |
 | `OTP_MAX_SENDS` | `5` | Codes per number per window. |
 | `OTP_SEND_WINDOW_MINUTES` | `15` | Length of that window. |
-| `OTP_PROVIDER` | `mock` | Which delivery adapter is bound. |
+| `SMS_PROVIDER` | `mock` | Which gateway adapter is bound — for codes and for admin credentials alike. |
 | `SHOW_DEV_OTP` | `false` | Echo the code back in the response. Ignored in production. |
 | `SESSION_MAX_AGE_DAYS` | `7` | Session and cookie lifetime. |
 | `SESSION_COOKIE_DOMAIN` | *(empty)* | Host-only when empty. Set to the parent domain in production. |

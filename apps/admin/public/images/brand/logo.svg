@@ -1,9 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" width="160" height="40" role="img" aria-label="هم‌دستان">
-  <!-- Placeholder mark. Swap this file for the real logo; the Sidebar renders
-       it at 32x32 when collapsed and 120x40 when expanded. -->
-  <rect x="4" y="8" width="24" height="24" rx="7" fill="hsl(142 69% 58%)" />
-  <path d="M11 20.5l3.6 3.6L21.5 17" fill="none" stroke="#08130c" stroke-width="2.6"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" width="160" height="40" role="img" aria-label="هم‌داستان">
+  <!-- Placeholder mark. Swap this file for the real logo. The admin panel does
+       not render it — its shell carries no brand lockup — so today this is only
+       here for whatever admin surface wants a mark later.
+
+       The navy is written out because an SVG loaded through <img> cannot read
+       the page's custom properties. It is #000080, the same value the brand
+       tokens resolve to in packages/ui/tokens/tokens.css. -->
+  <rect x="4" y="8" width="24" height="24" rx="7" fill="#000080" />
+  <path d="M11 20.5l3.6 3.6L21.5 17" fill="none" stroke="#ffffff" stroke-width="2.6"
         stroke-linecap="round" stroke-linejoin="round" />
   <text x="38" y="26" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif"
-        font-size="16" font-weight="700" fill="currentColor">هم‌دستان</text>
+        font-size="16" font-weight="700" fill="currentColor">هم‌داستان</text>
 </svg>

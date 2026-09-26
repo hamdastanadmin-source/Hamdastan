@@ -7,7 +7,6 @@ import { THEME_INIT_SCRIPT } from "@hamdastan/ui/tokens";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { AuthProvider } from "@/features/auth";
 import { getSession } from "@/features/auth/server";
 
@@ -55,21 +54,21 @@ export default async function RootLayout({
               >
                 رفتن به محتوای اصلی
               </a>
-              <SidebarProvider>
-                <div className="flex min-h-screen">
-                  <Sidebar />
-                  <div className="flex-1 min-w-0 flex flex-col">
-                    <Header />
-                    <main id="main-content" className="flex-1">
-                      {children}
-                    </main>
-                  </div>
+              <div className="flex min-h-screen">
+                <Sidebar />
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <Header />
+                  <main id="main-content" className="flex-1">
+                    {children}
+                  </main>
                 </div>
-              </SidebarProvider>
+              </div>
             </>
           ) : (
-            // Signed out: render bare, without the app shell (login page).
-            children
+            // Signed out: no shell (the login screen, a shared form link). The
+            // landmark still has to exist exactly once, so it lives here rather
+            // than inside each of those pages.
+            <main id="main-content">{children}</main>
           )}
         </AuthProvider>
         <Toaster />

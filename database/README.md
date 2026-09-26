@@ -21,15 +21,32 @@ mistaken for a working one. See `apps/api/src/shared/repository.ts`.
 
 ## What is already designed
 
-`auth` is the one module whose storage has been designed, because the product
-cannot be used without it. Entities, fields, constraints, indexes and lifecycles
-are in `docs/architecture/auth-data-model.md`, and
-`apps/api/src/modules/auth/auth.repository.ts` holds an in-memory implementation
-of that contract — bound in `app.ts`, lost on every restart, and deleted the
-moment a real one exists.
+Three modules have their storage designed, because neither the product nor the
+admin panel can be used without them:
 
-Two things in that document are requirements rather than suggestions: session
-tokens are stored **hashed**, and one-time codes are stored **only** as a hash.
+| Module | Design | Stand-in |
+| --- | --- | --- |
+| `auth` | `docs/architecture/auth-data-model.md` | `auth.repository.ts` |
+| `admin-users` | `docs/architecture/admin-data-model.md` | `admin-users.repository.ts` |
+| `admin-auth` | `docs/architecture/admin-data-model.md` | `admin-auth.repository.ts` |
+| `forms` | `docs/architecture/forms-data-model.md` | `forms.repository.ts` |
+
+Each stand-in is bound in `app.ts` under `!env.isProduction`, lost on every
+restart, and deleted the moment a real implementation exists. The two admin
+ports describe **one** table between them — `admin-users` manages accounts,
+`admin-auth` authenticates them — so both stand-ins are built over one store.
+
+`forms` is the one whose design is not simply a set of columns: a form's pages,
+questions, logic, audience and settings are JSON on the form row, because they
+are always read and written together. The reasoning is in that document, and so
+is the partial unique index that enforces «یک پاسخ برای هر کاربر».
+
+Five things in those documents are requirements rather than suggestions:
+session tokens are stored **hashed**; one-time codes are stored **only** as a
+hash; admin passwords are stored **only** as a scrypt hash, with no column a
+plain password could occupy; an admin's `credentials_version` is incremented
+inside the password write, atomically, because it is what ends that account's
+sessions; and a form's responses are removed with it, by cascade.
 
 ## What goes here when a choice is made
 
@@ -50,8 +67,10 @@ tokens are stored **hashed**, and one-time codes are stored **only** as a hash.
    ```ts
    setUsersRepository(new SqlUsersRepository(db));
    ```
-   For `auth`, this replaces the `setAuthRepository(createInMemoryAuthRepository())`
-   call in `app.ts` — delete the stand-in with it.
+   For `auth` and the two admin modules, this replaces the `set…Repository(…)`
+   calls in `app.ts` — delete the stand-ins, the shared admin store and
+   `seedDevelopmentAdmin` with them. Nothing seeds an admin in production, so
+   creating the first admin account becomes part of provisioning.
 4. Put the connection string in `DATABASE_URL` and parse it in
    `apps/api/src/config/env.ts` so a missing value fails at boot.
 

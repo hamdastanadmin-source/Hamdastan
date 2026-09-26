@@ -8,7 +8,18 @@ import { API_PREFIX } from '@hamdastan/config';
 import { env } from './config';
 import { registerErrorHandler } from './middleware';
 import { moduleRoutes } from './modules';
+import {
+  createInMemoryAdminAuthRepository,
+  setAdminAuthRepository,
+} from './modules/admin-auth';
+import {
+  createInMemoryAdminUserStore,
+  createInMemoryAdminUsersRepository,
+  seedDevelopmentAdmin,
+  setAdminUsersRepository,
+} from './modules/admin-users';
 import { createInMemoryAuthRepository, setAuthRepository } from './modules/auth';
+import { createInMemoryFormsRepository, setFormsRepository } from './modules/forms';
 import { ok } from './shared/response';
 
 /**
@@ -41,6 +52,14 @@ export async function buildApp(): Promise<FastifyInstance> {
     origin: env.corsOrigins,
     // The front-end apps send the session cookie.
     credentials: true,
+    /**
+     * Spelled out because the default is `GET,HEAD,POST`, and the browser
+     * enforces it: without `PATCH` and `DELETE` here, the preflight refuses
+     * them and every edit, autosave and delete fails in the browser while
+     * working perfectly from curl — which is exactly the kind of bug that
+     * survives a backend test suite.
+     */
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   registerErrorHandler(app);
@@ -58,6 +77,32 @@ export async function buildApp(): Promise<FastifyInstance> {
    */
   if (!env.isProduction) {
     setAuthRepository(createInMemoryAuthRepository());
+
+    /**
+     * The admin panel, on the same terms. Both admin ports describe one future
+     * table, so both stand-ins are built over one store — see
+     * `admin-users.repository.ts`.
+     *
+     * The development admin is seeded here because admins cannot register
+     * themselves: with an empty store and no seed, the panel would have no way
+     * in at all. The account starts owing a password change, so a first sign-in
+     * walks the forced-change flow rather than stepping around it.
+     */
+    const adminStore = createInMemoryAdminUserStore();
+    const adminUsers = createInMemoryAdminUsersRepository(adminStore);
+
+    setAdminUsersRepository(adminUsers);
+    setAdminAuthRepository(createInMemoryAdminAuthRepository(adminStore));
+
+    await seedDevelopmentAdmin(adminUsers);
+
+    /**
+     * Forms, their responses and the templates a new form starts from. Seeded
+     * with realistic Persian content, so the dashboard, the builder and the
+     * charts all have something true to render before anybody has typed
+     * anything.
+     */
+    setFormsRepository(createInMemoryFormsRepository());
   }
 
   /**
