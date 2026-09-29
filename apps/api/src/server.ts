@@ -1,27 +1,109 @@
+import type { FastifyBaseLogger } from 'fastify';
+
 import { buildApp } from './app';
 import { env } from './config';
+import { closePool, isDatabaseConfigured, pingDatabase, runMigrations } from './data';
+import {
+  createConsoleSmsSender,
+  createKavenegarSmsSender,
+  type SmsSender,
+} from './integrations';
+import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
+import { setUsersRepository, sqlUsersRepository } from './modules/users';
 
 /**
  * Process entry point: build the server, listen, and shut down cleanly.
  *
- * All wiring lives in `app.ts`. This file owns the process — and, once a data
- * layer is chosen, this is where its repository implementations get bound,
- * before `listen`.
+ * All request wiring lives in `app.ts`. This file owns the process — opening
+ * the data layer before the first request arrives, and binding each module's
+ * repository implementation with `set<Module>Repository(...)` as those get
+ * written.
  */
+
+/**
+ * Proves the connection string works before the port opens, so a bad password
+ * is a boot failure with a readable message rather than a 500 on whichever
+ * request happens to touch storage first.
+ *
+ * In production an unreachable database is fatal: an instance that cannot
+ * read anything should not join the load balancer. In development it is a
+ * warning, so the front-end can still be worked on with the database down.
+ */
+async function openDataLayer(log: (message: string) => void): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    log('DATABASE_URL is not set — repositories stay unbound (HTTP 501).');
+    return;
+  }
+
+  if (!(await pingDatabase())) {
+    throw new Error('database is unreachable');
+  }
+
+  if (env.DATABASE_MIGRATE_ON_BOOT) {
+    const { applied } = await runMigrations(log);
+    log(`migrations: ${applied.length} applied`);
+  }
+
+  // The repositories are bound only once the connection is proven, so a
+  // module answers 501 ("no data layer") rather than 500 ("the query blew
+  // up") on a host with no database.
+  setUsersRepository(sqlUsersRepository);
+  setAuthRepository(sqlAuthRepository);
+
+  log('database connected — users and auth repositories bound');
+}
+
+/**
+ * Picks the SMS adapter. `console` writes the code to the log and is what
+ * makes the sign-in flow exercisable before an SMS contract exists; the
+ * deployed environment sets `SMS_PROVIDER=kavenegar` and nothing else
+ * changes.
+ */
+function chooseSmsSender(log: FastifyBaseLogger): SmsSender {
+  if (env.SMS_PROVIDER === 'kavenegar') {
+    return createKavenegarSmsSender({
+      // Both are guaranteed by the check in `config/env.ts`.
+      apiKey: env.KAVENEGAR_API_KEY!,
+      template: env.KAVENEGAR_TEMPLATE ?? 'verify',
+    });
+  }
+  return createConsoleSmsSender(log);
+}
+
 async function main(): Promise<void> {
   const app = await buildApp();
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(signal, () => {
       app.log.info({ signal }, 'shutting down');
-      void app.close().then(() => process.exit(0));
+      void app
+        .close()
+        // After the server stops accepting requests, so in-flight statements
+        // finish against a pool that is still open.
+        .then(closePool)
+        .then(() => process.exit(0));
     });
+  }
+
+  const smsSender = chooseSmsSender(app.log);
+  setSmsSender(smsSender);
+  app.log.info({ provider: smsSender.name }, 'sms sender bound');
+
+  try {
+    await openDataLayer((message) => app.log.info(message));
+  } catch (error) {
+    if (env.isProduction) {
+      app.log.fatal({ err: error }, 'data layer unavailable');
+      process.exit(1);
+    }
+    app.log.warn({ err: error }, 'data layer unavailable — continuing');
   }
 
   try {
     await app.listen({ port: env.API_PORT, host: env.API_HOST });
   } catch (error) {
     app.log.fatal({ err: error }, 'failed to start');
+    await closePool();
     process.exit(1);
   }
 }

@@ -1,17 +1,92 @@
+import type { AuthUser, NextStep, SessionResponse } from '@hamdastan/types';
+
+import { ForbiddenError, NotFoundError } from '../../shared/errors';
+
+import { usersRepository } from './users.repository';
+import type { BasicInfo, UserRecord } from './users.types';
+
 /**
- * Business logic for the Users module — حساب کاربری و پروفایل.
+ * Business logic for the Users module — the account itself, and the one
+ * question the whole front-end is built around: where does this person go
+ * next?
  *
- * The only layer that decides anything. It knows nothing about HTTP (the
- * controller's job) and nothing about storage (the repository's job), which
- * is exactly what lets a data layer be chosen later without this file
- * changing.
- *
- *   async getById(id: string) {
- *     const found = await usersRepository().findById(id);
- *     if (!found) throw new NotFoundError();
- *     return found;
- *   }
+ * `nextStepFor` is deliberately here and not in the browser. The client is
+ * never allowed to decide that a profile is complete; it renders the answer
+ * this function gives, which is why a half-filled account cannot be walked
+ * past by editing a URL.
  */
+
+/** Strips everything the browser has no business knowing. */
+export function toAuthUser(record: UserRecord): AuthUser {
+  return {
+    id: record.id,
+    phone: record.phone,
+    firstName: record.firstName,
+    lastName: record.lastName,
+    birthDate: record.birthDate,
+    gender: record.gender,
+    displayName: record.displayName,
+    role: record.role,
+  };
+}
+
+/**
+ * The routing table, as one expression.
+ *
+ * The basic-info test is on the columns rather than on `onboarding_step`,
+ * because the column is bookkeeping and the columns are the truth: a row
+ * whose step somehow says `onboarding` while `first_name` is null still has
+ * a form to fill in.
+ */
+export function nextStepFor(record: UserRecord): NextStep {
+  const profileComplete =
+    record.firstName !== null &&
+    record.lastName !== null &&
+    record.birthDate !== null &&
+    record.gender !== null;
+
+  if (!profileComplete) return 'basic_info';
+  return record.onboardingStep === 'done' ? 'home' : 'onboarding';
+}
+
+export function toSession(record: UserRecord): SessionResponse {
+  return { user: toAuthUser(record), nextStep: nextStepFor(record) };
+}
+
 export const usersService = {
-  // One method per use case.
+  /** Throws rather than returning null: every caller here has a session. */
+  async getById(id: string): Promise<UserRecord> {
+    const user = await usersRepository().findById(id);
+    if (!user) throw new NotFoundError('کاربر یافت نشد');
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenError('حساب کاربری شما غیرفعال شده است');
+    }
+    return user;
+  },
+
+  async findByPhone(phone: string): Promise<UserRecord | null> {
+    return usersRepository().findByPhone(phone);
+  },
+
+  /**
+   * The account a verified code is entitled to. Called only by the auth
+   * service, and only after the code has been checked — this is the moment
+   * the spec calls "the account is created at verification", so a person who
+   * abandons the basic-info form still has their verified number on file.
+   */
+  async ensureByPhone(phone: string): Promise<{ user: UserRecord; isNew: boolean }> {
+    const existing = await usersRepository().findByPhone(phone);
+    if (existing) return { user: existing, isNew: false };
+    return { user: await usersRepository().createWithPhone(phone), isNew: true };
+  },
+
+  async saveBasicInfo(id: string, info: BasicInfo): Promise<UserRecord> {
+    await this.getById(id);
+    return usersRepository().saveBasicInfo(id, info);
+  },
+
+  async completeOnboarding(id: string): Promise<UserRecord> {
+    await this.getById(id);
+    return usersRepository().setOnboardingStep(id, 'done');
+  },
 };

@@ -24,12 +24,13 @@ directory, so `setup.sh` symlinks `apps/web/.env` and `apps/admin/.env` to it �
 edit the root file and both apps see the change. `apps/api` reads the same file
 via `--env-file-if-exists`, and `docker compose` via `env_file`.
 
-`.env.example` ships with `SKIP_AUTH=false`, so you get the real login flow.
-Set it to `true` to bypass the login screen and run as a mock admin while
+`.env.example` ships with `OTP_DEBUG_DISPLAY=true`, so the sign-in flow works
+without an SMS gateway: the six-digit code is returned by the API and shown on
+the verification screen. Sign in with any valid-looking mobile number while
 building UI.
 
-Seed credentials: `admin` / `admin123` (admin) and `analyst` / `analyst123`
-(analyst).
+There are no seed credentials: the product has no passwords. `apps/admin`
+still signs in with a username and a password and is a separate story.
 
 ## Tech Stack
 
@@ -39,9 +40,9 @@ Seed credentials: `admin` / `admin123` (admin) and `analyst` / `analyst123`
 | Backend | Fastify 5 (`apps/api`), layered route → controller → service → repository |
 | UI Components | shadcn/ui (Radix) behind RTL-safe wrappers in `packages/ui` |
 | Validation | zod, shared between front-end and backend |
-| Database | **None chosen yet** — see `database/README.md` |
+| Database | PostgreSQL 17 via `pg`, no ORM — see `database/README.md` |
 | Auth | Cookie sessions, in-memory skeleton (`apps/web/src/features/auth`) |
-| Deployment | Docker (standalone Next.js output), one image per app |
+| Deployment | Docker Compose behind nginx, one host — see `deploy/` |
 
 ## Project Structure
 
@@ -60,7 +61,8 @@ hamdastan/
 │   └── shared/     utilities that are genuinely shared
 │
 ├── assets/         design sources (PSD/AI/Figma) — never served
-├── database/       foundation only; no database chosen yet
+├── database/       PostgreSQL schema: migrations, seeds
+├── deploy/         the production stack: nginx, the server's environment
 ├── docs/           PRD, architecture, checklists
 ├── e2e/            Playwright, drives the real apps
 └── scripts/
@@ -83,6 +85,8 @@ Run from the repo root; they cover every workspace.
 | `npm run lint:all` | Both linters |
 | `npm test` | Unit tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright) |
+| `npm run db:migrate` | Applies pending migrations; safe to re-run |
+| `./scripts/deploy.sh` | Builds and restarts the stack on the server |
 
 ## Features
 
@@ -100,6 +104,47 @@ Run from the repo root; they cover every workspace.
 - **Component gallery** — every component rendered at `/components`
 - **Security headers** — X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **Docker ready** — standalone output, compose stack with health checks
+- **One-command deploy** — `./scripts/deploy.sh` rsyncs the source and rebuilds
+  on the server, behind nginx on a single published port
+
+## Database
+
+PostgreSQL, reached from `apps/api` alone through `pg`. There is no ORM:
+repositories write SQL against the pool in `apps/api/src/data`.
+
+```bash
+npm run db:migrate   # applies database/migrations/*.sql; safe to re-run
+```
+
+An applied migration is **never** edited — the runner checksums them and
+refuses a file that has changed. A schema change is a new file. See
+`database/README.md`, and `RULES.md` §1 before writing one.
+
+## Deployment
+
+One host, three containers on a private network, and nginx as the only
+published port:
+
+```
+:80 → nginx ─┬─ /api/v1/ → api:4000
+             └─ /         → web:3000
+```
+
+```bash
+cp deploy/env.production.example deploy/.env.production   # then fill it in
+./scripts/deploy.sh
+```
+
+The script rsyncs the source over SSH, uploads `deploy/.env.production` as the
+server's `.env`, builds the images there and waits for `/_up` to answer.
+Nothing is destroyed — containers are replaced, and the database is a managed
+instance the script never touches.
+
+Because both apps are served from one origin, the browser calls the API on the
+host it loaded the page from: the session cookie is first-party and CORS does
+not arise. Pointing a domain at the server means changing `PUBLIC_BASE_URL`
+and **redeploying** rather than restarting — `NEXT_PUBLIC_` variables are baked
+into the browser bundle at build time.
 
 ## Theming
 

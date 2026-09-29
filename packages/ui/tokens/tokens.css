@@ -27,8 +27,10 @@
 @layer base {
   :root {
     /* ─── Brand Configuration (EDIT THESE) ──────────────────────── */
-    --brand-hue: 142;
-    --brand-saturation: 69%;
+    /* Hamdastan is a story-world game: purple reads as imagination and
+       night, and it is the one input the whole palette derives from. */
+    --brand-hue: 270;
+    --brand-saturation: 70%;
 
     /* ─── Semantic Color Hues (EDIT THESE if needed) ────────────── */
     --destructive-hue: 0;
@@ -111,7 +113,11 @@
     --foreground-light: 0 0% 32.2%;
     --foreground-contrast: 0 0% 98.4%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* The app is a mobile product wherever it is opened. This is the widest
+       its single column ever gets — see MobileShell in apps/web. */
+    --shell-max-width: 430px;
   }
 
   .dark {
@@ -129,25 +135,36 @@
     --primary-foreground: 0 0% 98%;
 
     /* ─── Neutral Surfaces ──────────────────────────────────────── */
-    --background: 240 10% 8%;
-    --foreground: 0 0% 95%;
-    --card: 240 10% 12%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 10% 12%;
-    --popover-foreground: 0 0% 95%;
-    --secondary: 240 3.7% 20%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 20%;
-    --muted-foreground: 240 5% 70%;
-    --accent: 240 3.7% 20%;
-    --accent-foreground: 0 0% 98%;
-    --border: 240 3.7% 20%;
-    --input: 240 3.7% 20%;
-    --ring: 240 4.9% 83.9%;
+    /* Tinted toward the brand hue rather than neutral grey: a dark screen
+       that shares the primary's hue reads as one surface instead of a grey
+       page with a purple button on it. Saturation stays low so the text
+       above keeps its contrast — every pair below clears 4.5:1. */
+    /* Mirrored as THEME_COLOR in tokens/theme.ts — the browser chrome and
+       the web manifest need this value as a literal. */
+    --background: 265 24% 9%;
+    --foreground: 280 20% 96%;
+    --card: 265 20% 13%;
+    --card-foreground: 280 20% 96%;
+    --popover: 265 20% 13%;
+    --popover-foreground: 280 20% 96%;
+    --secondary: 265 16% 20%;
+    --secondary-foreground: 280 20% 96%;
+    --muted: 265 16% 20%;
+    --muted-foreground: 268 12% 72%;
+    --accent: 265 16% 22%;
+    --accent-foreground: 280 20% 96%;
+    --border: 265 14% 24%;
+    --input: 265 14% 26%;
+    --ring: var(--brand-hue) var(--brand-saturation) 58%;
 
     /* ─── Semantic Colors (dark mode) ───────────────────────────── */
-    --destructive: var(--destructive-hue) 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    /* Light enough to be read, not just noticed. shadcn's older dark
+       `destructive` is a 31%-lightness red, which on this background is a
+       dark border on a darker page — and `text-destructive` is what every
+       form error is written in, so the message was the part that suffered.
+       Matched to --error, which was already the readable one. */
+    --destructive: var(--destructive-hue) 72% 62%;
+    --destructive-foreground: 0 0% 9%;
     --destructive-200: calc(var(--destructive-hue) + 11) 23.4% 9.2%;
 
     --success: var(--brand-hue) var(--brand-saturation) 58%;
@@ -171,11 +188,13 @@
     --chart-5: 340 75% 55%;
 
     /* ─── Surface Scale ─────────────────────────────────────────── */
-    --surface-0: 230 15% 8%;
-    --surface-1: 230 15% 11%;
-    --surface-2: 230 15% 14%;
-    --surface-3: 230 15% 18%;
-    --surface-4: 230 15% 22%;
+    /* surface-0 is what sits *behind* the mobile column on a wide screen:
+       a shade darker than the app, so the column reads as the foreground. */
+    --surface-0: 265 26% 6%;
+    --surface-1: 265 24% 9%;
+    --surface-2: 265 20% 13%;
+    --surface-3: 265 18% 17%;
+    --surface-4: 265 16% 21%;
 
     /* ─── Extended Surface & Border Tokens ───────────────────────── */
     --background-overlay-default: 240 10% 14%;
@@ -264,6 +283,12 @@
   --color-warning-200: hsl(var(--warning-200));
   --color-destructive-200: hsl(var(--destructive-200));
 
+  /* The mobile column's width, as a max-w-* utility: `max-w-shell`. */
+  --container-shell: var(--shell-max-width);
+  /* …and as the app's one breakpoint: `shell:` is "wider than the column".
+     A literal, because a media query cannot read a custom property. */
+  --breakpoint-shell: 430px;
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -271,6 +296,25 @@
   /* Extra-small text scale below Tailwind's built-in text-xs (12px) */
   --text-2xs: 0.625rem;          /* 10px */
   --text-2xs--line-height: 1rem;
+
+  /* ─── Motion ────────────────────────────────────────────────── */
+  /* Two keyframes the component library needs and Tailwind does not ship.
+     Everything else uses tailwindcss-animate's fade/slide, 150–300ms. */
+  --animate-shake: hd-shake 400ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --animate-caret-blink: hd-caret-blink 1.25s ease-out infinite;
+
+  @keyframes hd-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  @keyframes hd-caret-blink {
+    0%, 70%, 100% { opacity: 1; }
+    20%, 50% { opacity: 0; }
+  }
 
   /* Typography line-height scale for Persian readability */
   /* text-2xl = page titles, text-lg = sections, text-base = body, text-sm = secondary */

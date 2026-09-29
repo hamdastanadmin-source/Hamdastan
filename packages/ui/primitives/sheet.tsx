@@ -60,16 +60,23 @@ function SheetContent({
         data-slot="sheet-content"
         className={cn(
           "fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
+          // A sheet is portalled to <body>, so it is not inside MobileShell
+          // and would otherwise measure itself against the browser — on a
+          // laptop, a panel sliding in from the screen edge while the app it
+          // belongs to sits in a 430px column in the middle. The offsets
+          // below put it back on the column: `(100% - shell) / 2` is the gap
+          // beside it, and `max(0px, …)` collapses to nothing on a phone,
+          // where there is no gap.
           side === "right" &&
             // rtl-ok: `side` names a physical edge, so these stay physical.
-            "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+            "inset-y-0 right-[max(0px,calc((100%-var(--shell-max-width))/2))] h-full w-3/4 max-w-shell border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
           side === "left" &&
             // rtl-ok: as above.
-            "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+            "inset-y-0 left-[max(0px,calc((100%-var(--shell-max-width))/2))] h-full w-3/4 max-w-shell border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
           side === "top" &&
-            "inset-x-0 top-0 h-auto border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+            "inset-x-0 top-0 mx-auto h-auto w-full max-w-shell border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
           side === "bottom" &&
-            "inset-x-0 bottom-0 h-auto border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+            "inset-x-0 bottom-0 mx-auto h-auto w-full max-w-shell border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
           className
         )}
         {...props}

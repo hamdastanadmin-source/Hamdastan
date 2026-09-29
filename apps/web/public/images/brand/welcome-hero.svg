@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 300" role="img" aria-hidden="true">
+  <!--
+    Placeholder artwork for the Welcome screen.
+
+    Decision 3 in the sign-in spec: the final Hero comes from the design team
+    as a finished file. This stands in until it arrives, and is replaced by
+    dropping a new file at this path — nothing in the code changes.
+  -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity=".55"/>
+      <stop offset="60%" stop-color="#6d28d9" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="#150f22" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8c7ff"/>
+      <stop offset="1" stop-color="#9f7aea"/>
+    </linearGradient>
+    <linearGradient id="arch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c4b5fd"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity=".25"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="390" height="300" fill="url(#glow)"/>
+
+  <!-- The portal the stories are on the other side of. -->
+  <path d="M195 46c42 0 76 34 76 76v96H119v-96c0-42 34-76 76-76z" fill="url(#arch)" opacity=".35"/>
+  <path d="M195 46c42 0 76 34 76 76v96H119v-96c0-42 34-76 76-76z" fill="none" stroke="#c4b5fd" stroke-width="2" opacity=".6"/>
+
+  <!-- An open book, mirroring the app icon. -->
+  <g transform="translate(195 190)">
+    <path d="M0-26c-24-17-53-24-84-21-10 1-17 9-17 19v78c0 11 9 20 20 19 28-2 55 4 77 19 3 2 5 2 8 0 22-15 49-21 77-19 11 1 20-8 20-19v-78c0-10-7-18-17-19-31-3-60 4-84 21z" fill="url(#page)"/>
+    <path d="M0-26v90" stroke="#150f22" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+    <path d="M-66-6h44M-66 14h40M22-6h44M22 14h40" stroke="#150f22" stroke-width="4" stroke-linecap="round" opacity=".22"/>
+  </g>
+
+  <!-- Sparks. -->
+  <g fill="#e9d8ff">
+    <path d="M300 62l5 14 14 5-14 5-5 14-5-14-14-5 14-5z" opacity=".9"/>
+    <path d="M86 92l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" opacity=".65"/>
+    <path d="M330 150l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" opacity=".5"/>
+    <circle cx="64" cy="176" r="3" opacity=".45"/>
+    <circle cx="344" cy="104" r="2.5" opacity=".5"/>
+    <circle cx="120" cy="48" r="2" opacity=".4"/>
+  </g>
+</svg>

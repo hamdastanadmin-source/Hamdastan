@@ -1,13 +1,8 @@
 /**
- * Outbound adapters: SMS gateways, payment providers, object storage, push
- * services — anything this API calls that it does not own.
- *
- * Each integration exposes an interface plus one implementation, so a service
- * depends on the capability rather than the vendor and a provider can be
- * swapped without the service changing. Same rule as the repositories in
- * `shared/repository.ts`.
- *
- * Nothing is wired up yet.
+ * Outbound adapters — the only place the API talks to somebody else's
+ * service. Each is a port plus one implementation per provider, so a service
+ * depends on the capability and never on the vendor.
  */
-
-export {};
+export type { SmsSender } from './sms/sms-sender';
+export { createConsoleSmsSender } from './sms/console-sms-sender';
+export { createKavenegarSmsSender } from './sms/kavenegar-sms-sender';

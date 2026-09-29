@@ -43,6 +43,7 @@ import {
   CardTitle,
 } from '../primitives/card';
 import { Checkbox } from '../primitives/checkbox';
+import { DirectionProvider } from '../primitives/direction';
 import {
   Dialog,
   DialogClose,
@@ -72,7 +73,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '../primitives/dropdown-menu';
-import { FormField } from '../primitives/form-field';
+import { FormField as LegacyFormField } from '../primitives/form-field';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  useFormField,
+} from '../primitives/form';
+import { Label } from '../primitives/label';
 import { Input } from '../primitives/input';
 import {
   InputOTP,
@@ -176,6 +188,7 @@ export {
 export { Button, buttonVariants };
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
 export { Checkbox };
+export { DirectionProvider };
 export {
   Dialog,
   DialogClose,
@@ -204,7 +217,22 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 };
-export { FormField };
+export {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  useFormField,
+};
+export { Label };
+/**
+ * The pre-`Form` field wrapper. Kept for the screens that predate
+ * react-hook-form; new forms use `Form` + `FormField` above.
+ */
+export { LegacyFormField };
 export { Input };
 export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator };
 export {

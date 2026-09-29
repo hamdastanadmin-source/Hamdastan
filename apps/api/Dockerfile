@@ -41,6 +41,9 @@ COPY --from=deps --chown=api:nodejs /app/node_modules ./node_modules
 COPY --chown=api:nodejs package.json ./
 COPY --chown=api:nodejs apps/api ./apps/api
 COPY --chown=api:nodejs packages ./packages
+# The migration runner reads database/migrations/*.sql at run time, so the
+# schema ships with the image rather than being applied from a workstation.
+COPY --chown=api:nodejs database ./database
 
 USER api
 

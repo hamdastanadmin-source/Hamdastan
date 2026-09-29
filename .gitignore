@@ -172,5 +172,12 @@ vite.config.ts.timestamp-*
 *.db
 .dolt/
 
+# …but the schema is not a dump. database/ is the reviewed, version-controlled
+# definition of what the database looks like, and the API's migration runner
+# applies exactly these files.
+!database/migrations/*.sql
+!database/schema/*.sql
+!database/seeds/*.sql
+
 # Vercel
 .vercel

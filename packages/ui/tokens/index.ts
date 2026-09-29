@@ -9,5 +9,6 @@ export {
   THEME_STORAGE_KEY,
   DEFAULT_THEME,
   THEME_INIT_SCRIPT,
+  THEME_COLOR,
   type Theme,
 } from './theme';

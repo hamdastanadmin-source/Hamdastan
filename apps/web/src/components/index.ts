@@ -6,6 +6,5 @@
  * A component one feature uses belongs in that feature's `components/`.
  */
 
-export { Header } from './layout/Header';
-export { Sidebar } from './layout/Sidebar';
-export { SidebarProvider, useSidebar } from './layout/SidebarContext';
+export { MobileShell } from './layout/MobileShell';
+export { Screen, ScreenHeader, ScreenBody, ScreenFooter } from './layout/Screen';

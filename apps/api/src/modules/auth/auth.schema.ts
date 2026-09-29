@@ -1,18 +1,19 @@
-import { z } from '@hamdastan/validation';
+import { basicInfoSchema, otpRequestSchema, otpVerifySchema, z } from '@hamdastan/validation';
 
 /**
  * Request validation for the Auth module.
  *
- * Every route validates its input here before the controller runs. Rules the
- * front-end also enforces live in `@hamdastan/validation` — import them
- * rather than restating them, so the two sides cannot drift.
+ * Every rule is imported rather than restated: these are the same schemas the
+ * form in `apps/web` parses against, so a value the browser accepted cannot
+ * be one the API rejects for a different reason — or, worse, the other way
+ * round.
  */
 export const authSchemas = {
-  // e.g. list: { querystring: paginationQuerySchema },
+  otpRequest: { body: otpRequestSchema },
+  otpVerify: { body: otpVerifySchema },
+  basicInfo: { body: basicInfoSchema },
 } satisfies Record<string, unknown>;
 
 export type AuthSchemas = typeof authSchemas;
 
-// Re-exported so this module's own schemas can be written without a second
-// zod import.
 export { z };

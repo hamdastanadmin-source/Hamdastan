@@ -1,23 +1,28 @@
 import Link from 'next/link';
+
+import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { Button } from '@hamdastan/ui';
-import { Home } from 'lucide-react';
+
+import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 p-6 text-center">
-      <div className="space-y-1">
-        <h1 className="text-6xl font-bold text-muted-foreground/30">۴۰۴</h1>
-        <h2 className="text-xl font-bold">صفحه یافت نشد</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          صفحه‌ای که به دنبال آن هستید وجود ندارد یا منتقل شده است.
+    <Screen>
+      <ScreenHeader />
+      <ScreenBody className="flex flex-col items-center justify-center gap-3 text-center">
+        <p className="text-6xl font-extrabold text-muted-foreground/30">
+          {toPersianDigits(404)}
         </p>
-      </div>
-      <Button asChild variant="outline">
-        <Link href="/">
-          <Home className="h-4 w-4" />
-          بازگشت به خانه
-        </Link>
-      </Button>
-    </div>
+        <h1 className="text-2xl font-extrabold leading-tight">صفحه پیدا نشد</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          صفحه‌ای که دنبالش بودی وجود نداره یا جابه‌جا شده.
+        </p>
+      </ScreenBody>
+      <ScreenFooter>
+        <Button asChild size="lg" className="h-12 w-full text-base font-bold">
+          <Link href="/">بازگشت به خانه</Link>
+        </Button>
+      </ScreenFooter>
+    </Screen>
   );
 }

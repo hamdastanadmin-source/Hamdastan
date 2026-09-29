@@ -8,7 +8,9 @@
     "./cn": "./cn.ts",
     "./logger": "./logger.ts",
     "./http": "./http.ts",
-    "./format/number": "./format/number.ts"
+    "./format/number": "./format/number.ts",
+    "./format/persian": "./format/persian.ts",
+    "./format/jalali": "./format/jalali.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

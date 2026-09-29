@@ -24,7 +24,8 @@ export const moduleRoutes: ReadonlyArray<{
   routes: FastifyPluginAsync;
 }> = [
   { prefix: '/auth', routes: authRoutes },
-  { prefix: '/users', routes: usersRoutes },
+  // The Users module answers on `/me`, not `/users` — see its routes file.
+  { prefix: '', routes: usersRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
   { prefix: '/content', routes: contentRoutes },
   { prefix: '/missions', routes: missionsRoutes },

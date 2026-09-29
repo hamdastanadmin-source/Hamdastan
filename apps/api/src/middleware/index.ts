@@ -4,3 +4,4 @@
  */
 
 export { registerErrorHandler } from './error-handler';
+export { authenticate, currentUser } from './authenticate';

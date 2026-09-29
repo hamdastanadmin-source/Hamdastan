@@ -16,7 +16,7 @@ import {
     Skeleton, Spinner, Progress,
     Alert, AlertTitle, AlertDescription,
     Separator,
-    ScrollArea,
+    ScrollArea, ScrollBar,
     // Table
     Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TableCaption,
     // Navigation
@@ -144,28 +144,33 @@ export default function ComponentsPage() {
 
     return (
         <TooltipProvider>
-            <div className="flex gap-0 min-h-screen">
+            <div className="flex min-h-dvh flex-col">
 
-                {/* ── Sticky nav ── */}
-                <aside className="hidden xl:flex sticky top-14 h-[calc(100vh-3.5rem)] w-52 shrink-0 flex-col border-l border-border/40 bg-card/40 overflow-y-auto p-3 gap-1">
-                    <p className="text-2xs font-semibold text-muted-foreground/60 px-2 py-1.5 uppercase tracking-wider">بخش‌ها</p>
-                    {SECTIONS.map(s => (
-                        <button
-                            key={s.id}
-                            onClick={() => scrollTo(s.id)}
-                            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-start transition-colors w-full ${activeSection === s.id
-                                ? 'bg-primary/10 text-primary font-medium'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                }`}
-                        >
-                            <s.icon className="w-3.5 h-3.5 shrink-0" />
-                            <span>{s.label}</span>
-                        </button>
-                    ))}
-                </aside>
+                {/* ── Section nav ──
+                    A horizontal, scrollable strip rather than a sidebar: the
+                    gallery renders inside the same 430px MobileShell as the
+                    product, so there is no second column to put one in. */}
+                <ScrollArea className="shrink-0 border-b border-border/40">
+                    <div className="flex w-max gap-1 p-2">
+                        {SECTIONS.map(s => (
+                            <button
+                                key={s.id}
+                                onClick={() => scrollTo(s.id)}
+                                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${activeSection === s.id
+                                    ? 'bg-primary/10 text-primary font-medium'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                    }`}
+                            >
+                                <s.icon className="w-3.5 h-3.5 shrink-0" />
+                                <span>{s.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 {/* ── Content ── */}
-                <main className="flex-1 min-w-0 p-6 md:p-8 space-y-16">
+                <main id="main-content" className="flex-1 min-w-0 px-5 py-8 space-y-16">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">کتابخانه کامپوننت‌ها</h1>
                         <p className="text-muted-foreground mt-1 text-sm">تمامی کامپوننت‌ها، آیکون‌ها و عناصر UI پروژه در یک صفحه تعاملی</p>
@@ -176,7 +181,7 @@ export default function ComponentsPage() {
                         <SectionHeader icon={<Palette className="size-6" />} title="توکن‌های طراحی" description="رنگ‌ها، شعاع‌های گوشه، و سایه‌های تعریف‌شده در سیستم طراحی" />
 
                         <ShowcaseSection title="رنگ‌های سمانتیک">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                                 {TOKEN_COLORS.map(({ name, label }) => (
                                     <div key={name} className="space-y-2">
                                         <div
@@ -320,7 +325,7 @@ export default function ComponentsPage() {
                         <SectionHeader icon={<AlignLeft className="size-6" />} title="فرم‌ها" description="کنترل‌های ورودی و انتخاب" />
 
                         <ShowcaseSection title="Input & Textarea">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                            <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">ورودی معمولی</label>
                                     <Input placeholder="متن را وارد کنید..." value={inputVal} onChange={e => setInputVal(e.target.value)} />
@@ -329,7 +334,7 @@ export default function ComponentsPage() {
                                     <label className="text-sm font-medium">ورودی غیرفعال</label>
                                     <Input placeholder="غیرفعال" disabled />
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
+                                <div className="space-y-2">
                                     <label className="text-sm font-medium">Textarea</label>
                                     <Textarea placeholder="متن بلند..." value={textareaVal} onChange={e => setTextareaVal(e.target.value)} rows={3} />
                                 </div>
@@ -337,7 +342,7 @@ export default function ComponentsPage() {
                         </ShowcaseSection>
 
                         <ShowcaseSection title="Select">
-                            <div className="max-w-xs space-y-2">
+                            <div className="space-y-2">
                                 <label className="text-sm font-medium">انتخاب گزینه</label>
                                 <Select>
                                     <SelectTrigger>
@@ -442,12 +447,14 @@ export default function ComponentsPage() {
                                 <Badge variant="secondary">ثانویه</Badge>
                                 <Badge variant="outline">خطدار</Badge>
                                 <Badge variant="destructive">مخرب</Badge>
-                                <Badge style={{ background: '#6366f115', borderColor: '#6366f130', color: '#6366f1' }} variant="outline">رنگ سفارشی</Badge>
+                                {/* Tinted from a token, not a literal: `--info` is where that colour
+                                    is defined, and a hex here would be a second copy of it. */}
+                                <Badge variant="outline" className="border-info/30 bg-info/10 text-info">اطلاع‌رسانی</Badge>
                             </div>
                         </ShowcaseSection>
 
                         <ShowcaseSection title="Alert">
-                            <div className="space-y-3 max-w-lg">
+                            <div className="space-y-3">
                                 <Alert>
                                     <Info className="h-4 w-4" />
                                     <AlertTitle>اطلاعات</AlertTitle>
@@ -479,7 +486,7 @@ export default function ComponentsPage() {
                         </ShowcaseSection>
 
                         <ShowcaseSection title="Skeleton">
-                            <div className="space-y-3 max-w-sm">
+                            <div className="space-y-3">
                                 <Skeleton className="h-4 w-full" />
                                 <Skeleton className="h-4 w-3/4" />
                                 <Skeleton className="h-4 w-1/2" />
@@ -499,7 +506,7 @@ export default function ComponentsPage() {
                         <SectionHeader icon={<Database className="size-6" />} title="نمایش داده" description="Card، Avatar، Table، ScrollArea، Separator" />
 
                         <ShowcaseSection title="Card">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                            <div className="grid grid-cols-1 gap-4">
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>عنوان کارت</CardTitle>
@@ -542,7 +549,7 @@ export default function ComponentsPage() {
                         </ShowcaseSection>
 
                         <ShowcaseSection title="Table">
-                            <div className="rounded-xl border border-border/40 overflow-hidden max-w-2xl">
+                            <div className="rounded-xl border border-border/40 overflow-hidden">
                                 <Table>
                                     <TableCaption>فهرست نمونه</TableCaption>
                                     <TableHeader>
@@ -764,7 +771,7 @@ export default function ComponentsPage() {
                         </ShowcaseSection>
 
                         <ShowcaseSection title="ProgressStepper">
-                            <div className="max-w-sm p-4 bg-muted/10 rounded-xl border border-border/40">
+                            <div className="p-4 bg-muted/10 rounded-xl border border-border/40">
                                 <ProgressStepper steps={WIZARD_STEPS} activeStep={stepperStep} />
                             </div>
                         </ShowcaseSection>
@@ -775,7 +782,7 @@ export default function ComponentsPage() {
                         <SectionHeader icon={<Settings className="size-6" />} title="آیکون‌ها" description="Lucide React icons و Icon component پروژه" />
 
                         <ShowcaseSection title="Lucide Icons (در پروژه استفاده شده)">
-                            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+                            <div className="grid grid-cols-4 gap-3">
                                 {LUCIDE_ICONS.map(({ name, icon: IconComp }) => (
                                     <Tooltip key={name}>
                                         <TooltipTrigger asChild>
@@ -792,7 +799,7 @@ export default function ComponentsPage() {
 
                         <ShowcaseSection title="Icon component (lucide dynamic)">
                             <p className="text-xs text-muted-foreground mb-3">از طریق <code className="bg-muted px-1 rounded">{'<Icon name="..." />'}</code> در پروژه استفاده می‌شود:</p>
-                            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+                            <div className="grid grid-cols-4 gap-3">
                                 {UI_ICON_NAMES.map(name => (
                                     <Tooltip key={name}>
                                         <TooltipTrigger asChild>

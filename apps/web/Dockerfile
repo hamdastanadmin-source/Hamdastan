@@ -47,6 +47,14 @@ RUN --mount=type=cache,target=/root/.npm \
 # ── Build ─────────────────────────────────────────────────────
 FROM base AS builder
 
+# NEXT_PUBLIC_ variables are substituted into the browser bundle during the
+# build, so they have to arrive as build arguments — setting them at run time
+# is too late and leaves the development defaults baked in.
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_WEB_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
+    NEXT_PUBLIC_WEB_BASE_URL=$NEXT_PUBLIC_WEB_BASE_URL
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -60,10 +68,12 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
-# `outputFileTracingRoot` is the monorepo root, so the standalone bundle keeps
-# the workspace layout: the server sits at apps/web/server.js with the hoisted
-# node_modules beside it.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# `outputFileTracingRoot` is the monorepo root, so the bundle *contents* keep
+# the workspace layout — the server sits at apps/web/server.js with the
+# hoisted node_modules beside it. The bundle itself, though, is written under
+# the app's own .next/, which is why the source path below is
+# apps/web/.next/standalone and not /app/.next/standalone.
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 

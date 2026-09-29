@@ -1,0 +1,18 @@
+{
+  "name": "هم‌داستان",
+  "short_name": "هم‌داستان",
+  "description": "دنیاهای داستانی‌ات منتظرتن — بازی کن، امتیاز بگیر و با بقیه‌ی طرفدارها رقابت کن.",
+  "lang": "fa-IR",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#150f22",
+  "theme_color": "#150f22",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

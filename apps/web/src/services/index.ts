@@ -7,4 +7,5 @@
  */
 
 export { apiClient } from './api-client';
+export { authService, refreshSession } from './auth.service';
 export { HttpError } from '@hamdastan/shared';

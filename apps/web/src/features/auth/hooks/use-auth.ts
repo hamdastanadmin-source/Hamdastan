@@ -14,7 +14,7 @@ export function useAuth(): AuthUser {
   return user;
 }
 
-/** For components that render on both sides of the login boundary. */
+/** For components that render on both sides of the sign-in boundary. */
 export function useAuthOptional(): AuthUser | null {
   return useContext(AuthContext);
 }

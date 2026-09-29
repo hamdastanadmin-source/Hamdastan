@@ -1,126 +1,167 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import {
+  gregorianToJalali,
+  isValidJalaliDate,
+  jalaliMonthLength,
+  jalaliToIsoDate,
+  todayJalali,
+} from '@hamdastan/shared/format/jalali';
+import {
+  normalizeIranMobile,
+  normalizePersianText,
+  toLatinDigits,
+} from '@hamdastan/shared/format/persian';
+import { basicInfoSchema, otpVerifySchema, phoneSchema } from '@hamdastan/validation';
 
 /**
- * Covers the auth skeleton in `src/lib/auth.ts`. When that module is swapped
- * for a real user store these tests should keep passing unchanged — they only
- * exercise the exported contract, not the in-memory implementation.
+ * The sign-in rules, tested where they are defined.
+ *
+ * These schemas are the one place the browser and `apps/api` agree on what a
+ * valid phone number, name or birth date is, so a failure here is a failure
+ * on both sides at once — which is exactly why they are worth a test and the
+ * screens that use them are not.
  */
 
-const cookieStore = {
-  get: vi.fn(),
-  set: vi.fn(),
-  delete: vi.fn(),
-};
-
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(async () => cookieStore),
-}));
-
-async function importAuth() {
-  // Re-imported per test so the module-level session map starts empty and
-  // SKIP_AUTH is read fresh from the environment.
-  vi.resetModules();
-  delete (globalThis as { __hamdastanSessions?: unknown }).__hamdastanSessions;
-  return import('@/features/auth/services/session.service');
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  cookieStore.get.mockReturnValue(undefined);
-  vi.stubEnv('SKIP_AUTH', 'false');
-});
-
-describe('login', () => {
-  it('accepts a valid credential pair and sets a session cookie', async () => {
-    const { login } = await importAuth();
-
-    const result = await login('admin', 'admin123');
-
-    expect(result).toEqual({ success: true });
-    expect(cookieStore.set).toHaveBeenCalledOnce();
-
-    const [name, token, options] = cookieStore.set.mock.calls[0];
-    expect(name).toBe('session');
-    expect(token).toMatch(/^[0-9a-f]{64}$/);
-    expect(options).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/' });
+describe('phone numbers', () => {
+  it.each([
+    ['09123456789', '09123456789'],
+    ['9123456789', '09123456789'],
+    ['+989123456789', '09123456789'],
+    ['00989123456789', '09123456789'],
+    ['0912 345 6789', '09123456789'],
+    ['0912-345-6789', '09123456789'],
+    ['۰۹۱۲۳۴۵۶۷۸۹', '09123456789'],
+  ])('normalises %s to %s', (input, expected) => {
+    expect(normalizeIranMobile(input)).toBe(expected);
+    expect(phoneSchema.parse(input)).toBe(expected);
   });
 
-  it('rejects a wrong password without setting a cookie', async () => {
-    const { login } = await importAuth();
+  it.each([
+    ['08123456789', 'a landline prefix'],
+    ['0912345678', 'one digit short'],
+    ['091234567890', 'one digit long'],
+    ['', 'empty'],
+    ['not a number', 'letters'],
+  ])('rejects %s (%s)', (input) => {
+    expect(normalizeIranMobile(input)).toBeNull();
+    expect(phoneSchema.safeParse(input).success).toBe(false);
+  });
 
-    const result = await login('admin', 'wrong-password');
-
+  it('gives the spec’s message, because the form shows it verbatim', () => {
+    const result = phoneSchema.safeParse('123');
     expect(result.success).toBe(false);
-    expect(cookieStore.set).not.toHaveBeenCalled();
-  });
-
-  it('gives the same error for an unknown user, so usernames do not leak', async () => {
-    const { login } = await importAuth();
-
-    const unknownUser = await login('nobody', 'admin123');
-    const wrongPassword = await login('admin', 'wrong-password');
-
-    expect(unknownUser.error).toBe(wrongPassword.error);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('شماره موبایل معتبر نیست');
+    }
   });
 });
 
-describe('getSession', () => {
-  it('returns null when no session cookie is present', async () => {
-    const { getSession } = await importAuth();
-
-    await expect(getSession()).resolves.toBeNull();
+describe('Persian text', () => {
+  it('folds Arabic ي and ك onto their Persian forms', () => {
+    expect(normalizePersianText('يكتا')).toBe('یکتا');
   });
 
-  it('returns null for a token that was never issued', async () => {
-    const { getSession } = await importAuth();
-    cookieStore.get.mockReturnValue({ value: 'not-a-real-token' });
-
-    await expect(getSession()).resolves.toBeNull();
+  it('keeps the zero-width non-joiner, which is a spelling rule', () => {
+    expect(normalizePersianText('نام‌خانوادگی')).toBe('نام‌خانوادگی');
   });
 
-  it('resolves the user for a token issued by login, without the password', async () => {
-    const { login, getSession } = await importAuth();
-
-    await login('analyst', 'analyst123');
-    const [, token] = cookieStore.set.mock.calls[0];
-    cookieStore.get.mockReturnValue({ value: token });
-
-    const user = await getSession();
-
-    expect(user).toEqual({
-      id: 'mock-analyst-id',
-      username: 'analyst',
-      fullName: 'کاربر تحلیل‌گر',
-      role: 'ANALYST',
-      isActive: true,
-    });
-    expect(user).not.toHaveProperty('password');
+  it('trims and collapses whitespace', () => {
+    expect(normalizePersianText('  علی   رضا  ')).toBe('علی رضا');
   });
 
-  it('returns the mock admin without a cookie when SKIP_AUTH is on', async () => {
-    vi.stubEnv('SKIP_AUTH', 'true');
-    const { getSession } = await importAuth();
-
-    await expect(getSession()).resolves.toMatchObject({
-      username: 'admin',
-      role: 'ADMIN',
-    });
+  it('rewrites Persian and Arabic-Indic digits as 0-9', () => {
+    expect(toLatinDigits('۱۲۳٤٥٦')).toBe('123456');
   });
 });
 
-describe('logout', () => {
-  it('invalidates the session so the token no longer resolves', async () => {
-    const { login, logout, getSession } = await importAuth();
+describe('the Jalali calendar', () => {
+  it.each([
+    [{ year: 1403, month: 1, day: 1 }, '2024-03-20'],
+    [{ year: 1399, month: 12, day: 30 }, '2021-03-20'],
+    [{ year: 1380, month: 7, day: 15 }, '2001-10-07'],
+  ])('converts %o to %s', (jalali, iso) => {
+    expect(jalaliToIsoDate(jalali)).toBe(iso);
+  });
 
-    await login('admin', 'admin123');
-    const [, token] = cookieStore.set.mock.calls[0];
-    cookieStore.get.mockReturnValue({ value: token });
+  it('round-trips back to the same Jalali date', () => {
+    const jalali = { year: 1372, month: 5, day: 23 };
+    const [year, month, day] = jalaliToIsoDate(jalali).split('-').map(Number);
+    expect(gregorianToJalali({ year, month, day })).toEqual(jalali);
+  });
 
-    await logout();
-    expect(cookieStore.delete).toHaveBeenCalledWith('session');
+  it('gives Esfand 30 days in a leap year and 29 otherwise', () => {
+    // 1399 and 1403 are leap; 1400–1402 are not.
+    expect(jalaliMonthLength(1399, 12)).toBe(30);
+    expect(jalaliMonthLength(1403, 12)).toBe(30);
+    expect(jalaliMonthLength(1400, 12)).toBe(29);
+  });
 
-    // The cookie is gone client-side, but the server must also have dropped
-    // the token — otherwise a replayed cookie would still authenticate.
-    await expect(getSession()).resolves.toBeNull();
+  it('refuses a day the month does not have', () => {
+    expect(isValidJalaliDate({ year: 1400, month: 12, day: 30 })).toBe(false);
+    expect(isValidJalaliDate({ year: 1403, month: 12, day: 30 })).toBe(true);
+    expect(isValidJalaliDate({ year: 1403, month: 7, day: 31 })).toBe(false);
+    expect(isValidJalaliDate({ year: 1403, month: 1, day: 31 })).toBe(true);
+  });
+});
+
+describe('the basic-info form', () => {
+  const currentYear = todayJalali().year;
+
+  const valid = {
+    firstName: 'علی',
+    lastName: 'رضایی',
+    birthDate: { year: String(currentYear - 20), month: '5', day: '23' },
+    gender: 'male' as const,
+  };
+
+  it('accepts a complete form and hands back a Gregorian date', () => {
+    const result = basicInfoSchema.parse(valid);
+    expect(result.birthDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(result.firstName).toBe('علی');
+  });
+
+  it('accepts `other` as a gender', () => {
+    expect(basicInfoSchema.safeParse({ ...valid, gender: 'other' }).success).toBe(true);
+  });
+
+  it('rejects a Latin name', () => {
+    const result = basicInfoSchema.safeParse({ ...valid, firstName: 'Ali' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('نام رو به فارسی وارد کن');
+    }
+  });
+
+  it.each([
+    [12, 'under thirteen'],
+    [81, 'over eighty'],
+  ])('rejects an age of %i (%s)', (age) => {
+    const result = basicInfoSchema.safeParse({
+      ...valid,
+      birthDate: { year: String(currentYear - age), month: '5', day: '23' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an impossible date', () => {
+    const result = basicInfoSchema.safeParse({
+      ...valid,
+      birthDate: { year: String(currentYear - 20), month: '7', day: '31' },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('the one-time code', () => {
+  const phone = '09123456789';
+
+  it('accepts six digits, in either script', () => {
+    expect(otpVerifySchema.parse({ phone, code: '123456' }).code).toBe('123456');
+    expect(otpVerifySchema.parse({ phone, code: '۱۲۳۴۵۶' }).code).toBe('123456');
+  });
+
+  it.each(['12345', '1234567', 'abcdef', ''])('rejects %s', (code) => {
+    expect(otpVerifySchema.safeParse({ phone, code }).success).toBe(false);
   });
 });

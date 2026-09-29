@@ -1,7 +1,10 @@
 'use client';
 
-import { Button } from '@hamdastan/ui';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+
+import { Button } from '@hamdastan/ui';
+
+import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
 
 export default function Error({
   error,
@@ -11,25 +14,32 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 p-6 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-        <AlertTriangle className="h-8 w-8 text-destructive" />
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-xl font-bold">خطایی رخ داد</h2>
-        <p className="text-sm text-muted-foreground max-w-md">
-          مشکلی در بارگذاری این صفحه پیش آمده است. لطفاً دوباره تلاش کنید.
+    <Screen>
+      <ScreenHeader />
+      <ScreenBody className="flex flex-col items-center justify-center gap-4 text-center">
+        <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+          <AlertTriangle aria-hidden="true" className="size-8 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-extrabold leading-tight">خطایی رخ داد</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          مشکلی در بارگذاری این صفحه پیش آمده است. لطفاً دوباره تلاش کن.
         </p>
         {error.digest && (
-          <p className="text-xs text-muted-foreground/50 font-mono">
-            کد خطا: {error.digest}
+          <p dir="ltr" className="font-mono text-xs text-muted-foreground/60">
+            {error.digest}
           </p>
         )}
-      </div>
-      <Button onClick={reset} variant="outline">
-        <RotateCcw className="h-4 w-4" />
-        تلاش مجدد
-      </Button>
-    </div>
+      </ScreenBody>
+      <ScreenFooter>
+        <Button
+          onClick={reset}
+          size="lg"
+          className="h-12 w-full text-base font-bold"
+        >
+          <RotateCcw aria-hidden="true" />
+          تلاش دوباره
+        </Button>
+      </ScreenFooter>
+    </Screen>
   );
 }

@@ -14,6 +14,22 @@ export type Theme = 'dark' | 'light';
 export const THEME_STORAGE_KEY = 'theme';
 export const DEFAULT_THEME: Theme = 'dark';
 
+/**
+ * The colour the browser paints its own chrome with — the Android status bar,
+ * the iOS standalone header, the PWA splash background.
+ *
+ * It has to be a literal: it is read from `<meta name="theme-color">` and
+ * from the web manifest, both of which are parsed before any stylesheet, so a
+ * `var(--background)` here would resolve to nothing. It is the one place a
+ * colour is written twice, which is why it lives beside the tokens rather
+ * than in an app — and why `hsl(265 24% 9%)` in `tokens.css` is named right
+ * above it.
+ *
+ * Keep it equal to `--background` in `.dark`, and to `theme_color` and
+ * `background_color` in each app's `manifest.webmanifest`.
+ */
+export const THEME_COLOR = '#150f22';
+
 export function applyTheme(theme: Theme): void {
   const html = document.documentElement;
   html.classList.toggle('dark', theme === 'dark');

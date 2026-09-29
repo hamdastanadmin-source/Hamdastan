@@ -73,28 +73,81 @@ the rule to that document before writing the code.
 
 ### Authentication
 
-`apps/web/src/features/auth/services/session.service.ts` is a skeleton: users
-and sessions are in memory, passwords are plain text, and nothing survives a
-restart. It is deliberately the only module that knows this. When a real backend
-arrives, rewrite the bodies there and leave the exported signatures
-(`getSession`, `requireAuth`, `requireAdmin`, `login`, `logout`) alone.
+**Sign-in is passwordless and lives in `apps/api`.** A mobile number, a
+six-digit code, and two `httpOnly` cookies. `docs/PRD.md` §4.1 and §5 are the
+specification; `RULES.md` §4–6 are the rules that must not be broken.
 
-It still lives in the web app rather than in `apps/api/src/modules/auth`, which
-is a skeleton. Moving it is a separate task: the in-memory session store cannot
-simply be split across two processes.
+Three things are easy to get wrong here:
+
+- **The account is created when the code verifies**, not when the profile form
+  is submitted. Somebody who abandons the form still has a verified number on
+  file and comes back to the same account.
+- **The client never decides where a user goes.** Every session response
+  carries `nextStep`; `apps/web/src/proxy.ts` obeys it. Do not add a "looks
+  complete" check in a component.
+- **`OTP_DEBUG_DISPLAY` is the only thing standing between the flow and an SMS
+  provider.** When Kaveh-Negar is connected, set `SMS_PROVIDER=kavenegar` and
+  turn the echo off; no code changes.
+
+`apps/web/src/features/auth/services/session.service.ts` no longer stores
+anything — it forwards the request's cookies to `GET /me`. `apps/admin` still
+has its own username/password story; moving that into `apps/api` is a separate
+task.
+
+### Screens
+
+The product is a mobile app wherever it is opened — on a laptop it is the same
+phone screen, centred, not a dashboard. `docs/ARCHITECTURE.md` §3 and §6 are
+authoritative; the four rules that get broken most often:
+
+- Every screen renders inside `MobileShell`, the **only file in `apps/web`
+  allowed to contain a breakpoint**. Do not put `sm:`, `md:`, `lg:` or a width
+  cap in a page — write it for one width. Anything that portals out of the
+  column (toast, sheet, overlay) is constrained to `max-w-shell` where it is
+  used.
+- Use `Screen` / `ScreenHeader` / `ScreenBody` / `ScreenFooter` rather than a
+  new layout. The footer is `sticky`, never `fixed`.
+- Where shadcn has a component, use it — `Button`, `Input`, `Label`, `Form`,
+  `InputOTP`, `Select`, `ToggleGroup`, `Alert`, `Separator`, `Toaster`.
+  Restyle it with token utilities; do not rewrite it. Validation state comes
+  from `Form` setting `aria-invalid`, which the stock controls react to.
+- Never name a colour in a page. The token, through the Tailwind utility.
 
 ### Database
 
-**No database, ORM or persistence technology has been chosen.** Do not add one
-without being asked — not Prisma, Drizzle, TypeORM, Sequelize, Mongoose or a
-raw driver.
+**PostgreSQL, reached through `pg`.** No ORM — repositories write SQL against
+the pool in `apps/api/src/data`. Do not add one (Prisma, Drizzle, TypeORM,
+Sequelize, Mongoose) without being asked.
 
-The seam it plugs into already exists: each backend module declares a
-repository port in `apps/api/src/modules/<m>/<m>.repository.ts`, and
-`apps/api/src/shared/repository.ts` binds an implementation at boot. Until one
-is bound, a repository call throws 501. `database/README.md` has the wiring
-steps; `RULES.md` has the safety constraints that apply the moment a schema
-exists.
+- `apps/api/src/data` is the only place that opens a connection, and only a
+  module's `*.repository.ts` may import it. A service that writes SQL has
+  collapsed two layers that exist to be separable.
+- `pg` is a dependency of `apps/api` alone. Nothing in `apps/web`,
+  `apps/admin` or `packages/` may import it.
+- The schema is `database/migrations/*.sql`, applied with `npm run db:migrate`.
+  **An applied migration is never edited** — the runner checksums them and
+  refuses a changed file. A schema change is a new file, and new tables take
+  the `v2_` prefix.
+- Until a module binds an implementation with `set<Module>Repository(...)` in
+  `server.ts`, its repository throws 501. That is the expected state of most
+  modules; they are still skeletons.
+
+`database/README.md` has the wiring steps; `RULES.md` §1 has the data-safety
+constraints.
+
+### Deployment
+
+The stack runs on one Ubuntu host as three containers behind nginx, which is
+the only published port: `:80` serves the product at `/` and the API at
+`/api/v1`. `./scripts/deploy.sh` rsyncs the source, uploads
+`deploy/.env.production` as the server's `.env`, and rebuilds there.
+
+`NEXT_PUBLIC_` variables are baked into the browser bundle at **build** time,
+so changing the public URL means a rebuild, not a restart. That is why
+`PUBLIC_BASE_URL` is a Docker build argument in `docker-compose.prod.yml`.
+
+Never commit `deploy/.env.production`, and never ship the root `.env` to a
+server — it is a development environment.
 
 ---
 
@@ -112,8 +165,12 @@ shadow the root one.
 - `npm run lint:all` — ESLint (architecture boundaries included) plus the RTL
   check. Run for non-trivial changes.
 - `npm test` — unit tests (Vitest).
-- `npm run test:e2e` — end-to-end tests (Playwright). Starts its own dev server
-  with `SKIP_AUTH=false` so the real login flow is exercised.
+- `npm run db:migrate` — applies pending migrations. Safe to re-run.
+- `npm run test:e2e` — end-to-end tests (Playwright), at 390×844 and
+  1440×900. It starts its own `apps/web` dev server. The specs that walk the
+  sign-in flow need `apps/api` running against a migrated database with
+  `OTP_DEBUG_DISPLAY=true`; without it they **skip with a reason** rather than
+  passing vacuously.
 
 ---
 

@@ -23,7 +23,11 @@
     line-height: var(--leading-normal); /* 1.6 — Persian needs more breathing room */
   }
 
-  input, textarea, select {
+  /* Form controls do not always inherit the document direction, so they are
+     told. `:not([dir])` is the important half: a field that has asked for a
+     direction of its own — the phone number, the one-time code — must win,
+     and without it this rule would silently override the attribute. */
+  input:not([dir]), textarea:not([dir]), select:not([dir]) {
     direction: rtl;
     text-align: start;
   }

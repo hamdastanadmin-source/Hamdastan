@@ -1,18 +1,16 @@
-import { z } from '@hamdastan/validation';
+import { basicInfoSchema, z } from '@hamdastan/validation';
 
 /**
  * Request validation for the Users module.
  *
- * Every route validates its input here before the controller runs. Rules the
- * front-end also enforces live in `@hamdastan/validation` — import them
- * rather than restating them, so the two sides cannot drift.
+ * `basicInfoSchema` is the same object the form in `apps/web` is built from,
+ * down to the Persian error strings — importing it is what stops the two
+ * sides disagreeing about what a valid name or a valid birth date is.
  */
 export const usersSchemas = {
-  // e.g. list: { querystring: paginationQuerySchema },
+  basicInfo: { body: basicInfoSchema },
 } satisfies Record<string, unknown>;
 
 export type UsersSchemas = typeof usersSchemas;
 
-// Re-exported so this module's own schemas can be written without a second
-// zod import.
 export { z };

@@ -1,15 +1,22 @@
 import type { FastifyPluginAsync } from 'fastify';
 
+import { authController } from './auth.controller';
+
 /**
  * HTTP surface of the Auth module — ورود، خروج و نشست کاربر.
  *
- * Mounted at `${API_PREFIX}/auth` by `app.ts`.
+ * Mounted at `${API_PREFIX}/auth` by `app.ts`. Every route here is public by
+ * design: they are the ones a visitor with no session has to be able to call.
  *
- * A route declares the path and the schema, then hands off. It holds no
- * logic of its own and calls nothing below the controller:
- *
- *   app.get('/:id', { schema: authSchemas.getById }, authController.getById);
+ * Bodies are validated by the controller rather than by Fastify's `schema`
+ * option, because the shared schemas in `@hamdastan/validation` normalise as
+ * well as validate — `۰۹۱۲…` and `+98912…` have to become one phone number
+ * on the way in, and JSON Schema has no transform step. See
+ * `shared/validate.ts`.
  */
-export const authRoutes: FastifyPluginAsync = async () => {
-  // Register this module's routes here.
+export const authRoutes: FastifyPluginAsync = async (app) => {
+  app.post('/otp/request', authController.requestOtp);
+  app.post('/otp/verify', authController.verifyOtp);
+  app.post('/refresh', authController.refresh);
+  app.post('/logout', authController.logout);
 };

@@ -1,4 +1,14 @@
-export type { UserRole, AuthUser } from './auth';
+export {
+  AUTH_ERROR_CODES,
+  type AuthErrorCode,
+  type AuthUser,
+  type Gender,
+  type NextStep,
+  type OtpRequestResponse,
+  type OtpVerifyResponse,
+  type SessionResponse,
+  type UserRole,
+} from './auth';
 export type {
   ApiErrorBody,
   ApiSuccess,
