@@ -2,10 +2,11 @@
 
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { CircleAlert, KeyRound, Loader2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { OTP } from '@hamdastan/config';
+import { cn } from '@hamdastan/shared/cn';
 import { toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
 import {
   Alert,
@@ -18,8 +19,17 @@ import {
   InputOTPSlot,
 } from '@hamdastan/ui';
 
-import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
+import {
+  Screen,
+  ScreenBack,
+  ScreenBody,
+  ScreenProgress,
+  ScreenFooter,
+  ScreenHeader,
+  ScreenTitle,
+} from '@/components';
 
+import { AuthSteps } from './AuthSteps';
 import { useAuthActions } from '../hooks/use-auth-actions';
 import { useCountdown } from '../hooks/use-countdown';
 import { authErrorMessage } from '../utils/errors';
@@ -107,32 +117,42 @@ export function OtpForm({ phone }: { phone: string }) {
   return (
     <Screen>
       <ScreenHeader>
-        <Button asChild variant="ghost" size="sm" className="-ms-2 text-muted-foreground">
-          <Link href="/auth/phone">بازگشت</Link>
-        </Button>
+        <ScreenBack href="/auth/phone" />
       </ScreenHeader>
 
-      <ScreenBody className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-2xl font-extrabold leading-tight">کد تأیید رو وارد کن</h1>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            کد {toPersianDigits(OTP.LENGTH)} رقمی به{' '}
-            <span dir="ltr" className="font-medium text-foreground">
-              {phone}
-            </span>{' '}
-            فرستاده شد.{' '}
-            <Link href="/auth/phone" className="font-medium text-primary underline-offset-4 hover:underline">
-              ویرایش شماره
-            </Link>
-          </p>
-        </header>
+      <ScreenProgress>
+        <AuthSteps current={2} />
+      </ScreenProgress>
+
+      <ScreenBody center className="gap-6">
+        <ScreenTitle
+          title="کد تأیید رو وارد کن"
+          description={
+            <>
+              کد {toPersianDigits(OTP.LENGTH)} رقمی به{' '}
+              <span dir="ltr" className="font-medium text-foreground tabular-nums">
+                {phone}
+              </span>{' '}
+              فرستاده شد.{' '}
+              <Link
+                href="/auth/phone"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                ویرایش شماره
+              </Link>
+            </>
+          }
+        />
 
         {debugCode && (
           <Alert>
             <KeyRound aria-hidden="true" />
             <AlertTitle>کد تست</AlertTitle>
             <AlertDescription>
-              <span dir="ltr" className="font-mono text-base tracking-[0.3em] text-foreground">
+              <span
+                dir="ltr"
+                className="font-mono text-base tracking-[0.3em] text-foreground"
+              >
                 {debugCode}
               </span>
               <span>تا وصل شدن سرویس پیامک، کد همین‌جا نمایش داده می‌شود.</span>
@@ -140,12 +160,26 @@ export function OtpForm({ phone }: { phone: string }) {
           </Alert>
         )}
 
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-4">
           {/* The boxes run LTR: the first digit typed sits at the start of
               the code as written in the SMS the user is copying from. */}
-          <div dir="ltr" className={error ? 'animate-shake motion-reduce:animate-none' : undefined}>
+          <div
+            dir="ltr"
+            className={cn(
+              'w-full',
+              error && 'animate-shake motion-reduce:animate-none'
+            )}
+          >
             <InputOTP
               maxLength={OTP.LENGTH}
+              // The six boxes have to fit the column at 320px as well as at
+              // 430px, and a page may not carry a breakpoint. So they flex:
+              // each slot is `w-full` inside a `flex-1` group and shrinks
+              // with the row. The caps are what stop them growing into slabs
+              // on the wider phone — `max-w-12` per slot, and `max-w-36` per
+              // group, which is exactly three of them, so the row reaches its
+              // natural width and then centres instead of hugging one edge.
+              containerClassName="w-full justify-center"
               value={code}
               // input-otp filters keystrokes and pastes against this, so a
               // Persian-keyboard ۱۲۳۴۵۶ has to be allowed through before
@@ -165,57 +199,75 @@ export function OtpForm({ phone }: { phone: string }) {
               aria-label="کد تأیید"
               aria-invalid={Boolean(error)}
             >
-              <InputOTPGroup>
+              <InputOTPGroup className="max-w-36 flex-1">
                 {[0, 1, 2].map((index) => (
                   <InputOTPSlot
                     key={index}
                     index={index}
                     aria-invalid={Boolean(error)}
-                    className="h-14 w-12 text-xl font-semibold"
+                    className="h-14 w-full max-w-12 text-xl font-semibold"
                   />
                 ))}
               </InputOTPGroup>
-              <InputOTPSeparator className="text-muted-foreground" />
-              <InputOTPGroup>
+              <InputOTPSeparator className="text-muted-foreground/50" />
+              <InputOTPGroup className="max-w-36 flex-1">
                 {[3, 4, 5].map((index) => (
                   <InputOTPSlot
                     key={index}
                     index={index}
                     aria-invalid={Boolean(error)}
-                    className="h-14 w-12 text-xl font-semibold"
+                    className="h-14 w-full max-w-12 text-xl font-semibold"
                   />
                 ))}
               </InputOTPGroup>
             </InputOTP>
           </div>
 
-          {checking && (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-              در حال بررسی…
-            </p>
-          )}
+          {/* One row, reserved whether or not there is anything in it: the
+              boxes would otherwise jump up the screen the moment a message
+              appears under them, which is the one place on this screen the
+              user is looking. */}
+          <div className="flex min-h-6 items-center justify-center">
+            {checking && (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                در حال بررسی…
+              </p>
+            )}
 
-          {error && !checking && (
-            <p role="alert" className="text-sm font-medium text-destructive">
-              {error}
-            </p>
-          )}
+            {error && !checking && (
+              <p
+                role="alert"
+                className="flex items-center gap-1.5 text-sm font-medium text-destructive"
+              >
+                {/* Colour is not the only carrier: the shake is motion, this
+                    is a shape, and the text is the reason. */}
+                <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+                {error}
+              </p>
+            )}
+          </div>
         </div>
       </ScreenBody>
 
-      <ScreenFooter>
+      <ScreenFooter className="flex flex-col items-center gap-1">
+        <p className="text-sm text-muted-foreground">کد رو دریافت نکردی؟</p>
         {remaining > 0 ? (
-          <p className="text-center text-sm text-muted-foreground" aria-live="polite">
+          <p
+            className="flex h-12 items-center text-sm font-medium tabular-nums text-foreground"
+            aria-live="polite"
+          >
             ارسال دوباره تا {formatCountdown(remaining)}
           </p>
         ) : (
           <Button
             type="button"
-            variant="link"
+            variant="ghost"
+            size="xl"
             onClick={resend}
-            className="h-12 w-full text-base font-bold"
+            className="w-full text-primary hover:text-primary"
           >
+            <RotateCcw aria-hidden="true" />
             ارسال دوباره‌ی کد
           </Button>
         )}

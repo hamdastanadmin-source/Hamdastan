@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { PartyPopper } from 'lucide-react';
 
-import { Button } from '@hamdastan/ui';
+import { Button, IconBadge } from '@hamdastan/ui';
 
-import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
+import { Screen, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
+import { SignOutButton } from '@/features/auth';
 import { requireSession } from '@/features/auth/server';
 
 export const metadata: Metadata = { title: 'شروع کار' };
@@ -21,17 +23,26 @@ export default async function OnboardingPage() {
 
   return (
     <Screen>
-      <ScreenHeader />
-      <ScreenBody className="flex flex-col justify-center gap-3 text-center">
-        <h1 className="text-2xl font-extrabold leading-tight">
-          خوش اومدی{user.firstName ? `، ${user.firstName}` : ''}!
-        </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          آنبوردینگ هنوز ساخته نشده. این صفحه جای مراحل معرفی محصول است.
-        </p>
+      <ScreenHeader>
+        <span />
+        {/* The only way off this screen. Onboarding has no back — the account
+            is already created and the routing table sends it straight back
+            here — so without this a signed-in account is stranded on a
+            placeholder. The same control the home and profile screens use. */}
+        <SignOutButton />
+      </ScreenHeader>
+      <ScreenBody center className="items-center gap-6 text-center">
+        <IconBadge size="lg" glow>
+          <PartyPopper aria-hidden="true" />
+        </IconBadge>
+
+        <ScreenTitle
+          title={<>خوش اومدی{user.firstName ? `، ${user.firstName}` : ''}!</>}
+          description="حسابت ساخته شد. مراحل معرفی محصول به‌زودی همین‌جا اضافه می‌شن."
+        />
       </ScreenBody>
       <ScreenFooter>
-        <Button size="lg" className="h-12 w-full text-base font-bold" disabled>
+        <Button size="xl" className="w-full" disabled>
           به‌زودی
         </Button>
       </ScreenFooter>

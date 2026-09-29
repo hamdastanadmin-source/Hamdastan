@@ -169,8 +169,41 @@ review.
 ### The page scaffold
 
 Every screen is `Screen` → `ScreenHeader` / `ScreenBody` / `ScreenFooter`
-(`components/layout/Screen.tsx`): a short header, content that starts at the
-top, and the primary action pinned to the bottom edge.
+(`components/layout/Screen.tsx`): a short header, a body, and the primary
+action pinned to the bottom edge. Two more pieces come from the same file and
+one from beside it:
+
+- **`ScreenTitle`** is the `h1` plus its supporting line. There is exactly one
+  per screen, and it is the only place that decides what size a page title is
+  — six screens each hand-rolling the same `<header><h1><p>` is how a type
+  scale drifts.
+- **`ScreenBody center`** centres the body's content in the space between the
+  header and the footer. A one-field form left top-aligned leaves two thirds
+  of a phone empty above the action bar, which reads as a page that failed to
+  load. A form long enough to fill the column leaves the flag off — centring
+  one only moves it down on a tall device, and moves it again the moment a
+  validation message appears.
+- **`ScreenProgress`** is the strip between the header and the body, for
+  chrome that must stay pinned while the body is centred — today the sign-up
+  step bar. Without it, every centred screen re-implements the same
+  `flex-1 justify-center` wrapper *inside* the body to keep that bar out of
+  the centring, which is `ScreenBody center` written again, per screen.
+- **`ScreenBack`** (`components/layout/ScreenBack.tsx`) is the header's back
+  control. It and `SignOutButton` both use `Button size="touch"` — the 44px
+  header-control size — because the touch minimum is a property of the size
+  scale, not something each header re-tunes. Its arrow points the way the
+  reader came from, which in an RTL product is rightwards.
+
+`MobileShell` draws the column's one ambient gradient (`--gradient-shell-glow`,
+via the `shell-ambient` class, which carries its own position, height and
+z-index). It is decorative, `aria-hidden` and `pointer-events-none`; screens
+do not draw their own. The matching `hero-glow` class is the halo behind
+artwork or an icon — it carries the paint and the stacking but not the inset,
+because a 64px tile and full-width artwork need opposite spreads and one of
+them would otherwise push the column into a horizontal scroll.
+
+The icon-in-a-tinted-tile mark at the top of an empty, error or confirmation
+state is `IconBadge` (`@hamdastan/ui`), not three hand-built divs.
 
 The footer is `sticky`, not `fixed`. A fixed bar is measured against the
 viewport, so on a laptop it would span the whole browser — which is the usual

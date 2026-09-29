@@ -2,9 +2,15 @@
 
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 
-import { Button } from '@hamdastan/ui';
+import { Button, IconBadge } from '@hamdastan/ui';
 
-import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
+import {
+  Screen,
+  ScreenBody,
+  ScreenFooter,
+  ScreenHeader,
+  ScreenTitle,
+} from '@/components';
 
 export default function Error({
   error,
@@ -16,14 +22,14 @@ export default function Error({
   return (
     <Screen>
       <ScreenHeader />
-      <ScreenBody className="flex flex-col items-center justify-center gap-4 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
-          <AlertTriangle aria-hidden="true" className="size-8 text-destructive" />
-        </div>
-        <h1 className="text-2xl font-extrabold leading-tight">خطایی رخ داد</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          مشکلی در بارگذاری این صفحه پیش آمده است. لطفاً دوباره تلاش کن.
-        </p>
+      <ScreenBody center className="items-center gap-4 text-center">
+        <IconBadge tone="destructive">
+          <AlertTriangle aria-hidden="true" />
+        </IconBadge>
+        <ScreenTitle
+          title="خطایی رخ داد"
+          description="مشکلی در بارگذاری این صفحه پیش آمده است. لطفاً دوباره تلاش کن."
+        />
         {error.digest && (
           <p dir="ltr" className="font-mono text-xs text-muted-foreground/60">
             {error.digest}
@@ -33,8 +39,8 @@ export default function Error({
       <ScreenFooter>
         <Button
           onClick={reset}
-          size="lg"
-          className="h-12 w-full text-base font-bold"
+          size="xl"
+          className="w-full"
         >
           <RotateCcw aria-hidden="true" />
           تلاش دوباره

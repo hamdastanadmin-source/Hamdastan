@@ -94,3 +94,41 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AMBIENT SURFACES
+
+   Two classes, both drawing a gradient defined in tokens.css rather than one
+   written here — a dark screen that is a single flat fill is the thing that
+   makes an app look unfinished, and this is the cheapest way to give it a
+   light source. They are decorative, so they are hidden from assistive
+   technology by the elements that carry them.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* The wash down the top of the mobile column. Its height belongs here beside
+   the gradient's own falloff: they are two halves of one effect, and split
+   between a stylesheet and a component they drift. */
+.shell-ambient {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 24rem;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--gradient-shell-glow);
+}
+
+/* The halo behind a piece of hero artwork or an icon.
+
+   It carries the paint and the stacking — absolute, behind, untappable — but
+   deliberately not the inset. The two things it sits behind want opposite
+   spreads: a 64px icon tile needs the halo to reach well past its edges,
+   while full-width artwork has no room to spread sideways without pushing the
+   column into a horizontal scroll. One inset cannot serve both, so the caller
+   supplies it: `IconBadge` for the tile, and the screen for its artwork. */
+.hero-glow {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--gradient-hero-glow);
+}

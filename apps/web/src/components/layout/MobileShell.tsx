@@ -19,8 +19,15 @@ export function MobileShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh justify-center bg-surface-0">
       <div
         data-shell
-        className="relative flex w-full max-w-shell flex-col bg-background shell:border-x shell:border-border/70 shell:shadow-2xl shell:shadow-black/40"
+        // `isolate` keeps the glow's negative z-index inside this column
+        // rather than letting it fall behind the page.
+        className="relative isolate flex w-full max-w-shell flex-col bg-background shell:border-x shell:border-border/70 shell:shadow-2xl shell:shadow-black/40"
       >
+        {/* The column's light source: a brand-hued wash falling from the top
+            edge, so the screen reads as lit rather than as one flat fill.
+            `shell-ambient` carries its own position, height and z-index — it
+            must not intercept a tap and it must not be announced. */}
+        <div aria-hidden="true" className="shell-ambient" />
         {children}
       </div>
     </div>

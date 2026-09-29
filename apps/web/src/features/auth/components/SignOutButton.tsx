@@ -20,8 +20,8 @@ export function SignOutButton() {
     <Button
       type="button"
       variant="ghost"
-      size="sm"
-      className="-me-2 text-muted-foreground"
+      size="touch"
+      className="-me-3 text-muted-foreground hover:text-foreground"
       onClick={() => void logout()}
     >
       <LogOut aria-hidden="true" />

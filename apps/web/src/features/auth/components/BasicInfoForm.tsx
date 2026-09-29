@@ -35,8 +35,17 @@ import {
   type BasicInfoOutput,
 } from '@hamdastan/validation';
 
-import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
+import {
+  Screen,
+  ScreenBody,
+  ScreenFooter,
+  ScreenHeader,
+  ScreenProgress,
+  ScreenTitle,
+} from '@/components';
 
+import { AuthSteps } from './AuthSteps';
+import { SignOutButton } from './SignOutButton';
 import { useAuthActions } from '../hooks/use-auth-actions';
 import { authErrorMessage } from '../utils/errors';
 
@@ -92,7 +101,7 @@ function focusNextOnEnter(event: React.KeyboardEvent<HTMLFormElement>) {
 }
 
 export function BasicInfoForm() {
-  const { saveBasicInfo, logout } = useAuthActions();
+  const { saveBasicInfo } = useAuthActions();
   const years = useMemo(() => selectableYears(), []);
 
   // Three generics because the schema transforms: the Jalali parts go in,
@@ -126,59 +135,63 @@ export function BasicInfoForm() {
     <Screen>
       <ScreenHeader>
         <span />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="-me-2 text-muted-foreground"
-          onClick={() => void logout()}
-        >
-          خروج
-        </Button>
+        {/* Signing out is the only way off this screen — there is nothing
+            behind it to go back to — and it is the same control the home
+            screen uses, so it is the same component. */}
+        <SignOutButton />
       </ScreenHeader>
 
+      <ScreenProgress>
+        <AuthSteps current={3} />
+      </ScreenProgress>
+
       <ScreenBody>
+
         <Form {...form}>
           <form
             id="basic-info-form"
             onSubmit={onSubmit}
             onKeyDown={focusNextOnEnter}
+            // Top-aligned, unlike the two screens before it: this form is
+            // long enough to fill the column on a small phone, and centring
+            // it would only move it down on a tall one — and then move it
+            // again the moment a validation message appears.
             className="flex flex-col gap-6"
           >
-            <header className="flex flex-col gap-2">
-              <h1 className="text-2xl font-extrabold leading-tight">بیا آشنا بشیم</h1>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                این اطلاعات پیش ما می‌مونه
-              </p>
-            </header>
-
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نام</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="given-name" className="h-12" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <ScreenTitle
+              title="بیا آشنا بشیم"
+              description="این اطلاعات پیش ما می‌مونه و به کسی نشون داده نمی‌شه."
             />
 
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نام خانوادگی</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="family-name" className="h-12" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>نام</FormLabel>
+                    <FormControl>
+                      <Input {...field} autoComplete="given-name" className="h-12" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>نام خانوادگی</FormLabel>
+                    <FormControl>
+                      <Input {...field} autoComplete="family-name" className="h-12" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormItem>
               <FormLabel asChild>
@@ -304,8 +317,8 @@ export function BasicInfoForm() {
         <Button
           type="submit"
           form="basic-info-form"
-          size="lg"
-          className="h-12 w-full text-base font-bold"
+          size="xl"
+          className="w-full"
           loading={form.formState.isSubmitting}
         >
           ادامه

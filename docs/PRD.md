@@ -97,6 +97,10 @@ password and no separate registration.
 - Until Kaveh-Negar is connected, `OTP_DEBUG_DISPLAY=true` returns the code in
   the API response and shows it on the verification screen. Turning it off is
   the whole deployment step; no code changes with it.
+- All three screens carry a step indicator — «مرحله ۱ از ۳» and a three-segment
+  bar. Sign-up is three screens and the longest of them is last, so the count
+  is shown before somebody reaches it. It is chrome: pinned under the header,
+  and it announces itself as a `progressbar` rather than as three bars.
 
 **Not in this module:** the onboarding steps themselves, and the admin panel's
 username/password sign-in.
@@ -281,7 +285,18 @@ Colours are derived from the two brand variables at the top of
   the only breakpoint in the app is in `MobileShell`, and it is the only thing
   that decides how wide anything is. At 1440, 1920 or 2560 the product is the
   same 430px column, centred — never a dashboard.
-- Primary buttons and form controls are 48px tall; the page gutter is 20px.
+- Primary buttons and form controls are 48px tall (`Button size="xl"`); the
+  page gutter is 20px. Every control a finger reaches for clears 44px,
+  including the back and sign-out controls in a header.
+- A disabled primary button drops to the muted surface rather than fading the
+  brand fill — a 50%-opacity violet button with a washed-out label reads as
+  enabled-but-broken instead of not-yet.
+- Each screen has one `h1`, rendered by `ScreenTitle`. A screen whose content
+  does not fill the column centres it (`ScreenBody center`) rather than
+  leaving a void above the action bar.
+- The dark surface is lit by one ambient brand gradient at the top of the
+  column (`--gradient-shell-glow`), drawn by `MobileShell`. Screens do not add
+  their own; `--gradient-hero-glow` is the halo for a piece of artwork.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
   on a wrong code. Everything honours `prefers-reduced-motion`.
 - A sticky footer holds the primary action, inside the column and clear of the

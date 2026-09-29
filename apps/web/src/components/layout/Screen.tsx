@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { cn } from '@hamdastan/shared/cn';
 
 /**
- * The shape every screen in the product has: a short header, content that
- * starts at the top, and the primary action pinned to the bottom edge.
+ * The shape every screen in the product has: a short header, a body, and the
+ * primary action pinned to the bottom edge.
  *
  * The footer is `sticky` rather than `fixed` so it stays inside the 430px
  * column instead of spanning the browser — a fixed bar is the usual way a
@@ -20,28 +20,105 @@ export function Screen({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn('flex min-h-dvh flex-col', className)}>{children}</div>;
+  return (
+    <div className={cn('flex min-h-dvh flex-col', className)}>{children}</div>
+  );
 }
 
-export function ScreenHeader({ children }: { children?: ReactNode }) {
+export function ScreenHeader({
+  children,
+  className,
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-5 pt-[env(safe-area-inset-top)]">
+    <header
+      className={cn(
+        // `min-h` rather than `h`: a header carrying a step indicator is
+        // taller than one carrying a back button, and neither should have to
+        // pick a new layout to say so.
+        'flex min-h-14 shrink-0 items-center justify-between gap-2 px-5 pt-[env(safe-area-inset-top)]',
+        className
+      )}
+    >
       {children}
     </header>
   );
 }
 
-export function ScreenBody({
+/**
+ * Chrome between the header and the body — today, the sign-up step bar.
+ *
+ * It exists so that a screen using `ScreenBody center` can still pin
+ * something to the top. Without it, every such screen re-implements the same
+ * `flex-1 justify-center` wrapper *inside* the body to keep the step bar out
+ * of the centring, which is `ScreenBody center` written again, per screen.
+ */
+export function ScreenProgress({
   children,
   className,
 }: {
   children: ReactNode;
   className?: string;
 }) {
+  return <div className={cn('shrink-0 px-5 pb-2', className)}>{children}</div>;
+}
+
+/**
+ * The body.
+ *
+ * `center` is the difference between a screen and a form floating at the top
+ * of one. A short form — a phone number, six digits — left top-aligned leaves
+ * two thirds of a phone screen empty above the action bar, which reads as a
+ * page that failed to load rather than as a deliberately sparse one. Screens
+ * whose content actually fills the column leave it off.
+ */
+export function ScreenBody({
+  children,
+  className,
+  center = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  center?: boolean;
+}) {
   return (
-    <main id="main-content" className={cn("flex-1 px-5 pb-8", className)}>
+    <main
+      id="main-content"
+      className={cn(
+        'flex flex-1 flex-col px-5 pb-8',
+        center && 'justify-center',
+        className
+      )}
+    >
       {children}
     </main>
+  );
+}
+
+/**
+ * The title block: one `h1`, one supporting line, one rhythm.
+ *
+ * Six screens were each writing the same header/h1/p by hand, which is how a
+ * type scale drifts. There is exactly one `h1` per screen, and this is it.
+ */
+export function ScreenTitle({
+  title,
+  description,
+  className,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <header className={cn('flex flex-col gap-2', className)}>
+      <h1 className="text-2xl font-extrabold leading-tight text-balance">{title}</h1>
+      {description && (
+        <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+      )}
+    </header>
   );
 }
 
@@ -55,7 +132,16 @@ export function ScreenFooter({
   return (
     <footer
       className={cn(
-        'sticky bottom-0 z-10 shrink-0 border-t border-border/50 bg-background/90 px-5 pt-4 backdrop-blur-sm',
+        // No hairline rule: the content is meant to pass *under* the bar as
+        // it scrolls, and the `before` strip is the fade that hands off
+        // between them — it sits above the footer (`bottom-full`), so the
+        // last line of content dissolves into the bar rather than being cut
+        // by it. That fade is also why there is no `backdrop-blur` here: a
+        // backdrop-filter on a sticky element re-rasterises its backdrop —
+        // now including the shell's ambient gradient — on every scroll
+        // frame, and it buys nothing the gradient is not already saying.
+        'sticky bottom-0 z-10 shrink-0 bg-background/95 px-5 pt-4',
+        'before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-8 before:bg-linear-to-t before:from-background before:to-transparent',
         className
       )}
       style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}

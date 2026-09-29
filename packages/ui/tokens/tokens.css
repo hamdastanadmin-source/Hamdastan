@@ -115,6 +115,28 @@
 
     --radius: 0.75rem;
 
+    /* ─── Ambient Gradients ─────────────────────────────────────── */
+    /* The wash behind a screen, and the halo behind a piece of artwork.
+       Derived from the brand hue like everything else, so changing
+       --brand-hue moves them too. Only the two alphas differ between the
+       themes — the geometry is written once, below, so the light and dark
+       glows cannot drift into different shapes. */
+    --glow-shell-alpha: 0.10;
+    --glow-hero-alpha: 0.16;
+
+    --gradient-shell-glow:
+      radial-gradient(
+        130% 55% at 50% -12%,
+        hsl(var(--brand-hue) var(--brand-saturation) 58% / var(--glow-shell-alpha)) 0%,
+        transparent 68%
+      );
+    --gradient-hero-glow:
+      radial-gradient(
+        closest-side,
+        hsl(var(--brand-hue) var(--brand-saturation) 58% / var(--glow-hero-alpha)) 0%,
+        transparent 100%
+      );
+
     /* The app is a mobile product wherever it is opened. This is the widest
        its single column ever gets — see MobileShell in apps/web. */
     --shell-max-width: 430px;
@@ -209,6 +231,12 @@
     --foreground-lighter: 0 0% 53.7%;
     --foreground-light: 0 0% 70.6%;
     --foreground-contrast: 0 0% 8.6%;
+
+    /* ─── Ambient Gradients (dark mode) ─────────────────────────── */
+    /* Turned up: a flat near-black rectangle is the thing that makes a dark
+       UI look unfinished. The gradients themselves are inherited. */
+    --glow-shell-alpha: 0.22;
+    --glow-hero-alpha: 0.30;
   }
 }
 
