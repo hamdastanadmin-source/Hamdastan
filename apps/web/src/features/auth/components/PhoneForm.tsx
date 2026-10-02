@@ -7,7 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
 import { OTP } from '@hamdastan/config';
-import { toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
+import {
+  IRAN_MOBILE_LENGTH,
+  toMobileInput,
+  toPersianDigits,
+} from '@hamdastan/shared/format/persian';
 import {
   Button,
   Form,
@@ -29,13 +33,11 @@ import {
   Screen,
   ScreenBack,
   ScreenBody,
-  ScreenProgress,
   ScreenFooter,
   ScreenHeader,
   ScreenTitle,
 } from '@/components';
 
-import { AuthSteps } from './AuthSteps';
 import { useAuthActions } from '../hooks/use-auth-actions';
 import { authErrorMessage } from '../utils/errors';
 
@@ -76,10 +78,6 @@ export function PhoneForm() {
       <ScreenHeader>
         <ScreenBack href="/welcome" />
       </ScreenHeader>
-
-      <ScreenProgress>
-        <AuthSteps current={1} />
-      </ScreenProgress>
 
       <ScreenBody center>
         <Form {...form}>
@@ -122,14 +120,15 @@ export function PhoneForm() {
                         inputMode="numeric"
                         autoComplete="tel"
                         autoFocus
-                        maxLength={13}
+                        maxLength={IRAN_MOBILE_LENGTH}
                         placeholder="09123456789"
                         className="h-12 ps-12 text-lg tracking-wider tabular-nums"
                         onChange={(event) =>
-                          // Persian keyboards produce ۰۹…; the value is stored
-                          // as 09… from the first keystroke so what the user
-                          // sees and what is validated are the same string.
-                          field.onChange(toLatinDigits(event.target.value))
+                          // Digits only, eleven at most. Persian keyboards
+                          // produce ۰۹…, so the value is rewritten as 09…
+                          // from the first keystroke and what the user sees
+                          // is the string that gets validated.
+                          field.onChange(toMobileInput(event.target.value))
                         }
                       />
                     </FormControl>

@@ -73,3 +73,18 @@ export function normalizeIranMobile(value: string): string | null {
   // What remains must be a mobile subscriber number: 9 then nine digits.
   return /^9\d{9}$/.test(national) ? `0${national}` : null;
 }
+
+/** Length of the stored form, `09` plus nine digits. */
+export const IRAN_MOBILE_LENGTH = 11;
+
+/**
+ * What the mobile field holds while it is being typed: Latin digits only, at
+ * most eleven of them. A complete number pasted in any accepted form
+ * (`+98 912…`) is normalised first, so it is not truncated into nonsense.
+ */
+export function toMobileInput(value: string): string {
+  return (
+    normalizeIranMobile(value) ??
+    toLatinDigits(value).replace(/\D/g, '').slice(0, IRAN_MOBILE_LENGTH)
+  );
+}

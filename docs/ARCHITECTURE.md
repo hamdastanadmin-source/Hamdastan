@@ -183,11 +183,6 @@ one from beside it:
   load. A form long enough to fill the column leaves the flag off — centring
   one only moves it down on a tall device, and moves it again the moment a
   validation message appears.
-- **`ScreenProgress`** is the strip between the header and the body, for
-  chrome that must stay pinned while the body is centred — today the sign-up
-  step bar. Without it, every centred screen re-implements the same
-  `flex-1 justify-center` wrapper *inside* the body to keep that bar out of
-  the centring, which is `ScreenBody center` written again, per screen.
 - **`ScreenBack`** (`components/layout/ScreenBack.tsx`) is the header's back
   control. It and `SignOutButton` both use `Button size="touch"` — the 44px
   header-control size — because the touch minimum is a property of the size

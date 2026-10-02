@@ -41,6 +41,10 @@ async function fillCode(page: Page, code: string): Promise<void> {
 }
 
 async function fillBasicInfo(page: Page): Promise<void> {
+  const submit = page.getByRole('button', { name: 'ادامه' });
+  // Nothing to send until every field is filled.
+  await expect(submit).toBeDisabled();
+
   // `exact`, or this also matches «نام خانوادگی».
   await page.getByLabel('نام', { exact: true }).fill('نیلوفر');
   await page.getByLabel('نام خانوادگی').fill('احمدی');
@@ -53,7 +57,7 @@ async function fillBasicInfo(page: Page): Promise<void> {
   await page.getByRole('option').nth(10).click();
 
   await page.getByRole('radio', { name: 'زن' }).click();
-  await page.getByRole('button', { name: 'ادامه' }).click();
+  await submit.click();
 }
 
 test('a new number: phone, code, basic info, onboarding', async ({ page }) => {

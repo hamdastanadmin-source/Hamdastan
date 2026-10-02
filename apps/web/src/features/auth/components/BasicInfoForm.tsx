@@ -40,12 +40,9 @@ import {
   ScreenBody,
   ScreenFooter,
   ScreenHeader,
-  ScreenProgress,
   ScreenTitle,
 } from '@/components';
 
-import { AuthSteps } from './AuthSteps';
-import { SignOutButton } from './SignOutButton';
 import { useAuthActions } from '../hooks/use-auth-actions';
 import { authErrorMessage } from '../utils/errors';
 
@@ -54,8 +51,9 @@ import { authErrorMessage } from '../utils/errors';
  *
  * The number is already verified by the time this renders, and the account
  * already exists — so closing the app here loses nothing, and the routing
- * table brings them back to this same screen. That is why there is no back
- * button: there is nothing behind it. The only way out is signing out.
+ * table brings them back to this same screen. That is why the header is
+ * empty: there is nothing behind it to go back to, and no exit offered
+ * before the profile is complete.
  *
  * The date is three `<Select>`s rather than a date picker because a birthday
  * is a value the user knows, not one they navigate to; scrolling a calendar
@@ -108,9 +106,11 @@ export function BasicInfoForm() {
   // a Gregorian ISO date comes out.
   const form = useForm<BasicInfoInput, unknown, BasicInfoOutput>({
     resolver: zodResolver(basicInfoSchema),
-    // Errors appear when the user leaves a field, not while they are still
-    // half-way through typing a name.
-    mode: 'onBlur',
+    // A field's first error waits until the user leaves it, not while they
+    // are half-way through typing a name. Unlike 'onBlur', this mode also
+    // re-derives `isValid` on every change — the selects and the gender
+    // toggle never blur, so under 'onBlur' the button lagged behind them.
+    mode: 'onTouched',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -133,17 +133,9 @@ export function BasicInfoForm() {
 
   return (
     <Screen>
-      <ScreenHeader>
-        <span />
-        {/* Signing out is the only way off this screen — there is nothing
-            behind it to go back to — and it is the same control the home
-            screen uses, so it is the same component. */}
-        <SignOutButton />
-      </ScreenHeader>
-
-      <ScreenProgress>
-        <AuthSteps current={3} />
-      </ScreenProgress>
+      {/* Empty, but kept: it carries the safe-area inset and the same top
+          spacing as the screens before this one. */}
+      <ScreenHeader />
 
       <ScreenBody>
 
@@ -319,6 +311,8 @@ export function BasicInfoForm() {
           form="basic-info-form"
           size="xl"
           className="w-full"
+          // Enables the moment the last field is filled; see `mode` above.
+          disabled={!form.formState.isValid}
           loading={form.formState.isSubmitting}
         >
           ادامه

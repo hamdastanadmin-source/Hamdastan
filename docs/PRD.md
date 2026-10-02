@@ -97,10 +97,9 @@ password and no separate registration.
 - Until Kaveh-Negar is connected, `OTP_DEBUG_DISPLAY=true` returns the code in
   the API response and shows it on the verification screen. Turning it off is
   the whole deployment step; no code changes with it.
-- All three screens carry a step indicator — «مرحله ۱ از ۳» and a three-segment
-  bar. Sign-up is three screens and the longest of them is last, so the count
-  is shown before somebody reaches it. It is chrome: pinned under the header,
-  and it announces itself as a `progressbar` rather than as three bars.
+- The basic-info screen has no back and no sign-out control: the account
+  already exists, and the routing table returns an unfinished one to this
+  screen, so there is nothing to leave to before the profile is complete.
 
 **Not in this module:** the onboarding steps themselves, and the admin panel's
 username/password sign-in.
@@ -253,6 +252,10 @@ against the same objects, including the Persian messages.
 | Gender | `male` / `female` / `other` | «یکی از گزینه‌ها رو انتخاب کن» |
 | OTP | Exactly 6 digits | «کد اشتباهه، دوباره امتحان کن» |
 
+The mobile field itself accepts digits only, eleven at most: letters and
+symbols are dropped as they are typed, and a full number pasted in any accepted
+form is normalised to `09XXXXXXXXX` rather than truncated.
+
 Every field is normalised before it is validated: Persian and Arabic-Indic
 digits become `0-9`, Arabic ي/ك become Persian ی/ک, and leading and trailing
 whitespace is dropped.
@@ -291,6 +294,8 @@ Colours are derived from the two brand variables at the top of
 - A disabled primary button drops to the muted surface rather than fading the
   brand fill — a 50%-opacity violet button with a washed-out label reads as
   enabled-but-broken instead of not-yet.
+- A form's primary button stays disabled until every required field is
+  filled and valid — on the phone screen and on basic info alike.
 - Each screen has one `h1`, rendered by `ScreenTitle`. A screen whose content
   does not fill the column centres it (`ScreenBody center`) rather than
   leaving a void above the action bar.

@@ -23,13 +23,11 @@ import {
   Screen,
   ScreenBack,
   ScreenBody,
-  ScreenProgress,
   ScreenFooter,
   ScreenHeader,
   ScreenTitle,
 } from '@/components';
 
-import { AuthSteps } from './AuthSteps';
 import { useAuthActions } from '../hooks/use-auth-actions';
 import { useCountdown } from '../hooks/use-countdown';
 import { authErrorMessage } from '../utils/errors';
@@ -119,10 +117,6 @@ export function OtpForm({ phone }: { phone: string }) {
       <ScreenHeader>
         <ScreenBack href="/auth/phone" />
       </ScreenHeader>
-
-      <ScreenProgress>
-        <AuthSteps current={2} />
-      </ScreenProgress>
 
       <ScreenBody center className="gap-6">
         <ScreenTitle

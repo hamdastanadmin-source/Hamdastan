@@ -35,9 +35,8 @@ export function ScreenHeader({
   return (
     <header
       className={cn(
-        // `min-h` rather than `h`: a header carrying a step indicator is
-        // taller than one carrying a back button, and neither should have to
-        // pick a new layout to say so.
+        // `min-h` rather than `h`: a header with taller content grows
+        // instead of clipping it.
         'flex min-h-14 shrink-0 items-center justify-between gap-2 px-5 pt-[env(safe-area-inset-top)]',
         className
       )}
@@ -45,24 +44,6 @@ export function ScreenHeader({
       {children}
     </header>
   );
-}
-
-/**
- * Chrome between the header and the body — today, the sign-up step bar.
- *
- * It exists so that a screen using `ScreenBody center` can still pin
- * something to the top. Without it, every such screen re-implements the same
- * `flex-1 justify-center` wrapper *inside* the body to keep the step bar out
- * of the centring, which is `ScreenBody center` written again, per screen.
- */
-export function ScreenProgress({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={cn('shrink-0 px-5 pb-2', className)}>{children}</div>;
 }
 
 /**

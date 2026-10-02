@@ -10,7 +10,6 @@ export { MobileShell } from './layout/MobileShell';
 export {
   Screen,
   ScreenHeader,
-  ScreenProgress,
   ScreenBody,
   ScreenTitle,
   ScreenFooter,

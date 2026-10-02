@@ -11,6 +11,7 @@ import {
   normalizeIranMobile,
   normalizePersianText,
   toLatinDigits,
+  toMobileInput,
 } from '@hamdastan/shared/format/persian';
 import { basicInfoSchema, otpVerifySchema, phoneSchema } from '@hamdastan/validation';
 
@@ -46,6 +47,15 @@ describe('phone numbers', () => {
   ])('rejects %s (%s)', (input) => {
     expect(normalizeIranMobile(input)).toBeNull();
     expect(phoneSchema.safeParse(input).success).toBe(false);
+  });
+
+  it.each([
+    ['09a1.2-3', '09123', 'letters and symbols are dropped'],
+    ['۰۹۱۲', '0912', 'Persian digits become Latin'],
+    ['091234567890', '09123456789', 'capped at eleven digits'],
+    ['+98 912 345 6789', '09123456789', 'a pasted full number is normalised'],
+  ])('the mobile field turns %s into %s (%s)', (input, expected) => {
+    expect(toMobileInput(input)).toBe(expected);
   });
 
   it('gives the spec’s message, because the form shows it verbatim', () => {
