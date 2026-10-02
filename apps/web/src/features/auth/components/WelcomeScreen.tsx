@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import Image from 'next/image';
+import { getImageProps } from 'next/image';
 import Link from 'next/link';
 
 import { Button, ThemeToggle } from '@hamdastan/ui';
@@ -36,6 +36,25 @@ const MOTION = {
   afterHeadline: 80,
 } as const;
 
+/**
+ * The hero motion. `unoptimized` because the image optimiser would hand back
+ * a single still frame; the file is already a compressed WebP at its display
+ * size. The source lives in `assets/illustrations/welcome-hero.webp`.
+ */
+const HERO = {
+  motion: '/images/brand/welcome-hero.webp',
+  still: '/images/brand/welcome-hero-still.webp',
+} as const;
+
+const { props: heroProps } = getImageProps({
+  src: HERO.motion,
+  alt: '',
+  width: 640,
+  height: 360,
+  priority: true,
+  unoptimized: true,
+});
+
 const SUBTITLE_DELAY =
   MOTION.headlineStart + WORDS.length * MOTION.wordStep + MOTION.afterHeadline;
 
@@ -63,17 +82,21 @@ export function WelcomeScreen() {
             aria-hidden="true"
             className="hero-glow inset-x-0 top-1/2 aspect-square -translate-y-1/2"
           />
-          <Image
-            src="/images/brand/welcome-hero.svg"
-            alt=""
-            width={390}
-            height={300}
-            priority
-            // Capped in both directions: the artwork fills the column's
-            // width but never grows past a phone-sized illustration, whatever
-            // the browser is doing outside the shell.
-            className="mx-auto h-auto max-h-[300px] w-full object-contain"
-          />
+          {/* An animated WebP rather than a video: it needs no player, no
+              poster and no autoplay policy. Anyone who has asked for less
+              movement gets its first frame instead — an animated image cannot
+              be paused by `motion-reduce`, so the swap happens in `<picture>`. */}
+          <picture>
+            <source media="(prefers-reduced-motion: reduce)" srcSet={HERO.still} />
+            <img
+              {...heroProps}
+              alt=""
+              // Capped in both directions: the artwork fills the column's
+              // width but never grows past a phone-sized illustration,
+              // whatever the browser is doing outside the shell.
+              className="relative mx-auto h-auto max-h-[300px] w-full rounded-2xl object-cover"
+            />
+          </picture>
         </div>
 
         {/* Not `ScreenTitle`: that is the screen-title scale (24px over a
@@ -103,8 +126,10 @@ export function WelcomeScreen() {
               </Fragment>
             ))}
           </h1>
+          {/* The one element that keeps moving: `animate-rise-loop` brings
+              the line in slowly and replays it every 5s, after the headline. */}
           <p
-            className="max-w-sm text-balance text-base leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards motion-reduce:animate-none"
+            className="max-w-sm text-balance text-base leading-relaxed text-muted-foreground animate-rise-loop fill-mode-backwards motion-reduce:animate-none"
             style={{ animationDelay: `${SUBTITLE_DELAY}ms` }}
           >
             بازی کن، امتیاز بگیر و با بقیه‌ی طرفدارها رقابت کن.

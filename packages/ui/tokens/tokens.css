@@ -330,6 +330,8 @@
      Everything else uses tailwindcss-animate's fade/slide, 150–300ms. */
   --animate-shake: hd-shake 400ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
   --animate-caret-blink: hd-caret-blink 1.25s ease-out infinite;
+  /* A line that rises in slowly, holds, and fades out — once every 5s. */
+  --animate-rise-loop: hd-rise-loop 5s ease-in-out infinite;
 
   @keyframes hd-shake {
     0%, 100% { transform: translateX(0); }
@@ -342,6 +344,13 @@
   @keyframes hd-caret-blink {
     0%, 70%, 100% { opacity: 1; }
     20%, 50% { opacity: 0; }
+  }
+
+  /* 1.5s in, ~2.9s held, 0.6s out. */
+  @keyframes hd-rise-loop {
+    0% { opacity: 0; transform: translateY(0.5rem); }
+    30%, 88% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
   }
 
   /* Typography line-height scale for Persian readability */

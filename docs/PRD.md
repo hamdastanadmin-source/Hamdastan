@@ -331,7 +331,7 @@ padding.
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | Connect Kaveh-Negar | High | Adapter written; set `SMS_PROVIDER=kavenegar` and turn `OTP_DEBUG_DISPLAY` off |
-| Final Welcome artwork | High | Placeholder at `apps/web/public/images/brand/welcome-hero.svg`; replacing the file is the whole change |
+| Final Welcome artwork | Done | Animated WebP at `apps/web/public/images/brand/welcome-hero.webp` (source in `assets/illustrations/`), with a still first frame for reduced motion |
 | Onboarding steps | High | `/onboarding` is a placeholder destination today |
 | Home screen | High | `/` is a placeholder |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
