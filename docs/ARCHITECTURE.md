@@ -100,6 +100,10 @@ anything renders, so an unfinished account never sees a flash of the page it
 is about to be redirected off; and the rule exists once, so adding a page
 cannot forget it.
 
+An unfinished account is pinned to its step's page *and the pages beneath
+it* — onboarding is several screens under `/onboarding/` — and to nothing
+else.
+
 It is also the only place in a Next app that can set a cookie on the way to a
 page, which makes it the only place a fifteen-minute access token can be
 refreshed without the visitor noticing. A server component reads the session;
@@ -435,6 +439,11 @@ a product that gets wider and this one never does:
   against the column rather than the browser. They are portalled to `<body>`,
   outside `MobileShell`, so without it a panel would slide in from the edge of
   a laptop screen while the app it belongs to sat in the middle.
+
+One adaptation is for direction rather than width: **`Progress` fills from
+the reading start.** shadcn moves the indicator with an inline
+`translateX(-n%)`, which fills from the left — backwards in RTL. The offset
+rides in `--progress-gap` instead, so an `rtl:` variant can reverse it.
 
 The local `Input` used to be a bespoke component: a wrapper `<div>` and a
 `state="error" | "success"` prop. It is stock shadcn now, because the wrapper

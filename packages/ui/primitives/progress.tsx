@@ -18,10 +18,15 @@ function Progress({
       )}
       {...props}
     >
+      {/* shadcn ships an inline `translateX(-n%)`, which fills the bar from
+          the left — backwards in an RTL product. The offset rides in a custom
+          property instead so the `rtl:` variant can push it the other way.
+          rtl-ok: the bar fills from the reading start, and that edge is
+          physical in a transform. */}
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="h-full w-full flex-1 bg-primary transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+        className="h-full w-full flex-1 bg-primary transition-all -translate-x-(--progress-gap) rtl:translate-x-(--progress-gap)"
+        style={{ "--progress-gap": `${100 - (value || 0)}%` } as React.CSSProperties}
       />
     </ProgressPrimitive.Root>
   )

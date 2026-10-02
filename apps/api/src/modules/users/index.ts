@@ -14,4 +14,10 @@ export {
   sqlUsersRepository,
   type UsersRepository,
 } from './users.repository';
-export type { BasicInfo, OnboardingStep, UserRecord } from './users.types';
+export type {
+  BasicInfo,
+  InterestSelection,
+  OnboardingInterestsRecord,
+  OnboardingStep,
+  UserRecord,
+} from './users.types';

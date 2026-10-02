@@ -6,3 +6,4 @@ export { z } from 'zod';
 
 export * from './common';
 export * from './auth';
+export * from './onboarding';

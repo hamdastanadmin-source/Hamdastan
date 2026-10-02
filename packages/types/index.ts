@@ -18,3 +18,4 @@ export type {
   PaginationQuery,
   SortDirection,
 } from './api';
+export type { OnboardingInterests } from './onboarding';

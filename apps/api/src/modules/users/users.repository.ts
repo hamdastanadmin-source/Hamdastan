@@ -1,9 +1,15 @@
 import type { Gender } from '@hamdastan/types';
 
-import { query, queryOne } from '../../data';
+import { query, queryOne, withTransaction } from '../../data';
 import { createRepositorySlot } from '../../shared/repository';
 
-import type { BasicInfo, OnboardingStep, UserRecord } from './users.types';
+import type {
+  BasicInfo,
+  InterestSelection,
+  OnboardingInterestsRecord,
+  OnboardingStep,
+  UserRecord,
+} from './users.types';
 
 /**
  * Data access port for the Users module, and the PostgreSQL adapter that
@@ -25,6 +31,14 @@ export interface UsersRepository {
   createWithPhone(phone: string): Promise<UserRecord>;
   saveBasicInfo(id: string, info: BasicInfo): Promise<UserRecord>;
   setOnboardingStep(id: string, step: OnboardingStep): Promise<UserRecord>;
+
+  // ─── Onboarding answers ──────────────────────────────────────
+  findOnboardingInterests(id: string): Promise<OnboardingInterestsRecord>;
+  /**
+   * Replaces the person's whole interest set and records stage 1 as
+   * finished, in one transaction: a half-saved selection is never visible.
+   */
+  saveInterests(id: string, interests: InterestSelection[]): Promise<OnboardingInterestsRecord>;
 }
 
 const slot = createRepositorySlot<UsersRepository>('users');
@@ -143,5 +157,51 @@ export const sqlUsersRepository: UsersRepository = {
       [id, step]
     );
     return toRecord(rows[0]);
+  },
+
+  async findOnboardingInterests(id) {
+    const [stage, interests] = await Promise.all([
+      queryOne<{ onboarding_stage: number }>(
+        `SELECT onboarding_stage FROM v2_users WHERE id = $1`,
+        [id]
+      ),
+      query<{ interest_id: string }>(
+        `SELECT interest_id FROM v2_user_interests WHERE user_id = $1`,
+        [id]
+      ),
+    ]);
+    return {
+      onboardingStage: stage?.onboarding_stage ?? 0,
+      interestIds: interests.map((row) => row.interest_id),
+    };
+  },
+
+  async saveInterests(id, interests) {
+    return withTransaction(async (client) => {
+      await client.query(`DELETE FROM v2_user_interests WHERE user_id = $1`, [id]);
+
+      // One statement for the whole set: the two arrays are unnested side by
+      // side into rows.
+      await client.query(
+        `INSERT INTO v2_user_interests (user_id, interest_id, category_id)
+         SELECT $1, interest_id, category_id
+           FROM unnest($2::varchar[], $3::varchar[]) AS t (interest_id, category_id)`,
+        [id, interests.map((i) => i.interestId), interests.map((i) => i.categoryId)]
+      );
+
+      // GREATEST: stage 1 being saved again must not undo a later stage.
+      const { rows } = await client.query<{ onboarding_stage: number }>(
+        `UPDATE v2_users
+            SET onboarding_stage = GREATEST(onboarding_stage, 1), updated_at = now()
+          WHERE id = $1
+      RETURNING onboarding_stage`,
+        [id]
+      );
+
+      return {
+        onboardingStage: rows[0].onboarding_stage,
+        interestIds: interests.map((i) => i.interestId),
+      };
+    });
   },
 };

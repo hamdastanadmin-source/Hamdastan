@@ -5,7 +5,7 @@ import { ok } from '../../shared/response';
 import { parseBody } from '../../shared/validate';
 
 import { usersSchemas } from './users.schema';
-import { toSession, usersService } from './users.service';
+import { toOnboardingInterests, toSession, usersService } from './users.service';
 
 /**
  * HTTP adapter for the Users module.
@@ -30,5 +30,16 @@ export const usersController = {
   async completeOnboarding(request: FastifyRequest, reply: FastifyReply) {
     const updated = await usersService.completeOnboarding(currentUser(request).id);
     return reply.send(ok(toSession(updated)));
+  },
+
+  async onboardingInterests(request: FastifyRequest, reply: FastifyReply) {
+    const record = await usersService.getOnboardingInterests(currentUser(request).id);
+    return reply.send(ok(toOnboardingInterests(record)));
+  },
+
+  async saveOnboardingInterests(request: FastifyRequest, reply: FastifyReply) {
+    const { interestIds } = parseBody(usersSchemas.interests.body, request.body);
+    const record = await usersService.saveInterests(currentUser(request).id, interestIds);
+    return reply.send(ok(toOnboardingInterests(record)));
   },
 };

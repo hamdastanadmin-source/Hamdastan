@@ -67,7 +67,8 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **World (دنیا)** | A story universe — a book series, a film franchise. |
 | **OTP / کد تأیید** | The six-digit code that proves someone owns a number. |
 | **Basic info (اطلاعات پایه)** | First name, last name, birth date, gender. Mandatory, collected once, immediately after the first successful verification. |
-| **Onboarding (آنبوردینگ)** | The introduction that follows basic info. Not yet built. |
+| **Onboarding (آنبوردینگ)** | The three stages that follow basic info and end in the person's avatar. The intro and stage 1 (interests) are built. |
+| **Interest (علاقه‌مندی)** | One pickable interest, inside one of six categories. Identified by a stable English slug; the Persian label is display only. |
 | **nextStep** | Where the server says this account goes: `basic_info`, `onboarding` or `home`. The client never computes it. |
 | **MobileShell** | The 430px column every screen renders inside. |
 
@@ -104,12 +105,58 @@ password and no separate registration.
 **Not in this module:** the onboarding steps themselves, and the admin panel's
 username/password sign-in.
 
-### 4.2 Onboarding, Home, Worlds, Play, Community, …
+### 4.2 Onboarding — ساخت دنیای من
+
+Three stages between basic info and home, framed as building the person's
+world and avatar rather than as a questionnaire. Built so far: the intro and
+stage 1. Code lives in `apps/web/src/features/onboarding`.
+
+**Intro — `/onboarding`.** «بیا دنیای تو رو بسازیم», what the stages are for,
+and one action, «شروع ساخت دنیای من», to stage 1. The screen is black
+(`--surface-stage`; the plain background in the light theme). The text is
+top-aligned a fixed distance under the header, start-aligned (right, in RTL),
+and descends in weight: bold title, body, then a quieter
+line. It streams in in that order a word at a time — about two seconds in
+all — and the action appears last; with reduced motion it is all there at
+once. Under the text, an animated illustration (`onboarding-intro.webp`,
+source in `assets/illustrations/`) arrives with the action; reduced motion
+gets its first frame. The header has no control: the button is the only way on, and stage 1
+has its own back to this screen.
+
+**Stage 1, interests — `/onboarding/interests`.**
+
+- «مرحله ۱ از ۳» over a progress bar, the title «به چه چیزهایی علاقه داری؟»,
+  and a quiet line that every pick shapes the avatar.
+- Six categories, each a card holding its interests as wrapping chips:
+  موسیقی و اجرا، هنر و خلاقیت، آموزش و مهارت، تفریح و سبک زندگی،
+  اجتماعی و کسب‌وکار، آنلاین. The catalog, with its ids, is
+  `packages/config/app/onboarding.config.ts`, shared with `apps/api`.
+- A chip toggles on tap. Selected is a brand tint, a brand border **and** a
+  check mark, so it does not rely on colour; each chip is a stock
+  `ToggleGroupItem` and announces `aria-pressed`.
+- **The rule is breadth, not volume:** interests from at least **three
+  different categories**. There is no maximum. Ten music picks and five
+  sports picks is two categories and does not pass.
+- The sticky footer shows «n از ۳ دسته انتخاب شده», then «عالیه! آماده‌ای
+  بریم مرحله بعد» once the rule is met, above «ادامه», which is disabled
+  until then. The status line is a polite live region.
+- «ادامه» sends the selected interest ids to `PUT /me/onboarding/interests`.
+  The API checks them against the same `interestsSchema` the button uses
+  (every id in the catalog, three categories or more), derives each
+  interest's category itself, replaces the saved set and marks stage 1
+  finished. The page reads the saved set on the server, so coming back shows
+  the earlier picks. Stage 2 is not built, so for now it confirms the save
+  and stays.
+
+**Not yet:** stages 2 and 3, and the call to `POST /me/onboarding/complete`
+at the end.
+
+### 4.3 Home, Worlds, Play, Community, …
 
 Skeletons. Each has a directory under `apps/web/src/features` and a module
 under `apps/api/src/modules`, and each returns 501 until its repository is
-bound. `/onboarding` and `/` render placeholder screens so the routing table
-has real destinations.
+bound. `/` renders a placeholder screen so the routing table has a real
+destination.
 
 ---
 
@@ -124,10 +171,12 @@ that `GET /me` returns.
 |-------|-------------|
 | Not signed in | `/welcome` |
 | Signed in, profile incomplete | `/auth/basic-info` |
-| Signed in, onboarding unfinished | `/onboarding` |
+| Signed in, onboarding unfinished | `/onboarding` and the pages under it |
 | Signed in, everything complete | `/` |
 
-An unfinished account is pinned to its step: it is the only page it can be on.
+An unfinished account is pinned to its step: it can be on that step's page,
+or a page beneath it (the onboarding stages live under `/onboarding/`), and
+nowhere else.
 A finished one may go anywhere except back through `/welcome`, `/auth/*`.
 
 ### 5.2 A new number
@@ -178,6 +227,9 @@ that can set a cookie on the way to a page.
          |                           +--1:N--+----------------------+
          |                                   |  v2_refresh_tokens   |
          |                                   +----------------------+
+         |--1:N--+----------------------+
+         |       |  v2_user_interests   |
+         |       +----------------------+
          |
    (by phone, not FK)
          |
@@ -192,6 +244,14 @@ that can set a cookie on the way to a page.
   nullable, because a row exists from the moment a code verifies, which is
   before the product knows anything about the person. `onboarding_step`
   (`basic_info` → `onboarding` → `done`) is what says so.
+- **`v2_users.onboarding_stage`** — the last onboarding stage finished,
+  `0`–`3`. It only moves forward, so editing stage 1 again does not undo a
+  later stage.
+- **`v2_user_interests`** — one row per selected interest, keyed by
+  `(user_id, interest_id)`. The catalog is not a table: it is
+  `@hamdastan/config`, and the API refuses ids outside it. `category_id` is
+  stored for querying and is always derived by the API, never taken from
+  the client. Saving stage 1 replaces the whole set in one transaction.
 - **`v2_otp_challenges`** — keyed by phone, so at most one live code per
   number: issuing a code replaces the row, which is what invalidates the last
   one. Stores `sha256(phone:code)` and never the code.
@@ -204,7 +264,8 @@ that can set a cookie on the way to a page.
 - **`v2_refresh_tokens`** — each may be spent exactly once. A spent token
   presented again is a replay, and the service revokes the whole session on it.
 
-The schema is `database/migrations/0001_users_profile_and_sessions.sql`.
+The schema is `database/migrations/0001_users_profile_and_sessions.sql` and
+`0002_user_interests.sql`.
 
 ---
 
@@ -222,6 +283,8 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | GET | `/me` | access cookie | — | `{ user, nextStep }` |
 | PUT | `/me/basic-info` | access cookie | `{ firstName, lastName, birthDate, gender }` | `{ user, nextStep }` |
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
+| GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |
+| PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |
 
 `birthDate` is sent as Jalali parts (`{ year, month, day }`) and stored as a
 Gregorian date.
@@ -240,7 +303,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation/auth.ts`; the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -251,6 +314,7 @@ against the same objects, including the Persian messages.
 | Birth date | A real Jalali date; age 13–80 | «تاریخ تولد رو کامل انتخاب کن» |
 | Gender | `male` / `female` / `other` | «یکی از گزینه‌ها رو انتخاب کن» |
 | OTP | Exactly 6 digits | «کد اشتباهه، دوباره امتحان کن» |
+| Interests | Every id in the catalog; duplicates dropped; at least 3 categories (`packages/validation/onboarding.ts`) | «حداقل از ۳ دسته انتخاب کن» |
 
 The mobile field itself accepts digits only, eleven at most: letters and
 symbols are dropped as they are typed, and a full number pasted in any accepted
@@ -300,7 +364,9 @@ Colours are derived from the two brand variables at the top of
   does not fill the column centres it (`ScreenBody center`) rather than
   leaving a void above the action bar.
 - The dark surface is lit by one ambient brand gradient at the top of the
-  column (`--gradient-shell-glow`), drawn by `MobileShell`. Screens do not add
+  column (`--gradient-shell-glow`), drawn by `MobileShell`. The one exception
+  is a screen built around a single piece of artwork, which sits on
+  `--surface-stage` (black) instead — the onboarding intro. Screens do not add
   their own; `--gradient-hero-glow` is the halo for a piece of artwork.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
   on a wrong code. Everything honours `prefers-reduced-motion`.
@@ -337,7 +403,7 @@ padding.
 |---------|----------|-------|
 | Connect Kaveh-Negar | High | Adapter written; set `SMS_PROVIDER=kavenegar` and turn `OTP_DEBUG_DISPLAY` off |
 | Final Welcome artwork | Done | Animated WebP at `apps/web/public/images/brand/welcome-hero.webp` (source in `assets/illustrations/`), with a still first frame for reduced motion |
-| Onboarding steps | High | `/onboarding` is a placeholder destination today |
+| Onboarding stages 2 and 3 | High | Intro and stage 1 (interests) are built |
 | Home screen | High | `/` is a placeholder |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
 | Move admin sign-in into `apps/api` | Medium | `apps/admin` still has its own story |

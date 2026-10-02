@@ -1,4 +1,4 @@
-import { basicInfoSchema, z } from '@hamdastan/validation';
+import { basicInfoSchema, interestsSchema, z } from '@hamdastan/validation';
 
 /**
  * Request validation for the Users module.
@@ -9,6 +9,7 @@ import { basicInfoSchema, z } from '@hamdastan/validation';
  */
 export const usersSchemas = {
   basicInfo: { body: basicInfoSchema },
+  interests: { body: interestsSchema },
 } satisfies Record<string, unknown>;
 
 export type UsersSchemas = typeof usersSchemas;

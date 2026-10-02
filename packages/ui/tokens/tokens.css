@@ -98,6 +98,11 @@
     --surface-2: 240 5.9% 90%;
     --surface-3: 0 0% 100%;
     --surface-4: 240 4.8% 95.9%;
+    /* A full-bleed screen built around one piece of artwork (the onboarding
+       intro). Black in the dark theme so the artwork is the only light on
+       the screen; the plain background in the light theme, where black would
+       take the text with it. */
+    --surface-stage: 0 0% 100%;
 
     /* ─── Extended Surface & Border Tokens ───────────────────────── */
     --background-overlay-default: 0 0% 98.8%;
@@ -217,6 +222,7 @@
     --surface-2: 265 20% 13%;
     --surface-3: 265 18% 17%;
     --surface-4: 265 16% 21%;
+    --surface-stage: 0 0% 0%;
 
     /* ─── Extended Surface & Border Tokens ───────────────────────── */
     --background-overlay-default: 240 10% 14%;
@@ -291,6 +297,7 @@
   --color-info-foreground: hsl(var(--info-foreground));
 
   --color-surface-0: hsl(var(--surface-0));
+  --color-surface-stage: hsl(var(--surface-stage));
   --color-surface-1: hsl(var(--surface-1));
   --color-surface-2: hsl(var(--surface-2));
   --color-surface-3: hsl(var(--surface-3));

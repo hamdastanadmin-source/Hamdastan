@@ -11,7 +11,7 @@ import { authService, refreshSession } from '@/services';
  * ┌──────────────────────────────────┬──────────────────────┐
  * │ not signed in                    │ /welcome             │
  * │ signed in, profile incomplete    │ /auth/basic-info     │
- * │ signed in, onboarding unfinished │ /onboarding          │
+ * │ signed in, onboarding unfinished │ /onboarding/*        │
  * │ signed in, everything done       │ /                    │
  * └──────────────────────────────────┴──────────────────────┘
  *
@@ -88,9 +88,11 @@ export async function proxy(request: NextRequest) {
 
   const target = PATH_FOR[nextStep];
 
-  // An unfinished account is pinned to its step: there is exactly one page it
-  // may be on until that step is done.
-  if (nextStep !== 'home' && pathname !== target) {
+  // An unfinished account is pinned to its step: it may be on that step's
+  // page, or on a page beneath it — onboarding is several screens under
+  // `/onboarding` — and nowhere else until the step is done.
+  const onStep = pathname === target || pathname.startsWith(`${target}/`);
+  if (nextStep !== 'home' && !onStep) {
     return applyCookies(redirectTo(target), setCookie);
   }
 

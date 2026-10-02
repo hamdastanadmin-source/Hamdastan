@@ -59,6 +59,12 @@ Because it is unapplied, it is still editable. The moment it runs anywhere
 that stops being true — the runner checksums it and refuses a changed file,
 and a schema change becomes `0002`.
 
+## What `0002` adds
+
+Onboarding stage 1: `v2_user_interests` (one row per selected interest) and
+`v2_users.onboarding_stage`. Additive only — a new table and a new column
+with a default — so it applies cleanly to a database that already has users.
+
 ## Writing one
 
 Name it `NNNN_what_it_does.sql`, in sequence. New tables take the `v2_` prefix

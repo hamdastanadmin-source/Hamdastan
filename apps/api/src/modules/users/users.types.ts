@@ -35,3 +35,12 @@ export type BasicInfo = {
   birthDate: string;
   gender: Gender;
 };
+
+/** One selected interest, with the category the server looked up for it. */
+export type InterestSelection = { interestId: string; categoryId: string };
+
+/** What the repository holds of a person's onboarding answers. */
+export type OnboardingInterestsRecord = {
+  onboardingStage: number;
+  interestIds: string[];
+};
