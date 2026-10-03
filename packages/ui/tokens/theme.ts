@@ -22,13 +22,13 @@ export const DEFAULT_THEME: Theme = 'dark';
  * from the web manifest, both of which are parsed before any stylesheet, so a
  * `var(--background)` here would resolve to nothing. It is the one place a
  * colour is written twice, which is why it lives beside the tokens rather
- * than in an app — and why `hsl(265 24% 9%)` in `tokens.css` is named right
+ * than in an app — and why `hsl(240 5% 7%)` in `tokens.css` is named right
  * above it.
  *
  * Keep it equal to `--background` in `.dark`, and to `theme_color` and
  * `background_color` in each app's `manifest.webmanifest`.
  */
-export const THEME_COLOR = '#150f22';
+export const THEME_COLOR = '#111113';
 
 export function applyTheme(theme: Theme): void {
   const html = document.documentElement;

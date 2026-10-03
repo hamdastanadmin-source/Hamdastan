@@ -17,7 +17,13 @@
      --brand-hue:        142;    ← Hue on the HSL color wheel (0-360)
      --brand-saturation: 69%;   ← Color intensity (0% = grey, 100% = vivid)
 
-   Everything else (brand scale, primary, success) derives automatically.
+   Everything else (the brand scale and primary) derives automatically.
+
+   THE BRAND COLOUR IS FOR THE PRIMARY ACTION ONLY. Violet is spent on
+   `--primary` — the one main button a screen asks the person to press — and
+   on nothing else: not surfaces, borders, focus rings, progress, selection,
+   icons or glows. Everything around it is neutral charcoal, so the action is
+   the only colour on the screen. Success is green, never the brand.
 
    Common brand hues:
      Red: 0    Orange: 30    Yellow: 45    Green: 142    Teal: 173
@@ -33,6 +39,7 @@
     --brand-saturation: 70%;
 
     /* ─── Semantic Color Hues (EDIT THESE if needed) ────────────── */
+    --success-hue: 152;
     --destructive-hue: 0;
     --warning-hue: 30;
     --info-hue: 210;
@@ -72,7 +79,7 @@
     --destructive-foreground: 0 0% 98%;
     --destructive-200: var(--destructive-hue) 100% 99.4%;
 
-    --success: var(--brand-hue) var(--brand-saturation) 58%;
+    --success: var(--success-hue) 60% 32%;
     --success-foreground: 0 0% 98%;
 
     --warning: var(--warning-hue) 80% 48%;
@@ -122,25 +129,46 @@
 
     /* ─── Ambient Gradients ─────────────────────────────────────── */
     /* The wash behind a screen, and the halo behind a piece of artwork.
-       Derived from the brand hue like everything else, so changing
-       --brand-hue moves them too. Only the two alphas differ between the
-       themes — the geometry is written once, below, so the light and dark
-       glows cannot drift into different shapes. */
-    --glow-shell-alpha: 0.10;
-    --glow-hero-alpha: 0.16;
+       Neutral light, not the brand: a violet wash over the whole column is
+       the brand spent on a background. Only the colour and the two alphas
+       differ between the themes — the geometry is written once, below, so
+       the light and dark glows cannot drift into different shapes. */
+    --glow-color: 240 6% 10%;
+    --glow-shell-alpha: 0.04;
+    --glow-hero-alpha: 0.06;
 
     --gradient-shell-glow:
       radial-gradient(
         130% 55% at 50% -12%,
-        hsl(var(--brand-hue) var(--brand-saturation) 58% / var(--glow-shell-alpha)) 0%,
+        hsl(var(--glow-color) / var(--glow-shell-alpha)) 0%,
         transparent 68%
       );
     --gradient-hero-glow:
       radial-gradient(
         closest-side,
-        hsl(var(--brand-hue) var(--brand-saturation) 58% / var(--glow-hero-alpha)) 0%,
+        hsl(var(--glow-color) / var(--glow-hero-alpha)) 0%,
         transparent 100%
       );
+
+    /* ─── Avatar ────────────────────────────────────────────────── */
+    /* The avatar's own palette: four skin tones, hair, and muted clothing
+       colours that sit calmly on charcoal. The same in both themes — an
+       avatar does not change clothes with the theme. Content colour, not
+       interface colour, so none of these is ever used for UI. */
+    --avatar-skin-1: 28 62% 86%;
+    --avatar-skin-2: 27 46% 72%;
+    --avatar-skin-3: 24 38% 54%;
+    --avatar-skin-4: 20 34% 34%;
+    --avatar-hair: 24 22% 22%;
+    --avatar-ink: 220 9% 24%;
+    --avatar-stone: 30 7% 80%;
+    --avatar-sand: 36 26% 64%;
+    --avatar-olive: 78 14% 38%;
+    --avatar-navy: 218 26% 28%;
+    --avatar-denim: 212 24% 44%;
+    --avatar-rust: 16 38% 44%;
+    --avatar-slate: 200 10% 52%;
+    --avatar-sole: 0 0% 94%;
 
     /* The app is a mobile product wherever it is opened. This is the widest
        its single column ever gets — see MobileShell in apps/web. */
@@ -162,27 +190,28 @@
     --primary-foreground: 0 0% 98%;
 
     /* ─── Neutral Surfaces ──────────────────────────────────────── */
-    /* Tinted toward the brand hue rather than neutral grey: a dark screen
-       that shares the primary's hue reads as one surface instead of a grey
-       page with a purple button on it. Saturation stays low so the text
-       above keeps its contrast — every pair below clears 4.5:1. */
+    /* Near-black charcoal with a whisper of cool hue, deliberately *not*
+       tinted toward the brand: the violet primary is the only colour on the
+       screen, and it reads as the action because nothing around it shares
+       its hue. Every foreground below clears 4.5:1 on its own surface. */
     /* Mirrored as THEME_COLOR in tokens/theme.ts — the browser chrome and
        the web manifest need this value as a literal. */
-    --background: 265 24% 9%;
-    --foreground: 280 20% 96%;
-    --card: 265 20% 13%;
-    --card-foreground: 280 20% 96%;
-    --popover: 265 20% 13%;
-    --popover-foreground: 280 20% 96%;
-    --secondary: 265 16% 20%;
-    --secondary-foreground: 280 20% 96%;
-    --muted: 265 16% 20%;
-    --muted-foreground: 268 12% 72%;
-    --accent: 265 16% 22%;
-    --accent-foreground: 280 20% 96%;
-    --border: 265 14% 24%;
-    --input: 265 14% 26%;
-    --ring: var(--brand-hue) var(--brand-saturation) 58%;
+    --background: 240 5% 7%;
+    --foreground: 0 0% 96%;
+    --card: 240 4% 11%;
+    --card-foreground: 0 0% 96%;
+    --popover: 240 4% 11%;
+    --popover-foreground: 0 0% 96%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 4% 66%;
+    --accent: 240 4% 18%;
+    --accent-foreground: 0 0% 96%;
+    --border: 240 4% 19%;
+    --input: 240 4% 22%;
+    /* Focus is a neutral light ring, not the brand. */
+    --ring: 0 0% 78%;
 
     /* ─── Semantic Colors (dark mode) ───────────────────────────── */
     /* Light enough to be read, not just noticed. shadcn's older dark
@@ -194,8 +223,8 @@
     --destructive-foreground: 0 0% 9%;
     --destructive-200: calc(var(--destructive-hue) + 11) 23.4% 9.2%;
 
-    --success: var(--brand-hue) var(--brand-saturation) 58%;
-    --success-foreground: 0 0% 98%;
+    --success: var(--success-hue) 55% 52%;
+    --success-foreground: 0 0% 9%;
 
     --warning: var(--warning-hue) 80% 48%;
     --warning-foreground: 0 0% 10%;
@@ -217,11 +246,11 @@
     /* ─── Surface Scale ─────────────────────────────────────────── */
     /* surface-0 is what sits *behind* the mobile column on a wide screen:
        a shade darker than the app, so the column reads as the foreground. */
-    --surface-0: 265 26% 6%;
-    --surface-1: 265 24% 9%;
-    --surface-2: 265 20% 13%;
-    --surface-3: 265 18% 17%;
-    --surface-4: 265 16% 21%;
+    --surface-0: 240 6% 4%;
+    --surface-1: 240 5% 7%;
+    --surface-2: 240 4% 11%;
+    --surface-3: 240 4% 15%;
+    --surface-4: 240 4% 19%;
     --surface-stage: 0 0% 0%;
 
     /* ─── Extended Surface & Border Tokens ───────────────────────── */
@@ -239,10 +268,11 @@
     --foreground-contrast: 0 0% 8.6%;
 
     /* ─── Ambient Gradients (dark mode) ─────────────────────────── */
-    /* Turned up: a flat near-black rectangle is the thing that makes a dark
-       UI look unfinished. The gradients themselves are inherited. */
-    --glow-shell-alpha: 0.22;
-    --glow-hero-alpha: 0.30;
+    /* A faint light from above, so a flat near-black rectangle reads as a
+       lit surface. The gradients themselves are inherited. */
+    --glow-color: 0 0% 100%;
+    --glow-shell-alpha: 0.05;
+    --glow-hero-alpha: 0.07;
   }
 }
 
@@ -342,6 +372,8 @@
   /* An SVG stroke drawing itself in, once. Needs `pathLength="1"` and
      `stroke-dasharray="1"` on the element. */
   --animate-draw: hd-draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* «+50 XP» rising off the bar it was added to and fading — once, 800ms. */
+  --animate-xp-float: hd-xp-float 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
 
   @keyframes hd-shake {
     0%, 100% { transform: translateX(0); }
@@ -354,6 +386,13 @@
   @keyframes hd-caret-blink {
     0%, 70%, 100% { opacity: 1; }
     20%, 50% { opacity: 0; }
+  }
+
+  @keyframes hd-xp-float {
+    0% { opacity: 0; transform: translateY(0.375rem); }
+    25% { opacity: 1; transform: translateY(0); }
+    70% { opacity: 1; transform: translateY(-0.375rem); }
+    100% { opacity: 0; transform: translateY(-0.875rem); }
   }
 
   @keyframes hd-draw {

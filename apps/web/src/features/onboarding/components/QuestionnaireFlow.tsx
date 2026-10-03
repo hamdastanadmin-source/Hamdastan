@@ -24,7 +24,14 @@ import { SectionReward } from './SectionReward';
  * This component only chooses a screen; the decisions are in
  * `useQuestionnaire` and `questionnaire-flow`.
  */
-export function QuestionnaireFlow({ initialState }: { initialState: QuestionnaireState }) {
+export function QuestionnaireFlow({
+  initialState,
+  exitHref,
+}: {
+  initialState: QuestionnaireState;
+  /** Where the intro's back goes: the interests during onboarding, home after it. */
+  exitHref: string;
+}) {
   const q = useQuestionnaire(initialState);
   const { step } = q;
   const progress = progressOf(step);
@@ -35,8 +42,10 @@ export function QuestionnaireFlow({ initialState }: { initialState: Questionnair
         <QuestionnaireIntro
           // Streams the first time only — not when coming back from a question.
           stream={Object.keys(q.answers).length === 0}
+          backHref={exitHref}
+          isLeaving={q.isSaving}
           onStart={q.start}
-          onLater={q.later}
+          onLater={() => void q.later()}
         />
       );
 
@@ -84,7 +93,12 @@ export function QuestionnaireFlow({ initialState }: { initialState: Questionnair
 
     case 'result':
       return q.result ? (
-        <QuestionnaireResultView result={q.result} isLeaving={q.isSaving} onContinue={() => void q.finish()} />
+        <QuestionnaireResultView
+          result={q.result}
+          xpAwarded={q.xpAwarded}
+          isLeaving={q.isSaving}
+          onContinue={() => void q.finish()}
+        />
       ) : (
         <QuestionnaireProcessing />
       );

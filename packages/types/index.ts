@@ -23,8 +23,18 @@ export type {
   OnboardingEventInput,
   QuestionnaireAnswer,
   QuestionnaireAnswers,
+  QuestionnaireCompletion,
   QuestionnaireResult,
   QuestionnaireState,
   ResultDimension,
   ResultInsight,
 } from './questionnaire';
+export type {
+  AccountOverview,
+  AccountProfile,
+  AccountProgress,
+  AccountUpdate,
+  Mission,
+  MissionStatus,
+  XpActivity,
+} from './account';

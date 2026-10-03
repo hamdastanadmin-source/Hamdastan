@@ -2,7 +2,7 @@
 
 **Product:** هم‌داستان (Hamdastan)
 **Version:** 1.0
-**Last Updated:** 2026-09-29
+**Last Updated:** 2026-10-03
 **Status:** Active Development
 
 ---
@@ -71,6 +71,9 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **Social profile (پروفایل اجتماعی)** | What stage 2 derives from the questionnaire's raw answers: fourteen 1–10 dimensions, categorical outputs and role scores, under a `scoring_version`. Used for matching; the person sees only a simplified result card. |
 | **Interest (علاقه‌مندی)** | One pickable interest, inside one of six categories. Identified by a stable English slug; the Persian label is display only. |
 | **nextStep** | Where the server says this account goes: `basic_info`, `onboarding` or `home`. The client never computes it. |
+| **XP** | Experience points, earned only by finishing missions. The total is the sum of the person's XP ledger; nothing else stores it. |
+| **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
+| **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
 | **MobileShell** | The 430px column every screen renders inside. |
 
 ---
@@ -180,7 +183,7 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   (near-black in the dark theme, white in the light one), like the onboarding
   intro. The accent is spent only on the selected answer (a soft border, a
   light tint and a check mark), the filled part of the 2px progress line, the
-  primary action, the section mark's newest dot and the result's eyebrow.
+  primary action and the section mark's newest dot.
   Questions use `ScreenTitle size="prompt"` (20px, semibold, relaxed leading);
   answers are regular weight. Content is top-aligned a fixed distance under
   the progress line, so every question sits in the same high place whatever
@@ -214,12 +217,16 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   question in presentation order; a finished questionnaire lands on its
   result.
 - **Putting it off.** Only before starting: «بعداً انجام می‌دم» on the intro
-  returns to the onboarding intro. Once the journey has begun there is no
-  "later" action — the header holds back and nothing else.
+  finishes onboarding (`POST /me/onboarding/complete`, allowed once stage 1
+  is saved) and goes home, where the questionnaire waits as a mission. Once
+  the journey has begun there is no "later" action — the header holds back
+  and nothing else. The intro's back goes to the interests during
+  onboarding and home after it.
 - **Processing.** «داریم پروفایلت رو می‌سازیم» / «جواب‌هات رو کنار هم
   می‌ذاریم.» for as long as the request takes, held to 0.8s — no spinner; the
   section mark's last dot fills.
-- **Result — meaning first, numbers last.** «پروفایل اجتماعی تو», a title
+- **Result — meaning first, numbers last.** «پروفایل اجتماعی تو» (a quiet
+  muted eyebrow, not the accent), a title
   and at most two sentences built from whichever of the person's dimensions
   are furthest from the middle of the scale (joined with «و», or «ولی» when
   they pull opposite ways). Then three plain-language insights, each the end
@@ -236,9 +243,16 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   never reduced to it.
 - **Finishing.** `POST /me/onboarding/questionnaire/complete` refuses until
   all twenty are answered, then marks the questionnaire done and
-  `onboarding_stage` 2. «تجربه‌های من رو ببین» calls `POST /me/onboarding/complete`,
-  which now refuses before stage 2, and follows the `nextStep` it returns.
-  Stage 3 is not built, so for now that is home.
+  `onboarding_stage` 2, and grants the personality-test mission's +50 XP —
+  once: the response's `xpAwarded` is 50 on the call that granted it and 0
+  on every later one. When it is 50 the result shows «پروفایلت آماده‌ست ·
+  +۵۰ XP گرفتی», rising in once. «تجربه‌های من رو ببین» calls
+  `POST /me/onboarding/complete`, which refuses before stage 1, and follows
+  the `nextStep` it returns — home.
+- **Later.** An account past onboarding can still open
+  `/onboarding/questionnaire` (the one onboarding page the routing table
+  lets it reach) until the questionnaire is finished; after that the page
+  redirects to `/profile/social`.
 - **Analytics.** `quiz_started`, `quiz_question_viewed`,
   `quiz_question_answered` (answer type, time spent, selection count),
   `quiz_back_clicked`, `quiz_section_completed`, `quiz_abandoned` (the intro's «بعداً»),
@@ -289,12 +303,113 @@ bump the version:
   Q3, Q7 Listening), Analyst (Q3, Q6 depth, Debate), Ideator (Q3, NV,
   DEEP/INTEREST picked). Ties go to that order.
 
-### 4.3 Home, Worlds, Play, Community, …
+### 4.3 Home — خانه
+
+`/`. The worlds are not open yet, so home carries the person's next step.
+The header is their avatar and name, linking to the profile; the bottom nav
+holds خانه and پروفایل. Signing out is not on home.
+
+- **Questionnaire not done:** the first thing on the screen is a card —
+  «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
+  آدم‌های مناسب‌تری برات پیدا کنیم.», «حدود ۵ دقیقه», «+50 XP» and
+  «شروع آزمون», the screen's one primary action.
+- **Done:** the card is gone; a quiet row «پروفایل اجتماعی‌ات آماده‌ست» with
+  the result's title and «مشاهده نتیجه» leads to `/profile/social`.
+- Below it, the worlds placeholder («دنیاها به‌زودی باز می‌شن»).
+
+### 4.4 Account — حساب من
+
+The person's identity and progress hub: "my identity, my progress, my
+profile" — not a settings page, not a game dashboard. Code in
+`apps/web/src/features/profile` and `apps/api/src/modules/account`.
+
+**Profile home — `/profile`.** Top to bottom:
+
+1. **Identity.** The avatar's portrait (tap → studio), the display name
+   (the `h1`), `@username` (or «یه نام کاربری انتخاب کن»), then «سطح n»,
+   «xp / next XP» on a neutral bar and «n XP تا سطح بعد», then «ویرایش
+   پروفایل» and «ویرایش آواتار» («آواتارت رو بساز» before one is saved),
+   both secondary. No card around it.
+2. **«پروفایل اجتماعی من».** The result's title, its two lines, the three
+   insights and «مشاهده نتیجه کامل» (→ `/profile/social`, the full result
+   with the five bars behind «جزئیات بیشتر»). No internal codes, never the
+   fourteen dimensions. Before the questionnaire is done: a mission card
+   instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو کامل کن تا
+   پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه», «+50 XP»,
+   «شروع آزمون».
+3. **«ماموریت‌های من».** Open missions as cards (title, description,
+   «+n XP», «انجام نشده», action); finished ones as rows with a green check,
+   «انجام شد» and the reward. The questionnaire is left out while open,
+   because section 2 is already offering it.
+4. **«پیشرفت من».** Level, total XP, XP to the next level, the five newest
+   rewards («هنوز ماموریتی انجام ندادی.» when there are none) and a line on
+   how XP is earned.
+5. «ویرایش پروفایل» and «تنظیمات».
+
+**One primary action.** The next open mission, in catalog order, gets the
+violet button — the questionnaire first, then the avatar, then the profile.
+Everything else on the screen is neutral.
+
+**Missions and XP (MVP).**
+
+| Mission | Reward | Done when | Action |
+|---------|--------|-----------|--------|
+| آزمون شخصیت | +50 | the questionnaire is finished | `/onboarding/questionnaire` |
+| ساخت آواتار | +20 | an avatar is saved | `/profile/avatar` |
+| تکمیل پروفایل | +20 | a username and a city are both set (the bio is optional) | `/profile/edit` |
+
+The catalog is `MISSIONS` in `@hamdastan/config`. Every mission is available
+from the start; `locked` and `in_progress` are part of the contract and
+unused. A reward is granted by the action that earns it, never by a read,
+and at most once — the ledger's unique key decides, so two requests racing
+cannot both pay. Clearing a field later does not take XP back.
+
+**Reward motion.** A save that earns XP returns to `/profile?reward=<mission>`
+(the avatar) or toasts (a profile field). On arrival the level bar eases
+from where it was to where it is (700ms), «+n XP» rises off it and fades
+(800ms), and the mission's check scales in. The parameter only replays what
+the overview already says — a mission the API does not report as finished
+is ignored — and is removed from the URL. No confetti. Nothing moves with
+reduced motion.
+
+**Avatar studio — `/profile/avatar`.** «آواتار من»: the full-body figure,
+live as items are picked; tabs «ظاهر» (skin tone), «بالاتنه», «شلوار»,
+«کفش», «اکسسوری»; each item a tile previewing it on this avatar. Selection is
+a foreground border, a lifted surface and a check — not the brand. «ذخیره»
+is the one primary action, disabled when an existing avatar is unchanged.
+Before one is saved, the default (`DEFAULT_AVATAR`) is shown everywhere. The
+figure is flat SVG drawn from the five ids (`AvatarFigure`), coloured only
+by the `--avatar-*` tokens. Each item may carry an `unlockLevel`; the API
+refuses a locked item and the studio shows it locked with its level.
+Nothing in today's catalog is locked.
+
+**Edit profile — `/profile/edit`.** A list, not a form: «اطلاعات اصلی» (نام,
+نام کاربری, شهر), «درباره من · اختیاری» (بیو) and «ظاهر» (آواتار). Each row
+opens a bottom sheet with that one field, a line of help, «ذخیره تغییرات»
+(primary) and «انصراف». A taken username is shown under the field. First
+and last name, birth date and gender were given at sign-up and are not
+edited here. Profile image, email and social handles are not collected:
+the avatar is the person's image, and nothing in the product uses the
+other two.
+
+**Settings — `/profile/settings`.** «حساب» (ویرایش پروفایل), «اعلان‌ها»
+(ماموریت‌ها و پیشرفت — a switch), «حریم خصوصی» (نمایش پروفایل اجتماعی به
+دیگران — a switch), «پشتیبانی» (راهنما و پشتیبانی → `/profile/help`), then,
+set apart, «خروج از حساب» in red text. A switch saves when flipped and flips
+back if the save fails. Both settings are stored; nothing reads them yet,
+because notifications and other people's views do not exist yet.
+
+**Logout.** Only in settings. It asks: «از حساب خارج می‌شی؟» / «هر وقت خواستی
+می‌تونی دوباره وارد بشی.» / «خروج» (destructive red) / «انصراف».
+
+**Help — `/profile/help`.** Four short answers: XP, levels, the social
+profile, and who sees it.
+
+### 4.5 Worlds, Play, Community, …
 
 Skeletons. Each has a directory under `apps/web/src/features` and a module
 under `apps/api/src/modules`, and each returns 501 until its repository is
-bound. `/` renders a placeholder screen so the routing table has a real
-destination.
+bound.
 
 ---
 
@@ -316,7 +431,8 @@ An unfinished account is pinned to its step: it can be on that step's page,
 or a page beneath it (the onboarding stages live under `/onboarding/`), and
 nowhere else.
 A finished one may go anywhere except back through `/welcome`, `/auth/*` —
-or into `/onboarding/*`, which it has been through.
+or into `/onboarding/*`, which it has been through, apart from
+`/onboarding/questionnaire`, which can be put off until later.
 
 ### 5.2 A new number
 
@@ -334,8 +450,9 @@ or into `/onboarding/*`, which it has been through.
                       └─ /onboarding
                          └─ /onboarding/interests ── PUT /me/onboarding/interests
                             └─ /onboarding/questionnaire
+                               ├─ «بعداً انجام می‌دم» ── POST /me/onboarding/complete → /
                                ├─ PUT …/questionnaire/answers/:questionId  (every answer)
-                               ├─ POST …/questionnaire/complete
+                               ├─ POST …/questionnaire/complete  (+50 XP, once)
                                └─ POST /me/onboarding/complete
                                   └─ nextStep = home → /
 ```
@@ -392,6 +509,9 @@ decides nothing and keeps the cookies rather than signing the visitor out.
          |--1:N--+--------------------------+
          |       |   v2_onboarding_events   |   funnel analytics
          |       +--------------------------+
+         |--1:N--+--------------------------+
+         |       |    v2_xp_transactions    |   the XP ledger
+         |       +--------------------------+
          |
    (by phone, not FK)
          |
@@ -447,9 +567,22 @@ decides nothing and keeps the cookies rather than signing the visitor out.
   not un-finish it.
 - **`v2_onboarding_events`** — append-only funnel events. The presentation
   index is filled in by the API from the question id.
+- **`v2_users` account columns** — `username` (unique, stored lower-case,
+  held to it by a CHECK), `bio`, `city`, `avatar_config` (`jsonb`, the five
+  catalog ids; null until saved) and `settings` (`jsonb`; missing keys take
+  `DEFAULT_SETTINGS`, so a new setting needs no migration).
+- **`v2_xp_transactions`** — the XP ledger, append-only: `user_id`,
+  `source_type` (`personality_test`, `avatar_created`, `profile_completed`,
+  `mission`), `source_id`, `xp_amount`, `created_at`. Unique on
+  `(user_id, source_type, source_id)` — that key is what makes a reward
+  once-only. XP total, level, mission status, "avatar completed" and
+  "profile completed" are all derived (from this table, `avatar_config`, and
+  `username` + `city`), so none of them is stored to drift.
 
 The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
-`0002_user_interests.sql` and `0004_social_questionnaire.sql`.
+`0002_user_interests.sql`, `0004_social_questionnaire.sql` and
+`0006_account_and_xp.sql` (which also backfills the questionnaire reward for
+everyone who finished it before XP existed).
 
 ---
 
@@ -471,10 +604,14 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |
 | GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, insights, dimensions }`; 403 before stage 1 |
 | PUT | `/me/onboarding/questionnaire/answers/:questionId` | access cookie | `{ answer }` (shape per question) | `QuestionnaireState` |
-| POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireState` with `result`; 400 until every question is answered |
+| POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireCompletion` — the state with `result`, plus `xpAwarded` (50 once, then 0); 400 until every question is answered |
 | POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
+| GET | `/me/account` | access cookie | — | `AccountOverview`: `{ profile, progress, missions, socialProfile, settings }` |
+| PATCH | `/me/profile` | access cookie | any of `{ displayName, username, city, bio }` | `AccountUpdate`: `{ account, xpAwarded }`; 409 for a taken username |
+| PUT | `/me/avatar` | access cookie | `{ base, top, bottom, shoes, accessory }` | `AccountUpdate`; 403 for an item above the person's level |
+| PUT | `/me/settings` | access cookie | `{ notifications, showSocialProfile }` | `AccountUpdate` |
 
-`POST /me/onboarding/complete` answers 403 until stage 2 is finished.
+`POST /me/onboarding/complete` answers 403 until stage 1 is saved.
 
 `birthDate` is sent as Jalali parts (`{ year, month, day }`) and stored as a
 Gregorian date.
@@ -493,7 +630,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`); the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -505,6 +642,11 @@ against the same objects, including the Persian messages.
 | Gender | `male` / `female` / `other` | «یکی از گزینه‌ها رو انتخاب کن» |
 | OTP | Exactly 6 digits | «کد اشتباهه، دوباره امتحان کن» |
 | Interests | Every id in the catalog; duplicates dropped; at least 3 categories (`packages/validation/onboarding.ts`) | «حداقل از ۳ دسته انتخاب کن» |
+| Display name | 2–30 letters (any script), space and ZWNJ | «نام باید بین ۲ تا ۳۰ حرف باشه» |
+| Username | Latin letters, digits, `.` and `_`, starts with a letter, 3–20; lower-cased, a leading `@` dropped; unique | «فقط حروف انگلیسی، عدد، نقطه و _ …» / «این نام کاربری رو قبلاً کس دیگه‌ای انتخاب کرده» |
+| City | Empty (clears it) or 2–40 letters | «اسم شهر رو درست وارد کن» |
+| Bio | Optional, at most 160 characters; empty clears it | «حداکثر ۱۶۰ کاراکتر» |
+| Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
 | Questionnaire answer | Shape by question: one option code, a list of codes (≥ 1, no repeats, within the cap), a ranked list, or an integer 1–10 (`packages/validation/questionnaire.ts`) | «یک گزینه رو انتخاب کن» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 
 The mobile field itself accepts digits only, eleven at most: letters and
@@ -523,16 +665,28 @@ whitespace is dropped.
 
 | Token | Value |
 |-------|-------|
-| Brand | `--brand-hue: 270`, `--brand-saturation: 70%` (violet) |
-| Background (dark) | `hsl(265 24% 9%)` — tinted toward the brand, not neutral grey |
+| Brand | `--brand-hue: 270`, `--brand-saturation: 70%` (violet) — **the primary action only** |
+| Background (dark) | `hsl(240 5% 7%)` — near-black charcoal, deliberately not tinted toward the brand |
+| Success | `--success-hue: 152` (green) |
+| Avatar | `--avatar-*` — skin tones, hair and muted clothing colours; content, never interface |
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
 | Radius | `--radius: 0.75rem` |
 | Column width | `--shell-max-width: 430px`, as `max-w-shell` and the `shell:` breakpoint |
 | Theme | Dark, as a `.dark` class on `<html>` |
 | Layout | RTL |
 
-Colours are derived from the two brand variables at the top of
+Colours are derived from the variables at the top of
 `packages/ui/tokens/tokens.css`. Nothing in a screen names a colour.
+
+**Violet is for the primary action and nothing else.** It fills the one main
+button a screen asks the person to press — start, save, continue — and is
+not used for surfaces, cards, headers, borders, focus rings, tabs, chips,
+selected states, icons, progress or XP bars, badges or glows. Everything
+around it is neutral: charcoal surfaces, white text, grey secondary text,
+hairline borders; a selected item is a foreground border, a lifted surface
+and a check. Success is green, destructive red, warning amber. (Onboarding
+stage 1's chips and the questionnaire's selected answers predate this rule
+and still use a brand tint.)
 
 ### 9.2 Rules for a screen
 
@@ -554,13 +708,17 @@ Colours are derived from the two brand variables at the top of
 - Each screen has one `h1`, rendered by `ScreenTitle`. A screen whose content
   does not fill the column centres it (`ScreenBody center`) rather than
   leaving a void above the action bar.
-- The dark surface is lit by one ambient brand gradient at the top of the
-  column (`--gradient-shell-glow`), drawn by `MobileShell`. The one exception
+- The dark surface is lit by one faint neutral gradient at the top of the
+  column (`--gradient-shell-glow`, white at 5%), drawn by `MobileShell`. The one exception
   is a screen built around a single piece of artwork, which sits on
   `--surface-stage` (black) instead — the onboarding intro. Screens do not add
   their own; `--gradient-hero-glow` is the halo for a piece of artwork.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
-  on a wrong code. Everything honours `prefers-reduced-motion`.
+  on a wrong code and the 800ms «+n XP» float (`animate-xp-float`).
+  Everything honours `prefers-reduced-motion`.
+- Top-level screens (home, profile) end in `BottomNav` — خانه and پروفایل —
+  instead of a footer; a screen one step down has a back control instead.
+  The current tab is weight and full-strength text, not colour.
 - A sticky footer holds the primary action, inside the column and clear of the
   iOS home indicator.
 
@@ -597,6 +755,9 @@ padding.
 | Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
 | Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
 | Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |
-| Home screen | High | `/` is a placeholder |
+| Home screen | High | Carries the questionnaire mission and the worlds placeholder |
+| Read the account settings | Medium | `notifications` and `showSocialProfile` are stored; nothing reads them until notifications and other people's profiles exist |
+| Level-gated avatar items | Low | `unlockLevel` is enforced by the API and shown by the studio; no item uses it yet |
+| More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
 | Move admin sign-in into `apps/api` | Medium | `apps/admin` still has its own story |

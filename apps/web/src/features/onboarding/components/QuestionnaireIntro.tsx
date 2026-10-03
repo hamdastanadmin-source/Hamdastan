@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react';
 
+import { QUESTIONNAIRE_DURATION_LABEL } from '@hamdastan/config';
 import { Button } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
@@ -19,14 +20,15 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
  * the same lines being typed out again is only a wait. With reduced motion
  * it is all there at once either way.
  *
- * «بعداً انجام می‌دم» leaves without starting; nothing is lost, and the
- * questionnaire is waiting the next time onboarding is opened.
+ * «بعداً انجام می‌دم» leaves without starting and goes home; nothing is
+ * lost, and home and the profile offer the questionnaire as a mission until
+ * it is done.
  */
 
 const TITLE = 'بیا یکم بیشتر بشناسیمت';
 const BODY = 'چند انتخاب کوتاه داریم تا بفهمیم چه آدم‌ها، گروه‌ها و تجربه‌هایی بیشتر بهت می‌خورن.';
 const NOTE = 'جواب درست یا غلطی وجود نداره؛ فقط چیزی رو انتخاب کن که بیشتر شبیه خودته.';
-const DURATION = 'حدود ۵ دقیقه';
+const DURATION = QUESTIONNAIRE_DURATION_LABEL;
 
 const {
   starts: [TITLE_START, BODY_START, NOTE_START, DURATION_START],
@@ -40,10 +42,15 @@ const {
 
 export function QuestionnaireIntro({
   stream,
+  backHref,
+  isLeaving,
   onStart,
   onLater,
 }: {
   stream: boolean;
+  backHref: string;
+  /** «بعداً» is finishing onboarding on its way out. */
+  isLeaving: boolean;
   onStart: () => void;
   onLater: () => void;
 }) {
@@ -53,7 +60,7 @@ export function QuestionnaireIntro({
   return (
     <Screen className="bg-surface-stage">
       <ScreenHeader>
-        <ScreenBack href="/onboarding/interests" />
+        <ScreenBack href={backHref} />
       </ScreenHeader>
 
       <ScreenBody center className="gap-5">
@@ -94,6 +101,7 @@ export function QuestionnaireIntro({
             variant="ghost"
             size="touch"
             className="w-full font-normal text-muted-foreground hover:text-foreground"
+            loading={isLeaving}
             onClick={onLater}
           >
             بعداً انجام می‌دم

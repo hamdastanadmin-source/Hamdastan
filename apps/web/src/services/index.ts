@@ -6,6 +6,7 @@
  * route path.
  */
 
+export { accountService } from './account.service';
 export { apiClient } from './api-client';
 export { authService, refreshSession } from './auth.service';
 export { onboardingService } from './onboarding.service';

@@ -1,6 +1,8 @@
+import type { AccountSettings, AvatarConfig } from '@hamdastan/config';
 import type { Gender } from '@hamdastan/types';
 
 import { query, queryOne, withTransaction } from '../../data';
+import { ConflictError } from '../../shared/errors';
 import { createRepositorySlot } from '../../shared/repository';
 
 import type {
@@ -8,6 +10,7 @@ import type {
   InterestSelection,
   OnboardingInterestsRecord,
   OnboardingStep,
+  ProfileFields,
   UserRecord,
 } from './users.types';
 
@@ -39,6 +42,12 @@ export interface UsersRepository {
    * finished, in one transaction: a half-saved selection is never visible.
    */
   saveInterests(id: string, interests: InterestSelection[]): Promise<OnboardingInterestsRecord>;
+
+  // ─── The account area ────────────────────────────────────────
+  /** Writes only the fields present. A username someone else holds is a `ConflictError`. */
+  updateProfile(id: string, fields: ProfileFields): Promise<UserRecord>;
+  saveAvatar(id: string, avatar: AvatarConfig): Promise<UserRecord>;
+  saveSettings(id: string, settings: AccountSettings): Promise<UserRecord>;
 }
 
 const slot = createRepositorySlot<UsersRepository>('users');
@@ -50,6 +59,17 @@ export const usersRepository = slot.get;
 export const setUsersRepository = slot.set;
 
 // ─── PostgreSQL adapter ──────────────────────────────────────────────────────
+
+/** The editable fields and their columns — the only names `updateProfile` writes. */
+const PROFILE_COLUMNS: Record<keyof ProfileFields, string> = {
+  displayName: 'display_name',
+  username: 'username',
+  city: 'city',
+  bio: 'bio',
+};
+
+/** PostgreSQL's unique_violation. */
+const UNIQUE_VIOLATION = '23505';
 
 /** `v2_gender` is upper-case; the wire contract is lower-case. */
 const GENDER_TO_DB: Record<Gender, string> = {
@@ -66,6 +86,11 @@ type UserRow = {
   birth_date: string | null;
   gender: string | null;
   display_name: string | null;
+  username: string | null;
+  city: string | null;
+  bio: string | null;
+  avatar_config: AvatarConfig | null;
+  settings: Partial<AccountSettings>;
   onboarding_step: OnboardingStep;
   role: 'USER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
@@ -79,7 +104,8 @@ type UserRow = {
 const SELECT_COLUMNS = `
   id, phone, first_name, last_name,
   to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
-  gender, display_name, onboarding_step, role, status
+  gender, display_name, username, city, bio, avatar_config, settings,
+  onboarding_step, role, status
 `;
 
 function toRecord(row: UserRow): UserRecord {
@@ -91,6 +117,11 @@ function toRecord(row: UserRow): UserRecord {
     birthDate: row.birth_date,
     gender: row.gender ? (row.gender.toLowerCase() as Gender) : null,
     displayName: row.display_name,
+    username: row.username,
+    city: row.city,
+    bio: row.bio,
+    avatarConfig: row.avatar_config,
+    settings: row.settings,
     onboardingStep: row.onboarding_step,
     role: row.role,
     status: row.status,
@@ -203,5 +234,50 @@ export const sqlUsersRepository: UsersRepository = {
         interestIds: interests.map((i) => i.interestId),
       };
     });
+  },
+
+  async updateProfile(id, fields) {
+    const entries = (Object.keys(PROFILE_COLUMNS) as (keyof ProfileFields)[]).filter(
+      (key) => fields[key] !== undefined
+    );
+    const assignments = entries.map((key, i) => `${PROFILE_COLUMNS[key]} = $${i + 2}`);
+
+    try {
+      const rows = await query<UserRow>(
+        `UPDATE v2_users
+            SET ${[...assignments, 'updated_at = now()'].join(', ')}
+          WHERE id = $1
+      RETURNING ${SELECT_COLUMNS}`,
+        [id, ...entries.map((key) => fields[key])]
+      );
+      return toRecord(rows[0]);
+    } catch (error) {
+      // The unique index decides, not a prior read: two people choosing the
+      // same name at once cannot both pass.
+      if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
+        throw new ConflictError('این نام کاربری رو قبلاً کس دیگه‌ای انتخاب کرده');
+      }
+      throw error;
+    }
+  },
+
+  async saveAvatar(id, avatar) {
+    const rows = await query<UserRow>(
+      `UPDATE v2_users SET avatar_config = $2, updated_at = now()
+        WHERE id = $1
+    RETURNING ${SELECT_COLUMNS}`,
+      [id, JSON.stringify(avatar)]
+    );
+    return toRecord(rows[0]);
+  },
+
+  async saveSettings(id, settings) {
+    const rows = await query<UserRow>(
+      `UPDATE v2_users SET settings = $2, updated_at = now()
+        WHERE id = $1
+    RETURNING ${SELECT_COLUMNS}`,
+      [id, JSON.stringify(settings)]
+    );
+    return toRecord(rows[0]);
   },
 };

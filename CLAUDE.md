@@ -40,9 +40,14 @@ the rule to that document before writing the code.
   Both live in `packages/ui/tokens/` so the pre-paint script and `applyTheme`
   cannot drift. Each app's `globals.css` redefines the `dark:` variant to follow
   that class. Do not add `next-themes` — it would fight the same class.
-- Colours come from one place: `--brand-hue` and `--brand-saturation` at the top
-  of `packages/ui/tokens/tokens.css`. The brand scale, `--primary` and
-  `--success` all derive from them. Change the hue, not the individual colours.
+- Colours come from one place: the variables at the top of
+  `packages/ui/tokens/tokens.css`. The brand scale and `--primary` derive from
+  `--brand-hue` and `--brand-saturation`; change the hue, not the individual
+  colours.
+- **Violet (the brand) is for the primary action only** — the one main button
+  on a screen. Never for surfaces, borders, focus rings, tabs, chips,
+  selected states, icons, progress/XP bars or glows; those are neutral
+  (selection = foreground border + check). Success is green.
 - **Never hard-code a design value.** In a `className`, use the Tailwind
   utility. Where a real CSS string is needed, import from
   `@hamdastan/ui/tokens` — those files reference the custom properties rather

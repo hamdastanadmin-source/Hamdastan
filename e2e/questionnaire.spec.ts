@@ -190,8 +190,10 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
   await page.getByRole('button', { name: 'تجربه‌های من رو ببین' }).click();
   await expect(page).toHaveURL(/\/$/);
 
-  // Finished means finished: onboarding is not reachable again.
+  // Finished means finished: the questionnaire reopens as the profile's result.
   await page.goto('/onboarding/questionnaire');
+  await expect(page).toHaveURL(/\/profile\/social$/);
+  await page.goto('/onboarding/interests');
   await expect(page).toHaveURL(/\/$/);
 });
 

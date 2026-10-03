@@ -3,6 +3,7 @@ import type {
   OnboardingEventInput,
   OnboardingInterests,
   QuestionnaireAnswer,
+  QuestionnaireCompletion,
   QuestionnaireState,
   SessionResponse,
 } from '@hamdastan/types';
@@ -50,8 +51,9 @@ export const onboardingService = {
     );
   },
 
-  completeQuestionnaire(): Promise<QuestionnaireState> {
-    return apiClient.post<QuestionnaireState>('/me/onboarding/questionnaire/complete');
+  /** `xpAwarded` is the reward when this call earned it, and 0 after. */
+  completeQuestionnaire(): Promise<QuestionnaireCompletion> {
+    return apiClient.post<QuestionnaireCompletion>('/me/onboarding/questionnaire/complete');
   },
 
   /** Ends onboarding. The answer's `nextStep` is where to go. */

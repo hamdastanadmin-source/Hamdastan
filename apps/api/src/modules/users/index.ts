@@ -19,5 +19,6 @@ export type {
   InterestSelection,
   OnboardingInterestsRecord,
   OnboardingStep,
+  ProfileFields,
   UserRecord,
 } from './users.types';

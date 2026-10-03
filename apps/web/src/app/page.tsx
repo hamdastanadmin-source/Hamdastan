@@ -1,78 +1,87 @@
-import { Compass, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, Compass, Sparkles } from 'lucide-react';
 
-import { APP_NAME } from '@hamdastan/config';
-import { Card, CardContent, IconBadge } from '@hamdastan/ui';
+import { APP_NAME, DEFAULT_AVATAR } from '@hamdastan/config';
+import { IconBadge } from '@hamdastan/ui';
 
-import { Screen, ScreenBody, ScreenHeader } from '@/components';
-import { SignOutButton } from '@/features/auth';
-import { requireSession } from '@/features/auth/server';
+import { BottomNav, Screen, ScreenBody, ScreenHeader } from '@/components';
+import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
+import { getAccountOverview } from '@/features/profile/server';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Home — a placeholder.
+ * Home.
  *
- * Reached only by an account the API reports as complete. What belongs here
- * is the product; what it proves today is that the routing table ends
- * somewhere real.
+ * Reached only by an account the API reports as complete. The worlds are not
+ * open yet, so what it carries today is the person's next step: until the
+ * questionnaire is done, the first thing on the screen is the offer to do it
+ * — the screen's one primary action. Once it is done that card is gone, and a
+ * quiet line points to the result instead.
  *
- * It is still written as a screen rather than as a note to the developer: a
- * signed-in user who lands on "coming soon" should see the app they signed
- * into, with their own name on it, not an unstyled paragraph.
+ * Signing out is not here; it lives in the profile's settings.
  */
 export default async function HomePage() {
-  const { user } = await requireSession();
-
-  const name = user.displayName ?? user.firstName ?? 'دوست من';
-  // One glyph, from the same name shown beside it. Persian initials are read
-  // as the first letter of the first word, so this is the whole rule.
-  const initial = name.trim().charAt(0);
+  const { profile, socialProfile } = await getAccountOverview();
+  const name = profile.displayName ?? 'دوست من';
 
   return (
     <Screen>
       <ScreenHeader>
-        <div className="flex items-center gap-3">
-          {/* A span, not `Avatar`: that is a client component wrapping a
-              Radix image-load state machine, and there is no image here —
-              only a letter on a server-rendered page. */}
-          <span
-            aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-full border border-border bg-primary/15 text-sm font-bold text-primary"
-          >
-            {initial}
+        <Link
+          href="/profile"
+          className="-ms-1 flex items-center gap-3 rounded-full py-1 pe-3 ps-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="block size-10 overflow-hidden rounded-full border border-border bg-secondary">
+            <AvatarFigure avatar={profile.avatar ?? DEFAULT_AVATAR} frame="portrait" label="" className="size-full" />
           </span>
-          <div className="flex flex-col">
+          <span className="flex flex-col">
             <span className="text-2xs text-muted-foreground">خوش برگشتی</span>
-            <span className="text-sm font-bold leading-tight">{name}</span>
-          </div>
-        </div>
-        <SignOutButton />
+            <h1 className="text-sm font-bold leading-tight">{name}</h1>
+          </span>
+        </Link>
       </ScreenHeader>
 
-      <ScreenBody center className="gap-6">
-        <Card className="border-border/60 bg-card/60">
-          <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
-            <IconBadge glow>
-              <Compass aria-hidden="true" />
-            </IconBadge>
+      <ScreenBody className="gap-6 pt-4">
+        {socialProfile ? (
+          <Link
+            href="/profile/social"
+            className="flex min-h-14 items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm outline-none transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex flex-1 flex-col gap-0.5">
+              <span className="font-semibold">پروفایل اجتماعی‌ات آماده‌ست</span>
+              <span className="text-xs text-muted-foreground">{socialProfile.title}</span>
+            </span>
+            <span className="text-xs text-muted-foreground">مشاهده نتیجه</span>
+            {/* rtl-ok: "forward" points left in an RTL layout. */}
+            <ChevronLeft aria-hidden="true" className="size-4 text-muted-foreground" />
+          </Link>
+        ) : (
+          <PersonalityTestCard
+            title="یه قدم مونده تا بیشتر بشناسیمت"
+            body="آزمون کوتاهت رو کامل کن تا تجربه‌ها و آدم‌های مناسب‌تری برات پیدا کنیم."
+            className="animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none"
+          />
+        )}
 
-            <div className="flex flex-col gap-2">
-              <h1 className="text-xl font-extrabold leading-tight">
-                حسابت آماده‌ست
-              </h1>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                دنیاهای {APP_NAME} هنوز باز نشدن. به‌محض این‌که اولین دنیا منتشر
-                بشه، همین‌جا می‌بینیش.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Sparkles aria-hidden="true" className="size-4" />
-          به‌زودی
-        </p>
+        <section className="flex flex-1 flex-col items-center justify-center gap-4 py-8 text-center">
+          <IconBadge tone="muted">
+            <Compass aria-hidden="true" />
+          </IconBadge>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-bold leading-tight">دنیاها به‌زودی باز می‌شن</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              دنیاهای {APP_NAME} هنوز منتشر نشدن. به‌محض این‌که اولین دنیا باز بشه، همین‌جا می‌بینیش.
+            </p>
+          </div>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles aria-hidden="true" className="size-4" />
+            به‌زودی
+          </p>
+        </section>
       </ScreenBody>
+
+      <BottomNav />
     </Screen>
   );
 }

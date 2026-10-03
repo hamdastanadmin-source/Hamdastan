@@ -77,7 +77,10 @@ column v2_user_interests.category_id character varying nullable=NO default=
 column v2_user_interests.created_at timestamp with time zone nullable=NO default=now()
 column v2_user_interests.interest_id character varying nullable=NO default=
 column v2_user_interests.user_id uuid nullable=NO default=
+column v2_users.avatar_config jsonb nullable=YES default=
+column v2_users.bio character varying nullable=YES default=
 column v2_users.birth_date date nullable=YES default=
+column v2_users.city character varying nullable=YES default=
 column v2_users.created_at timestamp with time zone nullable=NO default=now()
 column v2_users.display_name character varying nullable=YES default=
 column v2_users.first_name character varying nullable=YES default=
@@ -90,8 +93,16 @@ column v2_users.onboarding_step USER-DEFINED nullable=NO default='basic_info'::v
 column v2_users.phone character varying nullable=NO default=
 column v2_users.phone_verified_at timestamp with time zone nullable=NO default=now()
 column v2_users.role USER-DEFINED nullable=NO default='USER'::v2_user_role
+column v2_users.settings jsonb nullable=NO default='{}'::jsonb
 column v2_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_user_status
 column v2_users.updated_at timestamp with time zone nullable=NO default=now()
+column v2_users.username character varying nullable=YES default=
+column v2_xp_transactions.created_at timestamp with time zone nullable=NO default=now()
+column v2_xp_transactions.id bigint nullable=NO default=nextval('v2_xp_transactions_id_seq'::regclass)
+column v2_xp_transactions.source_id character varying nullable=NO default=
+column v2_xp_transactions.source_type character varying nullable=NO default=
+column v2_xp_transactions.user_id uuid nullable=NO default=
+column v2_xp_transactions.xp_amount integer nullable=NO default=
 constraint v2_access_tokens v2_access_tokens_pkey PRIMARY KEY (token_hash)
 constraint v2_access_tokens v2_access_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES v2_sessions(id) ON DELETE CASCADE
 constraint v2_access_tokens v2_access_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
@@ -121,6 +132,12 @@ constraint v2_users v2_users_min_age CHECK (((birth_date IS NULL) OR (birth_date
 constraint v2_users v2_users_onboarding_stage_range CHECK (((onboarding_stage >= 0) AND (onboarding_stage <= 3)))
 constraint v2_users v2_users_phone_key UNIQUE (phone)
 constraint v2_users v2_users_pkey PRIMARY KEY (id)
+constraint v2_users v2_users_username_lower CHECK (((username)::text = lower((username)::text)))
+constraint v2_xp_transactions v2_xp_transactions_once UNIQUE (user_id, source_type, source_id)
+constraint v2_xp_transactions v2_xp_transactions_pkey PRIMARY KEY (id)
+constraint v2_xp_transactions v2_xp_transactions_source_type CHECK (((source_type)::text = ANY ((ARRAY['personality_test'::character varying, 'avatar_created'::character varying, 'profile_completed'::character varying, 'mission'::character varying])::text[])))
+constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK ((xp_amount > 0))
 enum v2_gender MALE,FEMALE,OTHER
 enum v2_onboarding_step basic_info,onboarding,done
 enum v2_user_role USER,ADMIN
@@ -148,3 +165,6 @@ index v2_user_interests_category CREATE INDEX v2_user_interests_category ON publ
 index v2_user_interests_pkey CREATE UNIQUE INDEX v2_user_interests_pkey ON public.v2_user_interests USING btree (user_id, interest_id)
 index v2_users_phone_key CREATE UNIQUE INDEX v2_users_phone_key ON public.v2_users USING btree (phone)
 index v2_users_pkey CREATE UNIQUE INDEX v2_users_pkey ON public.v2_users USING btree (id)
+index v2_users_username CREATE UNIQUE INDEX v2_users_username ON public.v2_users USING btree (username)
+index v2_xp_transactions_once CREATE UNIQUE INDEX v2_xp_transactions_once ON public.v2_xp_transactions USING btree (user_id, source_type, source_id)
+index v2_xp_transactions_pkey CREATE UNIQUE INDEX v2_xp_transactions_pkey ON public.v2_xp_transactions USING btree (id)

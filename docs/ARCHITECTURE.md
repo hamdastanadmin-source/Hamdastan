@@ -196,6 +196,16 @@ one from beside it:
   scale, not something each header re-tunes. Its arrow points the way the
   reader came from, which in an RTL product is rightwards.
 
+**`BottomNav`** (`components/layout/BottomNav.tsx`) ends the top-level
+screens — home and the profile — in place of a `ScreenFooter`: sticky for
+the same reason, with the current tab told by weight rather than colour.
+A screen one level down has `ScreenBack` instead and no bottom nav.
+
+**`XpAmount` and `XpGain`** (`components/xp/`) are the app's one way to
+write an amount of XP — isolated as an LTR run so «+۵۰ XP» does not reorder
+inside Persian text — and the 800ms float that marks a reward. Shared here
+because both the questionnaire and the profile use them.
+
 `MobileShell` draws the column's one ambient gradient (`--gradient-shell-glow`,
 via the `shell-ambient` class, which carries its own position, height and
 z-index). It is decorative, `aria-hidden` and `pointer-events-none`; screens
@@ -252,9 +262,9 @@ src/
 
 ### Modules
 
-`auth`, `users`, `onboarding`, `worlds`, `content`, `missions`, `trivia`,
-`community`, `progress`, `events`, `commerce`, `notifications`, `search` —
-each with the same seven files:
+`auth`, `users`, `onboarding`, `account`, `worlds`, `content`, `missions`,
+`trivia`, `community`, `progress`, `events`, `commerce`, `notifications`,
+`search` — each with the same seven files:
 
 ```
 module/
@@ -272,6 +282,19 @@ answers on. Most take a prefix of their own name; `users` takes the bare
 prefix because every route it owns is about *the* current user and `/me` reads
 better than `/users/me`. `onboarding` is mounted at `/me/onboarding` for the
 same reason.
+
+A module that **only composes other modules** has no repository, because
+it owns no data. `account` is the one: its service reads the profile row
+through `usersService`, the result through `onboardingService`, the ledger
+through `progressService` and grants through `missionsService`, and holds
+only the account's own rules (what makes a profile complete, which avatar
+items a level allows). Nothing imports it, which is what keeps the module
+graph acyclic — `onboarding → users, missions`, `missions → progress`.
+
+Ownership in the account area: `users` stores the profile columns,
+`progress` owns the XP ledger and the level arithmetic (`levelFor`,
+`toProgress`), `missions` reads mission status off the ledger
+(`missionsFor`) and grants a mission's reward once (`complete`).
 
 A module may add files beside the seven when a service delegates a pure
 computation: `onboarding` keeps its questionnaire scoring in
@@ -473,8 +496,14 @@ variables in `tokens.css`: `--background`, `--foreground`, `--card`,
 `--destructive` and the rest. Every `-foreground` is chosen against its own
 surface and clears 4.5:1.
 
-The surfaces are tinted toward the brand hue rather than neutral grey, so a
-violet primary sits on a screen that shares its hue instead of on a grey page.
+The surfaces are near-black charcoal with only a trace of cool hue, and
+deliberately **not** tinted toward the brand: violet is spent on `--primary`
+— the screen's main action — and on nothing else (not surfaces, borders,
+focus rings, selection, progress, icons or glows), so the action is the only
+colour on the screen. `--success` is green (`--success-hue`), never the
+brand. A component that would otherwise draw selection or "on" in
+`primary` — the stock `Switch`, `Tabs`' underline and pill variants — is
+restyled to foreground where it is used.
 `--surface-0`, a shade darker than `--background`, is what sits behind the
 mobile column.
 
@@ -501,9 +530,13 @@ Tailwind utility; where a real CSS string is required (canvas, a chart
 library), import from `@hamdastan/ui/tokens`. If a value is missing, add it to
 `tokens.css` first.
 
-The whole colour system has one input: `--brand-hue` and `--brand-saturation`
-at the top of `tokens.css`. The brand ramp, `--primary` and `--success` all
-derive from them.
+The brand has one input: `--brand-hue` and `--brand-saturation` at the top
+of `tokens.css`. The brand ramp and `--primary` derive from them; the
+semantic colours have hues of their own beside them.
+
+The avatar's palette is `--avatar-*` (skin tones, hair, muted clothing),
+read in TypeScript as `avatarColors`. It is content colour — what a figure
+wears — and is never used for interface.
 
 ---
 

@@ -17,3 +17,4 @@
 export { OnboardingIntro } from './components/OnboardingIntro';
 export { InterestsStep } from './components/InterestsStep';
 export { QuestionnaireFlow } from './components/QuestionnaireFlow';
+export { SocialProfileResult } from './components/SocialProfileResult';

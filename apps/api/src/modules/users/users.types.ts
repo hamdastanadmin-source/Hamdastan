@@ -1,3 +1,4 @@
+import type { AccountSettings, AvatarConfig } from '@hamdastan/config';
 import type { Gender, UserRole } from '@hamdastan/types';
 
 /**
@@ -23,10 +24,25 @@ export type UserRecord = {
   birthDate: string | null;
   gender: Gender | null;
   displayName: string | null;
+  username: string | null;
+  city: string | null;
+  bio: string | null;
+  /** Null until the person saves an avatar. */
+  avatarConfig: AvatarConfig | null;
+  /** As stored: keys missing here take `DEFAULT_SETTINGS`. */
+  settings: Partial<AccountSettings>;
   onboardingStep: OnboardingStep;
   role: UserRole;
   status: UserStatus;
 };
+
+/** The editable profile fields, already validated. An absent key is left as it is. */
+export type ProfileFields = Partial<{
+  displayName: string;
+  username: string;
+  city: string | null;
+  bio: string | null;
+}>;
 
 /** The four fields the basic-info form collects, already validated. */
 export type BasicInfo = {

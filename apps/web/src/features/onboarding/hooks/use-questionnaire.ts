@@ -71,6 +71,8 @@ export function useQuestionnaire(initial: QuestionnaireState) {
   const [answers, setAnswers] = useState(initial.answers);
   const [step, setStep] = useState<QuestionnaireStep>(() => initialStep(initial));
   const [result, setResult] = useState<QuestionnaireResult | null>(initial.result);
+  /** The XP finishing just earned; 0 when it was earned before. */
+  const [xpAwarded, setXpAwarded] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   /** True for the moment the current screen is fading out. */
   const [leaving, setLeaving] = useState(false);
@@ -129,6 +131,7 @@ export function useQuestionnaire(initial: QuestionnaireState) {
       track({ event: 'quiz_section_completed', sectionId: 4 });
       track({ event: 'quiz_completed' });
       setResult(state.result);
+      setXpAwarded(state.xpAwarded);
       setStep({ kind: 'result' });
     } catch (error) {
       reportError(error);
@@ -222,10 +225,22 @@ export function useQuestionnaire(initial: QuestionnaireState) {
   /**
    * «بعداً انجام می‌دم», on the intro — the one place the questionnaire can be
    * put off. Once started there is no "later": the person goes to the end.
+   *
+   * Putting it off finishes onboarding (stage 1 is enough) and goes where
+   * the server says — home, which offers the questionnaire as a mission
+   * until it is done.
    */
-  const later = useCallback(() => {
+  const later = useCallback(async () => {
     track({ event: 'quiz_abandoned' });
-    router.push('/onboarding');
+    setIsSaving(true);
+    try {
+      const { nextStep } = await onboardingService.completeOnboarding();
+      router.replace(PATH_FOR[nextStep]);
+      router.refresh();
+    } catch (error) {
+      reportError(error);
+      setIsSaving(false);
+    }
   }, [router]);
 
   /** The result's action: end onboarding and go where the server says. */
@@ -246,6 +261,7 @@ export function useQuestionnaire(initial: QuestionnaireState) {
     step,
     answers,
     result,
+    xpAwarded,
     isSaving,
     leaving,
     start,

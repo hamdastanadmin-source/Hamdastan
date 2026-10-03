@@ -77,3 +77,21 @@ export const chartColors = [
 export type ColorToken = keyof typeof colors;
 export type BrandStep = keyof typeof brand;
 export type SurfaceLevel = keyof typeof surfaces;
+
+/** The avatar's content palette — clothing and skin, never interface colour. */
+export const avatarColors = {
+  skin1: hsl('avatar-skin-1'),
+  skin2: hsl('avatar-skin-2'),
+  skin3: hsl('avatar-skin-3'),
+  skin4: hsl('avatar-skin-4'),
+  hair: hsl('avatar-hair'),
+  ink: hsl('avatar-ink'),
+  stone: hsl('avatar-stone'),
+  sand: hsl('avatar-sand'),
+  olive: hsl('avatar-olive'),
+  navy: hsl('avatar-navy'),
+  denim: hsl('avatar-denim'),
+  rust: hsl('avatar-rust'),
+  slate: hsl('avatar-slate'),
+  sole: hsl('avatar-sole'),
+} as const;

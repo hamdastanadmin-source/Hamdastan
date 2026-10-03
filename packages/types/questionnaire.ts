@@ -55,6 +55,13 @@ export type QuestionnaireState = {
   result: QuestionnaireResult | null;
 };
 
+/**
+ * What finishing answers with. `xpAwarded` is the personality-test reward
+ * when this call earned it, and 0 when it had been earned before — so the
+ * screen celebrates once.
+ */
+export type QuestionnaireCompletion = QuestionnaireState & { xpAwarded: number };
+
 export type OnboardingEventInput = {
   event: OnboardingEventName;
   questionId?: QuestionId;

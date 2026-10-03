@@ -8,6 +8,7 @@ import { closePool, diffSchema, getPool, readSchema, readSnapshot, runMigrations
 import type { SmsSender } from '../integrations';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from '../modules/auth';
 import { setOnboardingRepository, sqlOnboardingRepository } from '../modules/onboarding';
+import { setProgressRepository, sqlProgressRepository } from '../modules/progress';
 import { setUsersRepository, sqlUsersRepository } from '../modules/users';
 
 /**
@@ -114,6 +115,7 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
     setUsersRepository(sqlUsersRepository);
     setAuthRepository(sqlAuthRepository);
     setOnboardingRepository(sqlOnboardingRepository);
+    setProgressRepository(sqlProgressRepository);
     setSmsSender(recordingSender);
 
     app = await buildApp();
@@ -230,15 +232,21 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       const read = await get('/me/onboarding/interests', cookies);
       expect(read.json().data.selectedInterests).toEqual(['concert', 'gallery', 'workshop']);
 
-      // Onboarding cannot be finished past the questionnaire.
-      const skipped = await post('/me/onboarding/complete', undefined, cookies);
-      expect(skipped.statusCode).toBe(403);
-
-      await answerQuestionnaire(cookies);
-
+      // The questionnaire can be put off: stage 1 is enough to finish.
       const done = await post('/me/onboarding/complete', undefined, cookies);
       expect(done.statusCode, done.body).toBe(200);
       expect(done.json().data.nextStep).toBe('home');
+    });
+
+    it('refuses to finish onboarding before the interests are saved', async () => {
+      const { cookies } = await signIn(nextPhone());
+      await put(
+        '/me/basic-info',
+        { firstName: 'رضا', lastName: 'نوری', birthDate: { year: 1371, month: 2, day: 2 }, gender: 'male' },
+        cookies
+      );
+      const early = await post('/me/onboarding/complete', undefined, cookies);
+      expect(early.statusCode).toBe(403);
     });
 
     it('stores the questionnaire as raw answers and a profile derived from them', async () => {
@@ -336,6 +344,100 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
 
       const response = await put('/me/onboarding/interests', { interestIds: ['concert', 'rock'] }, cookies);
       expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('the account area', () => {
+    /** Signed in, basic info and interests saved, onboarding finished without the questionnaire. */
+    async function homeUser(firstName = 'نگار') {
+      const { cookies } = await signIn(nextPhone());
+      await put(
+        '/me/basic-info',
+        { firstName, lastName: 'صالحی', birthDate: { year: 1374, month: 4, day: 4 }, gender: 'female' },
+        cookies
+      );
+      await put('/me/onboarding/interests', { interestIds: ['concert', 'gallery', 'workshop'] }, cookies);
+      await post('/me/onboarding/complete', undefined, cookies);
+      return cookies;
+    }
+
+    const patch = (url: string, body: unknown, cookies: Cookies) =>
+      app.inject({ method: 'PATCH', url: `${API_PREFIX}${url}`, payload: body as object, cookies });
+
+    it('starts at level 1 with every mission open and no social profile', async () => {
+      const cookies = await homeUser();
+      const account = await get('/me/account', cookies);
+      expect(account.statusCode, account.body).toBe(200);
+
+      const data = account.json().data;
+      expect(data.progress).toMatchObject({ xpTotal: 0, level: 1, levelStartXp: 0, nextLevelXp: 100 });
+      expect(data.socialProfile).toBeNull();
+      expect(data.profile.displayName).toBe('نگار');
+      expect(data.missions.map((m: { status: string }) => m.status)).toEqual([
+        'available',
+        'available',
+        'available',
+      ]);
+    });
+
+    it('grants the questionnaire reward once, however often it is finished', async () => {
+      const cookies = await homeUser();
+      await answerQuestionnaire(cookies);
+
+      const again = await post('/me/onboarding/questionnaire/complete', undefined, cookies);
+      expect(again.json().data.xpAwarded).toBe(0);
+
+      const data = (await get('/me/account', cookies)).json().data;
+      expect(data.progress.xpTotal).toBe(50);
+      expect(data.progress.recent).toHaveLength(1);
+      expect(data.socialProfile.title).toBeTruthy();
+      expect(data.missions.find((m: { id: string }) => m.id === 'personality_test').status).toBe('completed');
+    });
+
+    it('completes the profile mission on a username and a city, and keeps usernames unique', async () => {
+      const cookies = await homeUser();
+
+      const partial = await patch('/me/profile', { username: 'Neg.Sal' }, cookies);
+      expect(partial.statusCode, partial.body).toBe(200);
+      expect(partial.json().data.account.profile.username).toBe('neg.sal');
+      expect(partial.json().data.xpAwarded).toBe(0);
+
+      const complete = await patch('/me/profile', { city: 'شیراز', bio: '' }, cookies);
+      expect(complete.json().data.xpAwarded).toBe(20);
+      expect(complete.json().data.account.profile.bio).toBeNull();
+
+      const twice = await patch('/me/profile', { city: 'تهران' }, cookies);
+      expect(twice.json().data.xpAwarded).toBe(0);
+
+      const other = await homeUser('مریم');
+      const taken = await patch('/me/profile', { username: 'NEG.SAL' }, other);
+      expect(taken.statusCode).toBe(409);
+
+      const invalid = await patch('/me/profile', { username: '1abc' }, other);
+      expect(invalid.statusCode).toBe(400);
+    });
+
+    it('saves an avatar from the catalog and rewards the first one', async () => {
+      const cookies = await homeUser();
+      const avatar = { base: 'base-3', top: 'hoodie', bottom: 'jeans', shoes: 'boots', accessory: 'cap' };
+
+      const saved = await put('/me/avatar', avatar, cookies);
+      expect(saved.statusCode, saved.body).toBe(200);
+      expect(saved.json().data.account.profile.avatar).toEqual(avatar);
+      expect(saved.json().data.xpAwarded).toBe(20);
+
+      const resaved = await put('/me/avatar', { ...avatar, accessory: 'none' }, cookies);
+      expect(resaved.json().data.xpAwarded).toBe(0);
+
+      const unknown = await put('/me/avatar', { ...avatar, top: 'crown' }, cookies);
+      expect(unknown.statusCode).toBe(400);
+    });
+
+    it('stores settings', async () => {
+      const cookies = await homeUser();
+      const saved = await put('/me/settings', { notifications: false, showSocialProfile: true }, cookies);
+      expect(saved.statusCode, saved.body).toBe(200);
+      expect(saved.json().data.account.settings).toEqual({ notifications: false, showSocialProfile: true });
     });
   });
 

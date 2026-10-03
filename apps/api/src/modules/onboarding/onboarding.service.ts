@@ -1,8 +1,15 @@
 import { presentationIndexOf, type QuestionId } from '@hamdastan/config';
-import type { QuestionnaireAnswer, QuestionnaireAnswers, QuestionnaireState } from '@hamdastan/types';
+import type {
+  QuestionnaireAnswer,
+  QuestionnaireAnswers,
+  QuestionnaireCompletion,
+  QuestionnaireResult,
+  QuestionnaireState,
+} from '@hamdastan/types';
 import type { OnboardingEventBody } from '@hamdastan/validation';
 
 import { ForbiddenError, ValidationError } from '../../shared/errors';
+import { missionsService } from '../missions';
 import { usersService } from '../users';
 
 import { onboardingRepository } from './onboarding.repository';
@@ -67,15 +74,26 @@ export const onboardingService = {
     return toQuestionnaireState(record);
   },
 
-  /** Finishing is the server's call: every question has to have an answer. Idempotent. */
-  async complete(userId: string): Promise<QuestionnaireState> {
+  /**
+   * Finishing is the server's call: every question has to have an answer.
+   * Idempotent, reward included — the personality-test mission pays once
+   * however many times this is called, and a call that failed half-way
+   * grants it on the retry.
+   */
+  async complete(userId: string): Promise<QuestionnaireCompletion> {
     await requireInterestsSaved(userId);
     const record = await onboardingRepository().findQuestionnaire(userId);
     if (!isComplete(record.answers)) {
       throw new ValidationError('هنوز به چند سؤال جواب ندادی');
     }
     if (!record.completed) await onboardingRepository().markCompleted(userId);
-    return toQuestionnaireState({ ...record, completed: true });
+    const xpAwarded = await missionsService.complete(userId, 'personality_test');
+    return { ...toQuestionnaireState({ ...record, completed: true }), xpAwarded };
+  },
+
+  /** The result card once the questionnaire is finished; null before. For the account area. */
+  async getResult(userId: string): Promise<QuestionnaireResult | null> {
+    return toQuestionnaireState(await onboardingRepository().findQuestionnaire(userId)).result;
   },
 
   async recordEvent(userId: string, body: OnboardingEventBody): Promise<void> {

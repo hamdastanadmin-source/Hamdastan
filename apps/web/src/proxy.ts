@@ -38,6 +38,13 @@ const PUBLIC_PATHS = ['/welcome', '/auth/phone', '/auth/verify'];
 /** Pages a completed account has no reason to be on. */
 const SIGNED_IN_EXITS = new Set([...PUBLIC_PATHS, '/auth/basic-info']);
 
+/**
+ * The one onboarding page a finished account may still open: the
+ * questionnaire can be put off, and home and the profile offer it as a
+ * mission until it is done.
+ */
+const DEFERRABLE_ONBOARDING = '/onboarding/questionnaire';
+
 const isPublic = (pathname: string) =>
   PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
@@ -104,8 +111,11 @@ export async function proxy(request: NextRequest) {
   }
 
   // A finished one is free to go anywhere except back through the door —
-  // or back into onboarding, which it has already been through.
-  const inOnboarding = pathname === '/onboarding' || pathname.startsWith('/onboarding/');
+  // or back into onboarding, which it has already been through, bar the
+  // questionnaire it may have put off.
+  const inOnboarding =
+    (pathname === '/onboarding' || pathname.startsWith('/onboarding/')) &&
+    pathname !== DEFERRABLE_ONBOARDING;
   if (nextStep === 'home' && (SIGNED_IN_EXITS.has(pathname) || inOnboarding)) {
     return applyCookies(redirectTo('/'), setCookie);
   }

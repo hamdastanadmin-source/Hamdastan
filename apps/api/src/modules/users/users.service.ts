@@ -1,4 +1,9 @@
-import { INTEREST_CATEGORIES, INTEREST_CATEGORY_BY_ID } from '@hamdastan/config';
+import {
+  INTEREST_CATEGORIES,
+  INTEREST_CATEGORY_BY_ID,
+  type AccountSettings,
+  type AvatarConfig,
+} from '@hamdastan/config';
 import type {
   AuthUser,
   NextStep,
@@ -9,7 +14,12 @@ import type {
 import { ForbiddenError, NotFoundError } from '../../shared/errors';
 
 import { usersRepository } from './users.repository';
-import type { BasicInfo, OnboardingInterestsRecord, UserRecord } from './users.types';
+import type {
+  BasicInfo,
+  OnboardingInterestsRecord,
+  ProfileFields,
+  UserRecord,
+} from './users.types';
 
 /**
  * Business logic for the Users module — the account itself, and the one
@@ -112,14 +122,15 @@ export const usersService = {
   },
 
   /**
-   * The end of onboarding. Only the server says it is over: the questionnaire
-   * (stage 2) has to be finished first, so a client cannot call this to skip
-   * it. Stage 3 is not built yet; when it is, this checks for it instead.
+   * The end of onboarding. Only the server says it is over, and it says so
+   * once the interests (stage 1) are saved. The questionnaire (stage 2) can
+   * be put off: «بعداً انجام می‌دم» comes here too, and home then offers it
+   * as a mission. Stage 3 is not built yet.
    */
   async completeOnboarding(id: string): Promise<UserRecord> {
     await this.getById(id);
     const { onboardingStage } = await usersRepository().findOnboardingInterests(id);
-    if (onboardingStage < 2) {
+    if (onboardingStage < 1) {
       throw new ForbiddenError('اول مراحل آشنایی رو کامل کن');
     }
     return usersRepository().setOnboardingStep(id, 'done');
@@ -150,5 +161,20 @@ export const usersService = {
         categoryId: INTEREST_CATEGORY_BY_ID.get(interestId)!,
       }))
     );
+  },
+
+  // ─── The account area ──────────────────────────────────────────────────
+  // Validated and decided on by the Account module; these only store.
+
+  updateProfile(id: string, fields: ProfileFields): Promise<UserRecord> {
+    return usersRepository().updateProfile(id, fields);
+  },
+
+  saveAvatar(id: string, avatar: AvatarConfig): Promise<UserRecord> {
+    return usersRepository().saveAvatar(id, avatar);
+  },
+
+  saveSettings(id: string, settings: AccountSettings): Promise<UserRecord> {
+    return usersRepository().saveSettings(id, settings);
   },
 };

@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 
+import { accountRoutes } from './account';
 import { authRoutes } from './auth';
 import { commerceRoutes } from './commerce';
 import { communityRoutes } from './community';
@@ -29,6 +30,8 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '', routes: usersRoutes },
   // Stage 2 of onboarding, beside stage 1's `/me/onboarding/interests`.
   { prefix: '/me/onboarding', routes: onboardingRoutes },
+  // The account area — profile, avatar, settings and the hub that reads them.
+  { prefix: '/me', routes: accountRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
   { prefix: '/content', routes: contentRoutes },
   { prefix: '/missions', routes: missionsRoutes },
