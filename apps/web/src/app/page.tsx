@@ -1,8 +1,8 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, Compass, Sparkles } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
-import { APP_NAME, DEFAULT_AVATAR } from '@hamdastan/config';
-import { IconBadge } from '@hamdastan/ui';
+import { DEFAULT_AVATAR } from '@hamdastan/config';
 
 import { BottomNav, Screen, ScreenBody, ScreenHeader } from '@/components';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
@@ -10,12 +10,20 @@ import { getAccountOverview } from '@/features/profile/server';
 
 export const dynamic = 'force-dynamic';
 
+/** The story worlds on offer, in display order. Sources live in `assets/worlds/`. */
+const WORLD_BANNERS = [
+  { src: '/images/worlds/hogwarts-banner-v2.png', alt: 'هاگوارتز، هری پاتر' },
+  { src: '/images/worlds/gta-banner-v2.png', alt: 'جی تی ای' },
+  { src: '/images/worlds/game-of-thrones-banner.png', alt: 'گیم آو ترونز' },
+  { src: '/images/worlds/liverpool-banner.png', alt: 'لیورپول، تنها قدم نخواهی زد' },
+] as const;
+
 /**
  * Home.
  *
- * Reached only by an account the API reports as complete. The worlds are not
- * open yet, so what it carries today is the person's next step: until the
- * questionnaire is done, the first thing on the screen is the offer to do it
+ * Reached only by an account the API reports as complete. It carries the
+ * person's next step, then the story-world picker. Until the questionnaire is
+ * done, the first thing on the screen is the offer to do it
  * — the screen's one primary action. Once it is done that card is gone, and a
  * quiet line points to the result instead.
  *
@@ -64,20 +72,22 @@ export default async function HomePage() {
           />
         )}
 
-        <section className="flex flex-1 flex-col items-center justify-center gap-4 py-8 text-center">
-          <IconBadge tone="muted">
-            <Compass aria-hidden="true" />
-          </IconBadge>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-bold leading-tight">دنیاها به‌زودی باز می‌شن</h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              دنیاهای {APP_NAME} هنوز منتشر نشدن. به‌محض این‌که اولین دنیا باز بشه، همین‌جا می‌بینیش.
-            </p>
-          </div>
-          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Sparkles aria-hidden="true" className="size-4" />
-            به‌زودی
-          </p>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold leading-tight">جهان داستانی‌ات را انتخاب کن</h2>
+          <ul className="flex flex-col gap-3">
+            {WORLD_BANNERS.map((world) => (
+              <li key={world.src}>
+                <Image
+                  src={world.src}
+                  alt={world.alt}
+                  width={1290}
+                  height={344}
+                  sizes="(max-width: 430px) 100vw, 430px"
+                  className="h-auto w-full rounded-2xl border border-border"
+                />
+              </li>
+            ))}
+          </ul>
         </section>
       </ScreenBody>
 

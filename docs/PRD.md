@@ -315,7 +315,7 @@ holds خانه and پروفایل. Signing out is not on home.
   «شروع آزمون», the screen's one primary action.
 - **Done:** the card is gone; a quiet row «پروفایل اجتماعی‌ات آماده‌ست» with
   the result's title and «مشاهده نتیجه» leads to `/profile/social`.
-- Below it, the worlds placeholder («دنیاها به‌زودی باز می‌شن»).
+- Below it, the story-world picker under «جهان داستانی‌ات را انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (گیم آو ترونز), and Liverpool (لیورپول). Neither links anywhere yet.
 
 ### 4.4 Account — حساب من
 
@@ -755,7 +755,7 @@ padding.
 | Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
 | Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
 | Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |
-| Home screen | High | Carries the questionnaire mission and the worlds placeholder |
+| Home screen | High | Carries the questionnaire mission and the story-world picker |
 | Read the account settings | Medium | `notifications` and `showSocialProfile` are stored; nothing reads them until notifications and other people's profiles exist |
 | Level-gated avatar items | Low | `unlockLevel` is enforced by the API and shown by the studio; no item uses it yet |
 | More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
