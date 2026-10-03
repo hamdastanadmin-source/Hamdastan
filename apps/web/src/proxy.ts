@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION } from '@hamdastan/config';
 import type { NextStep } from '@hamdastan/types';
 
-import { authService, refreshSession } from '@/services';
+import { HttpError, authService, refreshSession } from '@/services';
 
 /**
  * The routing table from the sign-in spec, in one place.
@@ -69,8 +69,15 @@ export async function proxy(request: NextRequest) {
 
   try {
     nextStep = (await authService.getSession({ cookie })).nextStep;
-  } catch {
-    const refreshed = await refreshSession(cookie);
+  } catch (error) {
+    // The API did not answer at all — down, restarting, unreachable. That
+    // says nothing about the session, so decide nothing: keep the cookies
+    // and let the page render what it can. Treating it as an expired session
+    // would sign every visitor out each time the API restarts.
+    if (!(error instanceof HttpError)) return NextResponse.next();
+
+    const refreshed = await refreshSession(cookie).catch(() => undefined);
+    if (refreshed === undefined) return NextResponse.next();
     if (refreshed) {
       nextStep = refreshed.session.nextStep;
       setCookie = refreshed.setCookie;
@@ -96,8 +103,10 @@ export async function proxy(request: NextRequest) {
     return applyCookies(redirectTo(target), setCookie);
   }
 
-  // A finished one is free to go anywhere except back through the door.
-  if (nextStep === 'home' && SIGNED_IN_EXITS.has(pathname)) {
+  // A finished one is free to go anywhere except back through the door —
+  // or back into onboarding, which it has already been through.
+  const inOnboarding = pathname === '/onboarding' || pathname.startsWith('/onboarding/');
+  if (nextStep === 'home' && (SIGNED_IN_EXITS.has(pathname) || inOnboarding)) {
     return applyCookies(redirectTo('/'), setCookie);
   }
 

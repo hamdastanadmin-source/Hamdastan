@@ -13,4 +13,5 @@ export {
   queryOne,
   withTransaction,
 } from './pool';
-export { runMigrations, type MigrationOutcome } from './migrate';
+export { hasDrift, runMigrations, type MigrationOutcome } from './migrate';
+export { describeDrift, diffSchema, readSchema, readSnapshot } from './schema-check';

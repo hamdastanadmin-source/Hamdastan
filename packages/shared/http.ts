@@ -30,6 +30,12 @@ export type HttpClientOptions = {
   /** Send cookies. Needed for the session cookie in the browser. */
   credentials?: RequestCredentials;
   fetchImpl?: typeof fetch;
+  /**
+   * Called once when a request is answered 401. Resolve `true` when the
+   * session has been renewed, and the request is sent again — once; a second
+   * 401 is thrown as usual.
+   */
+  onUnauthorized?: (path: string) => Promise<boolean>;
 };
 
 export type RequestOptions = {
@@ -38,6 +44,12 @@ export type RequestOptions = {
   signal?: AbortSignal;
   /** Opt out of Next's default caching for data that must be fresh. */
   cache?: RequestCache;
+  /**
+   * Lets the request outlive the page. For small fire-and-forget calls —
+   * analytics — that are often sent just before a navigation or a reload,
+   * which would otherwise cancel them.
+   */
+  keepalive?: boolean;
 };
 
 function buildUrl(
@@ -68,7 +80,8 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     method: string,
     path: string,
     body?: unknown,
-    requestOptions: RequestOptions = {}
+    requestOptions: RequestOptions = {},
+    isRetry = false
   ): Promise<T> => {
     const doFetch = options.fetchImpl ?? globalThis.fetch;
 
@@ -78,6 +91,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
         method,
         credentials: options.credentials,
         cache: requestOptions.cache,
+        keepalive: requestOptions.keepalive,
         signal: requestOptions.signal,
         headers: {
           Accept: 'application/json',
@@ -92,6 +106,10 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
     const payload = (await response
       .json()
       .catch(() => undefined)) as ApiResponse<T> | undefined;
+
+    if (response.status === 401 && !isRetry && (await options.onUnauthorized?.(path))) {
+      return send<T>(method, path, body, requestOptions, true);
+    }
 
     if (!response.ok || !payload || payload.ok === false) {
       throw new HttpError(

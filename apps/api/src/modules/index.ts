@@ -7,6 +7,7 @@ import { contentRoutes } from './content';
 import { eventsRoutes } from './events';
 import { missionsRoutes } from './missions';
 import { notificationsRoutes } from './notifications';
+import { onboardingRoutes } from './onboarding';
 import { progressRoutes } from './progress';
 import { searchRoutes } from './search';
 import { triviaRoutes } from './trivia';
@@ -26,6 +27,8 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/auth', routes: authRoutes },
   // The Users module answers on `/me`, not `/users` — see its routes file.
   { prefix: '', routes: usersRoutes },
+  // Stage 2 of onboarding, beside stage 1's `/me/onboarding/interests`.
+  { prefix: '/me/onboarding', routes: onboardingRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
   { prefix: '/content', routes: contentRoutes },
   { prefix: '/missions', routes: missionsRoutes },

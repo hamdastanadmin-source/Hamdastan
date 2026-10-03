@@ -32,13 +32,15 @@ export interface AuthRepository {
   findUserByAccessToken(tokenHash: string, now: Date): Promise<ResolvedSession | null>;
   /**
    * Spends a refresh token and issues the next pair. Returns null when the
-   * token is unknown, expired, already spent or its session is revoked —
-   * the caller cannot tell those apart, and neither should an attacker.
+   * token is unknown, expired, spent more than `reuseGraceSeconds` ago (which
+   * also revokes the session) or its session is revoked — the caller cannot
+   * tell those apart, and neither should an attacker.
    */
   rotateRefreshToken(
     tokenHash: string,
     now: Date,
-    next: TokenHashes
+    next: TokenHashes,
+    reuseGraceSeconds: number
   ): Promise<ResolvedSession | null>;
   /** Ends the session a refresh token belongs to, and every token in it. */
   revokeSessionByRefreshToken(tokenHash: string): Promise<void>;
@@ -175,7 +177,7 @@ export const sqlAuthRepository: AuthRepository = {
     return row ? { userId: row.user_id, sessionId: row.session_id } : null;
   },
 
-  async rotateRefreshToken(tokenHash, now, next) {
+  async rotateRefreshToken(tokenHash, now, next, reuseGraceSeconds) {
     return withTransaction(async (client) => {
       // `FOR UPDATE` serialises two clients presenting the same token, so
       // exactly one of them spends it and the other sees it already spent.
@@ -198,20 +200,26 @@ export const sqlAuthRepository: AuthRepository = {
       if (!current || current.expired) return null;
 
       if (current.used_at) {
-        // A spent token presented again is a replay — either the real client
-        // racing itself or a stolen copy. There is no way to tell, so the
-        // whole session goes.
+        // Spent moments ago: the real client racing itself — several requests
+        // of one navigation, each refreshing with the same cookie. Revoking
+        // here signed people out every fifteen minutes, so it gets a pair of
+        // its own, in the same session.
+        const sinceSpentMs = now.getTime() - current.used_at.getTime();
+        if (sinceSpentMs > reuseGraceSeconds * 1000) {
+          // Spent a while ago: a replay — a stolen copy, or a client that
+          // lost track. There is no way to tell, so the whole session goes.
+          await client.query(
+            `UPDATE v2_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL`,
+            [current.session_id]
+          );
+          return null;
+        }
+      } else {
         await client.query(
-          `UPDATE v2_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL`,
-          [current.session_id]
+          `UPDATE v2_refresh_tokens SET used_at = $2 WHERE token_hash = $1`,
+          [tokenHash, now]
         );
-        return null;
       }
-
-      await client.query(
-        `UPDATE v2_refresh_tokens SET used_at = $2 WHERE token_hash = $1`,
-        [tokenHash, now]
-      );
       await client.query(
         `INSERT INTO v2_refresh_tokens (token_hash, session_id, user_id, expires_at)
          VALUES ($1, $2, $3, $4)`,

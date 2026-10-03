@@ -39,6 +39,44 @@ than leaving it to review:
   RULES.md §1, made mechanical.
 - **An advisory lock serialises runners**, so two instances booting at once
   cannot apply the same file twice.
+- **The live schema is checked against `schema/snapshot.txt`** after every
+  run. The ledger only says which files ran; this says the database really
+  looks like them. A difference fails `db:migrate` with the exact lines, and
+  is logged loudly when the API migrates on boot.
+
+## Never by hand
+
+Do not paste a migration into psql, and never insert into or edit
+`v2_migrations`. That is how this project's database once came to record
+`0001` as applied while holding an older draft of it: the ledger said one
+thing, the schema another, and the gap surfaced weeks later as a missing
+column (`0003`) and a missing enum value (`0005`), each a 500 in the middle
+of a form. If `db:migrate` refuses, the fix is a new migration file.
+
+## The schema snapshot
+
+`schema/snapshot.txt` is what the migrations build from an empty database:
+one line per column, enum, constraint and index of the `v2_` tables. After
+adding a migration:
+
+```sh
+npm run db:snapshot   # resets TEST_DATABASE_URL (*_test only), migrates it, rewrites the snapshot
+```
+
+and commit the snapshot with the migration. The integration suite fails
+until they agree.
+
+## What each migration adds
+
+| File | Adds |
+| ---- | ---- |
+| `0001` | Sign-in: users, one-time codes, sessions and tokens |
+| `0002` | Onboarding stage 1: `v2_user_interests`, `v2_users.onboarding_stage` |
+| `0003` | Restores `v2_users.last_login_at` where `0001` was applied from a draft |
+| `0004` | Onboarding stage 2: `v2_questionnaire_answers` (raw answers), `v2_social_profiles` (progress and the derived profile), `v2_onboarding_events` (funnel) |
+| `0005` | Restores `OTHER` to `v2_gender` where `0001` was applied from a draft |
+
+`docs/PRD.md` §6 explains why each table is shaped the way it is.
 
 ## What `0001` sets up
 
@@ -52,7 +90,7 @@ answers 501 — which means the sign-in screens render and the flow stops at
 "دریافت کد". Applying it is the one step between here and a working sign-in:
 
 ```sh
-npm run db:migrate        # or paste the file into psql
+npm run db:migrate
 ```
 
 Because it is unapplied, it is still editable. The moment it runs anywhere

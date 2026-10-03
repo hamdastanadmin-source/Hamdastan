@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { INTEREST_CATEGORIES, MIN_INTEREST_CATEGORIES } from '@hamdastan/config';
@@ -25,6 +26,7 @@ import { OnboardingProgress } from './OnboardingProgress';
  * the server, so a person coming back sees their earlier picks.
  */
 export function InterestsStep({ initialInterestIds }: { initialInterestIds: string[] }) {
+  const router = useRouter();
   const { selected, selectedCategoryCount, canContinue, isSaving, setCategorySelection, save } =
     useInterestSelection(initialInterestIds);
 
@@ -40,8 +42,7 @@ export function InterestsStep({ initialInterestIds }: { initialInterestIds: stri
       );
       return;
     }
-    // Stage 2 does not exist yet; when it does, this navigates to it.
-    toast.success('انتخاب‌هات ذخیره شد');
+    router.push('/onboarding/questionnaire');
   };
 
   return (

@@ -5,7 +5,7 @@ import { Button } from '@hamdastan/ui';
 
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
 
-import { StreamedText, streamEndMs } from './StreamedText';
+import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from './StreamedText';
 
 /**
  * The door into onboarding: what is about to happen, and why.
@@ -49,23 +49,15 @@ const { props: artworkProps } = getImageProps({
   unoptimized: true,
 });
 
-/**
- * The stream, in milliseconds. The title is slower — four words, and it is
- * the one line that has to land — and the body quicker, so the whole screen
- * has finished writing itself in about two seconds.
- */
-const MOTION = {
-  titleStart: 300,
-  titleStep: 110,
-  bodyStep: 45,
-  noteStep: 55,
-  /** A beat between blocks, so each reads as its own line. */
-  pause: 150,
-} as const;
-
-const BODY_START = streamEndMs(TITLE, MOTION.titleStart, MOTION.titleStep) + MOTION.pause;
-const NOTE_START = streamEndMs(BODY, BODY_START, MOTION.bodyStep) + MOTION.pause;
-const ACTION_START = streamEndMs(NOTE, NOTE_START, MOTION.noteStep) + MOTION.pause;
+/** Title, body, note — one after another, at the shared onboarding pace. */
+const {
+  starts: [TITLE_START, BODY_START, NOTE_START],
+  endMs: ACTION_START,
+} = streamSequence([
+  { text: TITLE, stepMs: STREAM_PACE.titleStepMs },
+  { text: BODY, stepMs: STREAM_PACE.bodyStepMs },
+  { text: NOTE, stepMs: STREAM_PACE.noteStepMs },
+]);
 
 export function OnboardingIntro() {
   return (
@@ -76,18 +68,14 @@ export function OnboardingIntro() {
         <div className="flex flex-col gap-4">
           <ScreenTitle
             title={
-              <StreamedText
-                text={TITLE}
-                startMs={MOTION.titleStart}
-                stepMs={MOTION.titleStep}
-              />
+              <StreamedText text={TITLE} startMs={TITLE_START} stepMs={STREAM_PACE.titleStepMs} />
             }
           />
           <p className="text-base leading-relaxed text-foreground">
-            <StreamedText text={BODY} startMs={BODY_START} stepMs={MOTION.bodyStep} />
+            <StreamedText text={BODY} startMs={BODY_START} stepMs={STREAM_PACE.bodyStepMs} />
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            <StreamedText text={NOTE} startMs={NOTE_START} stepMs={MOTION.noteStep} />
+            <StreamedText text={NOTE} startMs={NOTE_START} stepMs={STREAM_PACE.noteStepMs} />
           </p>
         </div>
 
@@ -109,10 +97,7 @@ export function OnboardingIntro() {
       <ScreenFooter className="bg-surface-stage/95 before:from-surface-stage">
         {/* A wrapper rather than the footer itself: `ScreenFooter` owns its
             `style` for the safe-area padding. */}
-        <div
-          className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards motion-reduce:animate-none"
-          style={{ animationDelay: `${ACTION_START}ms` }}
-        >
+        <div className={ARRIVE_AFTER_STREAM} style={{ animationDelay: `${ACTION_START}ms` }}>
           <Button asChild size="xl" className="w-full">
             <Link href="/onboarding/interests">شروع ساخت دنیای من</Link>
           </Button>

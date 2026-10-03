@@ -9,7 +9,8 @@
     "start": "tsx --env-file-if-exists=../../.env src/server.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "db:migrate": "tsx --env-file-if-exists=../../.env src/data/migrate.ts"
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/data/migrate.ts",
+    "db:snapshot": "tsx --env-file-if-exists=../../.env src/data/snapshot.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

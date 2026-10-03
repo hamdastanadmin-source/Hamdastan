@@ -84,18 +84,31 @@ export function ScreenBody({
  * Six screens were each writing the same header/h1/p by hand, which is how a
  * type scale drifts. There is exactly one `h1` per screen, and this is it.
  */
+const TITLE_SIZE = {
+  /** A page's title: the screen's name. */
+  page: 'text-2xl font-extrabold leading-tight text-balance',
+  /**
+   * A question put to the person, often two lines: smaller and lighter, with
+   * room between the lines, so it reads as something being asked rather than
+   * a heading shouted at them.
+   */
+  prompt: 'text-xl font-semibold leading-relaxed text-pretty',
+} as const;
+
 export function ScreenTitle({
   title,
   description,
+  size = 'page',
   className,
 }: {
   title: ReactNode;
   description?: ReactNode;
+  size?: keyof typeof TITLE_SIZE;
   className?: string;
 }) {
   return (
     <header className={cn('flex flex-col gap-2', className)}>
-      <h1 className="text-2xl font-extrabold leading-tight text-balance">{title}</h1>
+      <h1 className={TITLE_SIZE[size]}>{title}</h1>
       {description && (
         <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
       )}

@@ -128,6 +128,10 @@ Sequelize, Mongoose) without being asked.
   **An applied migration is never edited** — the runner checksums them and
   refuses a changed file. A schema change is a new file, and new tables take
   the `v2_` prefix.
+- **Never apply a migration by hand or edit `v2_migrations`.** `db:migrate`
+  compares the live schema with `database/schema/snapshot.txt` and fails on
+  drift; a new migration needs `npm run db:snapshot` and the updated snapshot
+  committed with it.
 - Until a module binds an implementation with `set<Module>Repository(...)` in
   `server.ts`, its repository throws 501. That is the expected state of most
   modules; they are still skeletons.

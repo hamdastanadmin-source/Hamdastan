@@ -207,6 +207,10 @@ export const authService = {
    * case the real client's next refresh is a replay and kills the session —
    * or after, in which case it is already spent. Either way the theft ends
    * the session rather than quietly outliving it.
+   *
+   * The one exception is `REFRESH_REUSE_GRACE_SECONDS`: a token reused within
+   * seconds of being spent is one client's concurrent requests, not a thief,
+   * and gets a fresh pair instead of ending the session.
    */
   async refresh(
     refreshToken: string
@@ -217,7 +221,8 @@ export const authService = {
     const resolved = await authRepository().rotateRefreshToken(
       sha256(refreshToken),
       now,
-      hashes
+      hashes,
+      SESSION.REFRESH_REUSE_GRACE_SECONDS
     );
     if (!resolved) throw new UnauthorizedError('نشست شما منقضی شده، دوباره وارد شو');
 

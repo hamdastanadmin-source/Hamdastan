@@ -19,3 +19,12 @@ export type {
   SortDirection,
 } from './api';
 export type { OnboardingInterests } from './onboarding';
+export type {
+  OnboardingEventInput,
+  QuestionnaireAnswer,
+  QuestionnaireAnswers,
+  QuestionnaireResult,
+  QuestionnaireState,
+  ResultDimension,
+  ResultInsight,
+} from './questionnaire';

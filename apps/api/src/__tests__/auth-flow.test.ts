@@ -4,9 +4,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { API_PREFIX, OTP, SESSION } from '@hamdastan/config';
 
 import { buildApp } from '../app';
-import { closePool, getPool, runMigrations } from '../data';
+import { closePool, diffSchema, getPool, readSchema, readSnapshot, runMigrations } from '../data';
 import type { SmsSender } from '../integrations';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from '../modules/auth';
+import { setOnboardingRepository, sqlOnboardingRepository } from '../modules/onboarding';
 import { setUsersRepository, sqlUsersRepository } from '../modules/users';
 
 /**
@@ -68,6 +69,41 @@ async function signIn(phone: string) {
   return { body: verified.json().data, cookies: cookiesFrom(verified) };
 }
 
+/** One complete set of answers, by question id. */
+const FULL_ANSWERS: Record<string, unknown> = {
+  Q1: { ranked: ['SOCIAL', 'FUN'] },
+  Q2: { option: 'INITIATES' },
+  Q3: { options: ['INITIATOR'] },
+  Q4: { value: 8 },
+  Q5: { option: 'MINUTES' },
+  Q6: { options: ['DEEP'] },
+  Q7: { option: 'DEBATES' },
+  Q8: { value: 7 },
+  Q9: { value: 4 },
+  Q10: { option: 'FLEXIBLE' },
+  Q11: { value: 5 },
+  Q12: { option: 'FRIENDLY_COMPETITION' },
+  Q13: { option: 'NEW' },
+  Q14: { option: 'GOES_ALONG' },
+  Q15: { options: ['EVENING', 'WEEKEND'] },
+  Q16: { value: 6 },
+  Q17: { value: 9 },
+  Q18: { option: 'MIXED' },
+  Q19: { option: 'MEDIUM' },
+  Q20: { options: ['HIGH_CP'] },
+};
+
+/** Answers every question and finishes the questionnaire. */
+async function answerQuestionnaire(cookies: Cookies) {
+  for (const [questionId, answer] of Object.entries(FULL_ANSWERS)) {
+    const saved = await put(`/me/onboarding/questionnaire/answers/${questionId}`, { answer }, cookies);
+    expect(saved.statusCode, saved.body).toBe(200);
+  }
+  const completed = await post('/me/onboarding/questionnaire/complete', undefined, cookies);
+  expect(completed.statusCode, completed.body).toBe(200);
+  expect(completed.json().data.result.title).toBeTruthy();
+}
+
 describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
   beforeAll(async () => {
     // From nothing, so the schema under test is exactly what the migrations
@@ -77,6 +113,7 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
 
     setUsersRepository(sqlUsersRepository);
     setAuthRepository(sqlAuthRepository);
+    setOnboardingRepository(sqlOnboardingRepository);
     setSmsSender(recordingSender);
 
     app = await buildApp();
@@ -93,6 +130,28 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       const outcome = await runMigrations();
       expect(outcome.applied).toEqual([]);
       expect(outcome.alreadyApplied.length).toBeGreaterThan(0);
+    });
+
+    it('build exactly the schema in database/schema/snapshot.txt', async () => {
+      const snapshot = await readSnapshot();
+      expect(snapshot, 'no snapshot — run `npm run db:snapshot`').not.toBeNull();
+      const drift = diffSchema(snapshot!, await readSchema(getPool()));
+      expect(
+        drift,
+        'The migrations no longer build the snapshot. If a migration was added on ' +
+          'purpose, run `npm run db:snapshot` and commit database/schema/snapshot.txt.'
+      ).toEqual({ missing: [], unexpected: [] });
+    });
+
+    it('report a database changed by hand as drift', async () => {
+      const pool = getPool();
+      await pool.query('ALTER TABLE v2_users ADD COLUMN zz_hand_made text');
+      try {
+        const { drift } = await runMigrations();
+        expect(drift?.unexpected.join('\n')).toMatch(/v2_users\.zz_hand_made/);
+      } finally {
+        await pool.query('ALTER TABLE v2_users DROP COLUMN zz_hand_made');
+      }
     });
 
     it('refuse an applied file whose contents have changed', async () => {
@@ -171,9 +230,100 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       const read = await get('/me/onboarding/interests', cookies);
       expect(read.json().data.selectedInterests).toEqual(['concert', 'gallery', 'workshop']);
 
+      // Onboarding cannot be finished past the questionnaire.
+      const skipped = await post('/me/onboarding/complete', undefined, cookies);
+      expect(skipped.statusCode).toBe(403);
+
+      await answerQuestionnaire(cookies);
+
       const done = await post('/me/onboarding/complete', undefined, cookies);
       expect(done.statusCode, done.body).toBe(200);
       expect(done.json().data.nextStep).toBe('home');
+    });
+
+    it('stores the questionnaire as raw answers and a profile derived from them', async () => {
+      const { cookies } = await signIn(nextPhone());
+      await put(
+        '/me/basic-info',
+        { firstName: 'مینا', lastName: 'کریمی', birthDate: { year: 1372, month: 3, day: 3 }, gender: 'female' },
+        cookies
+      );
+
+      // Stage 2 follows stage 1.
+      const early = await put('/me/onboarding/questionnaire/answers/Q2', { answer: { option: 'INITIATES' } }, cookies);
+      expect(early.statusCode).toBe(403);
+
+      await put('/me/onboarding/interests', { interestIds: ['concert', 'gallery', 'workshop'] }, cookies);
+
+      // An answer of the wrong shape, or past a question's cap, is refused.
+      const wrong = await put('/me/onboarding/questionnaire/answers/Q4', { answer: { option: 'X' } }, cookies);
+      expect(wrong.statusCode).toBe(400);
+      const tooMany = await put(
+        '/me/onboarding/questionnaire/answers/Q3',
+        { answer: { options: ['INITIATOR', 'LISTENER', 'ANALYST'] } },
+        cookies
+      );
+      expect(tooMany.statusCode).toBe(400);
+
+      const first = await put('/me/onboarding/questionnaire/answers/Q2', { answer: { option: 'INITIATES' } }, cookies);
+      expect(first.statusCode, first.body).toBe(200);
+      expect(first.json().data.resumeQuestionId).toBe('Q4');
+
+      // Finishing early is refused.
+      const early2 = await post('/me/onboarding/questionnaire/complete', undefined, cookies);
+      expect(early2.statusCode).toBe(400);
+
+      await answerQuestionnaire(cookies);
+
+      // Editing an answer replaces it: one row, and the score of the new answer only.
+      await put('/me/onboarding/questionnaire/answers/Q2', { answer: { option: 'LISTENER' } }, cookies);
+      const userId = (await get('/me', cookies)).json().data.user.id as string;
+      const rows = await getPool().query(
+        'SELECT question_id, presentation_index FROM v2_questionnaire_answers WHERE user_id = $1',
+        [userId]
+      );
+      expect(rows.rowCount).toBe(20);
+      expect(rows.rows.find((r) => r.question_id === 'Q2')?.presentation_index).toBe(1);
+
+      const profile = await getPool().query(
+        `SELECT si::float, cp::float, preferred_group_size, available_weekend, conflict_sensitivities,
+                primary_role, questionnaire_completed, raw_score_contributions
+           FROM v2_social_profiles WHERE user_id = $1`,
+        [userId]
+      );
+      const row = profile.rows[0];
+      expect(row.si).toBe(1);
+      expect(row.raw_score_contributions.Q2).toEqual({ SI: 0, SE: 0, LISTENING: 4 });
+      expect(row.cp).toBe(5.35);
+      expect(row.preferred_group_size).toBe('MEDIUM');
+      expect(row.available_weekend).toBe(true);
+      expect(row.conflict_sensitivities).toEqual(['HIGH_CP']);
+      expect(row.primary_role).toBeTruthy();
+      expect(row.questionnaire_completed).toBe(true);
+
+      const stage = await getPool().query('SELECT onboarding_stage FROM v2_users WHERE id = $1', [userId]);
+      expect(stage.rows[0].onboarding_stage).toBe(2);
+
+      const event = await post('/me/onboarding/events', { event: 'quiz_question_viewed', questionId: 'Q3' }, cookies);
+      expect(event.statusCode, event.body).toBe(200);
+      const stored = await getPool().query(
+        'SELECT presentation_index FROM v2_onboarding_events WHERE user_id = $1',
+        [userId]
+      );
+      expect(stored.rows[0].presentation_index).toBe(5);
+    });
+
+    it('accepts every gender the form offers, «سایر» included', async () => {
+      for (const gender of ['male', 'female', 'other']) {
+        const { cookies } = await signIn(nextPhone());
+        const response = await put(
+          '/me/basic-info',
+          { firstName: 'امید', lastName: 'بهشتی', birthDate: { year: 1349, month: 5, day: 5 }, gender },
+          cookies
+        );
+        expect(response.statusCode, response.body).toBe(200);
+        expect(response.json().data.user.gender).toBe(gender);
+      }
     });
 
     it('rejects interests from fewer than three categories', async () => {
@@ -250,12 +400,38 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       const next = cookiesFrom(refreshed);
       expect(next[SESSION.REFRESH_COOKIE]).not.toBe(cookies[SESSION.REFRESH_COOKIE]);
 
+      // Presented again after the grace window: a replay.
+      await getPool().query(
+        `UPDATE v2_refresh_tokens SET used_at = now() - make_interval(secs => $1 + 1)
+          WHERE used_at IS NOT NULL`,
+        [SESSION.REFRESH_REUSE_GRACE_SECONDS]
+      );
       const replay = await post('/auth/refresh', undefined, cookies);
       expect(replay.statusCode).toBe(401);
 
       // The replay revoked the whole session, including the newer token.
       const after = await post('/auth/refresh', undefined, next);
       expect(after.statusCode).toBe(401);
+    });
+
+    it('survive one navigation refreshing several times at once', async () => {
+      const { cookies } = await signIn(nextPhone());
+
+      // The page and its prefetches, each through the proxy with one cookie.
+      const [a, b, c] = await Promise.all([
+        post('/auth/refresh', undefined, cookies),
+        post('/auth/refresh', undefined, cookies),
+        post('/auth/refresh', undefined, cookies),
+      ]);
+      for (const response of [a, b, c]) expect(response.statusCode, response.body).toBe(200);
+
+      // Every pair handed out works: whichever cookie the browser keeps.
+      for (const response of [a, b, c]) {
+        const me = await get('/me', cookiesFrom(response));
+        expect(me.statusCode).toBe(200);
+        const again = await post('/auth/refresh', undefined, cookiesFrom(response));
+        expect(again.statusCode).toBe(200);
+      }
     });
 
     it('end at logout', async () => {

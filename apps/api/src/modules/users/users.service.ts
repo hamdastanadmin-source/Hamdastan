@@ -111,8 +111,17 @@ export const usersService = {
     return usersRepository().saveBasicInfo(id, info);
   },
 
+  /**
+   * The end of onboarding. Only the server says it is over: the questionnaire
+   * (stage 2) has to be finished first, so a client cannot call this to skip
+   * it. Stage 3 is not built yet; when it is, this checks for it instead.
+   */
   async completeOnboarding(id: string): Promise<UserRecord> {
     await this.getById(id);
+    const { onboardingStage } = await usersRepository().findOnboardingInterests(id);
+    if (onboardingStage < 2) {
+      throw new ForbiddenError('اول مراحل آشنایی رو کامل کن');
+    }
     return usersRepository().setOnboardingStep(id, 'done');
   },
 

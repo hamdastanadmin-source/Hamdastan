@@ -67,7 +67,8 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **World (دنیا)** | A story universe — a book series, a film franchise. |
 | **OTP / کد تأیید** | The six-digit code that proves someone owns a number. |
 | **Basic info (اطلاعات پایه)** | First name, last name, birth date, gender. Mandatory, collected once, immediately after the first successful verification. |
-| **Onboarding (آنبوردینگ)** | The three stages that follow basic info and end in the person's avatar. The intro and stage 1 (interests) are built. |
+| **Onboarding (آنبوردینگ)** | The three stages that follow basic info and end in the person's avatar. The intro, stage 1 (interests) and stage 2 (the social questionnaire) are built. |
+| **Social profile (پروفایل اجتماعی)** | What stage 2 derives from the questionnaire's raw answers: fourteen 1–10 dimensions, categorical outputs and role scores, under a `scoring_version`. Used for matching; the person sees only a simplified result card. |
 | **Interest (علاقه‌مندی)** | One pickable interest, inside one of six categories. Identified by a stable English slug; the Persian label is display only. |
 | **nextStep** | Where the server says this account goes: `basic_info`, `onboarding` or `home`. The client never computes it. |
 | **MobileShell** | The 430px column every screen renders inside. |
@@ -108,8 +109,8 @@ username/password sign-in.
 ### 4.2 Onboarding — ساخت دنیای من
 
 Three stages between basic info and home, framed as building the person's
-world and avatar rather than as a questionnaire. Built so far: the intro and
-stage 1. Code lives in `apps/web/src/features/onboarding`.
+world and avatar rather than as a questionnaire. Built so far: the intro,
+stage 1 and stage 2. Code lives in `apps/web/src/features/onboarding`.
 
 **Intro — `/onboarding`.** «بیا دنیای تو رو بسازیم», what the stages are for,
 and one action, «شروع ساخت دنیای من», to stage 1. The screen is black
@@ -145,11 +146,148 @@ has its own back to this screen.
   (every id in the catalog, three categories or more), derives each
   interest's category itself, replaces the saved set and marks stage 1
   finished. The page reads the saved set on the server, so coming back shows
-  the earlier picks. Stage 2 is not built, so for now it confirms the save
-  and stays.
+  the earlier picks. A successful save goes on to stage 2.
 
-**Not yet:** stages 2 and 3, and the call to `POST /me/onboarding/complete`
-at the end.
+**Stage 2, the social questionnaire — `/onboarding/questionnaire`.**
+
+Twenty questions that must not feel like twenty: «بیا یکم بیشتر بشناسیمت»,
+then four short chapters of one decision per screen. The screen never shows a
+question count — only «داریم بیشتر می‌شناسیمت» over a continuous bar.
+
+- **Journey.** Intro («حدود ۵ دقیقه», «شروع کنیم», «بعداً انجام می‌دم») →
+  Section 1 *Social energy* (Q2, Q4, Q5, Q19, Q3) → reward (25%) → Section 2
+  *Connection style* (Q6, Q7, Q18, Q20, Q1, then Q1's ranking) → reward
+  (50%) → Section 3 *Experience style* (Q8, Q9, Q11, Q12, Q13) → reward
+  (75%) → Section 4 *Group compatibility* (Q10, Q14, Q15, Q16, Q17) →
+  «داریم پروفایلت رو می‌سازیم» → result → «تجربه‌های من رو ببین» → home.
+- **Ids versus order.** Questions keep the source ids `Q1`–`Q20`; the order
+  above is presentation only (`QUESTIONNAIRE_ORDER`). Nothing is scored by
+  position. The questions, option codes and copy are
+  `packages/config/app/questionnaire.config.ts`.
+- **Interaction.** A single-choice tap saves, shows the selection for a beat,
+  and advances on its own. Multi-select (Q3 ≤ 2, Q6 ≤ 3, Q20 ≤ 3, Q1 ≤ 3,
+  Q15 any) enables «ادامه» at the first pick and disables the remaining
+  options at the cap. A slider enables «ادامه» once it has been touched; 1 is
+  at the reading start (right). Q1 with more than one pick is followed by a
+  ranking screen of only those picks, reordered with buttons rather than a
+  drag. A question screen holds the question and its answers and nothing else
+  — no chapter name, no number; there is no separate chapter screen.
+- **Intro motion.** On a first visit the intro's lines write themselves in a
+  word at a time and its actions arrive once they have finished — the same
+  `StreamedText`, at the same pace (`STREAM_PACE`), as the onboarding intro.
+  Coming back to it from a question shows the text at once.
+- **Look.** Calm and mostly neutral: the whole flow sits on `surface-stage`
+  (near-black in the dark theme, white in the light one), like the onboarding
+  intro. The accent is spent only on the selected answer (a soft border, a
+  light tint and a check mark), the filled part of the 2px progress line, the
+  primary action, the section mark's newest dot and the result's eyebrow.
+  Questions use `ScreenTitle size="prompt"` (20px, semibold, relaxed leading);
+  answers are regular weight. Content is top-aligned a fixed distance under
+  the progress line, so every question sits in the same high place whatever
+  the phone or the number of answers.
+- **Sliders.** Two semantic end labels, a thin neutral track and a 24px
+  thumb that turns to the accent once touched. The number appears only while
+  dragging and for a moment after, above the thumb — rendered inside the
+  thumb, so layout keeps it centred over it at every value; the parts are
+  styled through the `Slider` primitive's `thumbClassName`, `trackClassName`
+  and `rangeClassName`, never by reaching into its markup. Only the first slider
+  (Q4) carries the hint «نقطه رو جابه‌جا کن و جایی بذار که بیشتر بهت
+  نزدیکه.» The 1–10 values are unchanged.
+- **Multi-select limits.** The helper states the limit («حداکثر ۳ مورد»);
+  at the limit it reads «۳ مورد انتخاب شد» (a polite live region) and the
+  remaining options fade and stop taking taps. No error.
+- **Motion.** The outgoing screen fades and lifts (150ms), the next fades and
+  rises in (200ms); the bar eases to its new width; a pressed answer scales to
+  0.98. A single-choice tap reaches the next question in about 300ms. Section
+  transitions draw the section mark — four dots on a line — filling the next
+  dot (≈800ms). Nothing moves with reduced motion.
+- **Section transitions.** After 1: «کم‌کم داریم می‌شناسیمت.» / «حالا
+  ببینیم چطور با آدم‌ها ارتباط می‌گیری.» / «ادامه». After 2: «خوبه، نصف
+  راه.» / «حالا بریم سراغ تجربه‌هایی که بیشتر باهات جورند.» / «ادامه». After
+  3: «تقریباً کامل شد.» / «فقط چند انتخاب آخر مونده.» / «بریم بخش آخر».
+- **Back and edit.** Back is always available and shows the stored answer
+  selected. Every save rewrites the answer and rebuilds the whole profile
+  from all stored answers, so an edited answer replaces its contribution
+  instead of adding to it.
+- **Autosave and resume.** Every answer is saved as it is given. Reopening
+  the page — after a refresh or a closed tab — lands on the first unanswered
+  question in presentation order; a finished questionnaire lands on its
+  result.
+- **Putting it off.** Only before starting: «بعداً انجام می‌دم» on the intro
+  returns to the onboarding intro. Once the journey has begun there is no
+  "later" action — the header holds back and nothing else.
+- **Processing.** «داریم پروفایلت رو می‌سازیم» / «جواب‌هات رو کنار هم
+  می‌ذاریم.» for as long as the request takes, held to 0.8s — no spinner; the
+  section mark's last dot fills.
+- **Result — meaning first, numbers last.** «پروفایل اجتماعی تو», a title
+  and at most two sentences built from whichever of the person's dimensions
+  are furthest from the middle of the scale (joined with «و», or «ولی» when
+  they pull opposite ways). Then three plain-language insights, each the end
+  of its label's sentence: «بیشتر انرژی می‌گیری از» (SE: آدم‌ها و تعامل /
+  جمع‌های صمیمی و به‌اندازه / جمع‌های کوچیک و آروم), «توی تجربه‌ها دنبال»
+  (NV: تازگی / تنوع / آشنایی, with AO: فعالیت / حس خوب جمع / گفتگو) and
+  «توی گروه ترجیح می‌دی» (ST: برنامه‌ی مشخص / ساختار منعطف / تصمیم‌های
+  لحظه‌ای), high ≥ 7, low ≤ 4. The five bars (انرژی اجتماعی، تجربه‌های
+  تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) wait behind
+  «جزئیات بیشتر». Then the value line «از این شناخت استفاده می‌کنیم تا
+  آدم‌ها، گروه‌ها و تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and
+  «تجربه‌های من رو ببین». No internal codes and no diagnostic language. It
+  is a simplification, built in `onboarding.result.ts`; the stored profile is
+  never reduced to it.
+- **Finishing.** `POST /me/onboarding/questionnaire/complete` refuses until
+  all twenty are answered, then marks the questionnaire done and
+  `onboarding_stage` 2. «تجربه‌های من رو ببین» calls `POST /me/onboarding/complete`,
+  which now refuses before stage 2, and follows the `nextStep` it returns.
+  Stage 3 is not built, so for now that is home.
+- **Analytics.** `quiz_started`, `quiz_question_viewed`,
+  `quiz_question_answered` (answer type, time spent, selection count),
+  `quiz_back_clicked`, `quiz_section_completed`, `quiz_abandoned` (the intro's «بعداً»),
+  `quiz_resumed`, `quiz_completed`, `quiz_result_viewed`,
+  `quiz_result_continue_clicked`, sent to `POST /me/onboarding/events` and
+  stored in `v2_onboarding_events`. Sending never blocks the flow. A tab
+  closed mid-question sends nothing; the drop-off point is the last
+  `quiz_question_viewed` without a matching answer.
+
+**Scoring — `social-matching-v1`.** One pure function in `apps/api`
+(`modules/onboarding/onboarding.scoring.ts`) from the raw answers to the
+profile; the same answers always give the same profile, so a new version is
+a recompute, not a re-ask.
+
+| Question | Contribution |
+|----------|--------------|
+| Q1 | ranked motivations SOCIAL … MEMORABLE, 3 / 2 / 1 by rank |
+| Q2 | SI / SE / Listening: 4/2/0, 2/2/1, 1/1/2, 0/0/4 |
+| Q3 | +3 to each picked role |
+| Q4, Q8, Q9, Q16, Q17 | SE, SP, AO, BP, PU = the slider value (not normalised again) |
+| Q5 | WU 10 / 7 / 4 / 1 |
+| Q6 | +3 to each picked conversation type; DEEP also CD +2, STORY CD +1 |
+| Q7 | CD / Listening / Debate: 1/4/0, 2/0/0, 3/1/4, 1/2/−2 |
+| Q10 | ST 9 / 6 / 2 |
+| Q11 + Q12 | CP_base = slider; CO 10/8/5, CP_support 2/6/9; CP = 0.65·CP_base + 0.35·CP_support |
+| Q13 | NV 2 / 6 / 10 |
+| Q14 | FL 10 / 7 / 3 |
+| Q15 | availability: morning / afternoon / evening / weekend booleans |
+| Q18 | SO 2 / 6 / 8 |
+| Q19 | preferred group size SMALL / MEDIUM / LARGE / XL |
+| Q20 | conflict sensitivities (penalty triggers, not scores) |
+
+Accumulated dimensions are normalised as `raw / max × 10` and held to 1–10.
+Roles (Initiator, Facilitator, Energizer, Organizer, Listener, Analyst,
+Ideator) are computed once every question is answered; all seven scores are
+kept, the highest is primary, and the second is kept only at ≥ 70% of it.
+
+*v1 choices where the brief was open* — change them in the scoring file and
+bump the version:
+
+- SE is Q4's slider alone. Q2's SE contribution is stored in the raw data
+  but not mixed in, since SE is defined as the slider value.
+- Maxima: SI 4 (Q2), CD 6 (Q6 3 + Q7 3), Listening 8 (Q2 4 + Q7 4),
+  Debate 4 (Q7; its −2 floors at 0). A raw 0 is 1 on the 1–10 scale.
+- Each role is the equal-weight mean of its signals on 0–10, a Q3 pick
+  counting 10: Initiator (Q2 SI, Q3), Facilitator (Q3, CO, Listening),
+  Energizer (Q3, SE, SP), Organizer (Q3, ST, PU), Listener (Q2 Listening,
+  Q3, Q7 Listening), Analyst (Q3, Q6 depth, Debate), Ideator (Q3, NV,
+  DEEP/INTEREST picked). Ties go to that order.
 
 ### 4.3 Home, Worlds, Play, Community, …
 
@@ -177,7 +315,8 @@ that `GET /me` returns.
 An unfinished account is pinned to its step: it can be on that step's page,
 or a page beneath it (the onboarding stages live under `/onboarding/`), and
 nowhere else.
-A finished one may go anywhere except back through `/welcome`, `/auth/*`.
+A finished one may go anywhere except back through `/welcome`, `/auth/*` —
+or into `/onboarding/*`, which it has been through.
 
 ### 5.2 A new number
 
@@ -193,6 +332,12 @@ A finished one may go anywhere except back through `/welcome`, `/auth/*`.
                 └─ /auth/basic-info ── PUT /me/basic-info
                    └─ nextStep = onboarding
                       └─ /onboarding
+                         └─ /onboarding/interests ── PUT /me/onboarding/interests
+                            └─ /onboarding/questionnaire
+                               ├─ PUT …/questionnaire/answers/:questionId  (every answer)
+                               ├─ POST …/questionnaire/complete
+                               └─ POST /me/onboarding/complete
+                                  └─ nextStep = home → /
 ```
 
 ### 5.3 A returning number
@@ -213,6 +358,14 @@ navigation → proxy.ts → GET /me ──ok──→ render
 Refreshing is done in `proxy.ts` because it is the only place in a Next app
 that can set a cookie on the way to a page.
 
+A screen that stays open — the questionnaire is one page of many steps —
+outlives the fifteen-minute access token without navigating. Its calls go
+from the browser, so `apps/web/src/services/api-client.ts` answers a 401 by
+calling `POST /auth/refresh` once (the browser sends and receives the
+`httpOnly` cookies itself) and sending the request again. Calls that fail
+together share one refresh. If `apps/api` does not answer at all, `proxy.ts`
+decides nothing and keeps the cookies rather than signing the visitor out.
+
 ---
 
 ## 6. Data Model
@@ -230,6 +383,15 @@ that can set a cookie on the way to a page.
          |--1:N--+----------------------+
          |       |  v2_user_interests   |
          |       +----------------------+
+         |--1:N--+--------------------------+
+         |       | v2_questionnaire_answers |   raw answers — the source of truth
+         |       +--------------------------+
+         |--1:1--+--------------------------+
+         |       |    v2_social_profiles    |   derived from the answers
+         |       +--------------------------+
+         |--1:N--+--------------------------+
+         |       |   v2_onboarding_events   |   funnel analytics
+         |       +--------------------------+
          |
    (by phone, not FK)
          |
@@ -261,11 +423,33 @@ that can set a cookie on the way to a page.
   phone number.
 - **`v2_sessions`** — a sign-in as one long-lived thing. Tokens come and go
   inside it; revoking the session kills every token at once.
-- **`v2_refresh_tokens`** — each may be spent exactly once. A spent token
-  presented again is a replay, and the service revokes the whole session on it.
+- **`v2_refresh_tokens`** — each is spent once. A spent token presented
+  again more than `REFRESH_REUSE_GRACE_SECONDS` (30s) later is a replay, and
+  the service revokes the whole session on it. Within that window it is one
+  client racing itself — a navigation sends the page and its prefetches
+  through `proxy.ts` at once, each refreshing with the same cookie — and it
+  gets a fresh pair in the same session. Without the window, every expired
+  access token ended the session on the next navigation.
 
-The schema is `database/migrations/0001_users_profile_and_sessions.sql` and
-`0002_user_interests.sql`.
+- **`v2_questionnaire_answers`** — one row per `(user_id, question_id)`,
+  holding the option codes (never labels) as `jsonb`, the presentation index
+  it was shown at, and when it was first and last answered. An edit is an
+  upsert, never a second row. This table is the source of truth.
+- **`v2_social_profiles`** — one row per person: where to resume
+  (`current_question_id`, `current_section`, `progress`), whether the
+  questionnaire is finished, and everything derived — each answer's raw
+  contribution, the raw totals, the internal signals, the fourteen dimensions
+  as `numeric` columns (matching will query them), motivation profile,
+  conversation preferences, group size, four availability booleans, conflict
+  sensitivities, all role scores and the primary and secondary role. Rewritten
+  whole, in the same transaction as the answer, on every save, under
+  `scoring_version`. Editing after finishing recomputes the profile but does
+  not un-finish it.
+- **`v2_onboarding_events`** — append-only funnel events. The presentation
+  index is filled in by the API from the question id.
+
+The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
+`0002_user_interests.sql` and `0004_social_questionnaire.sql`.
 
 ---
 
@@ -285,6 +469,12 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
 | GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |
 | PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |
+| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, insights, dimensions }`; 403 before stage 1 |
+| PUT | `/me/onboarding/questionnaire/answers/:questionId` | access cookie | `{ answer }` (shape per question) | `QuestionnaireState` |
+| POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireState` with `result`; 400 until every question is answered |
+| POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
+
+`POST /me/onboarding/complete` answers 403 until stage 2 is finished.
 
 `birthDate` is sent as Jalali parts (`{ year, month, day }`) and stored as a
 Gregorian date.
@@ -303,7 +493,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation` (`auth.ts`, `onboarding.ts`); the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -315,6 +505,7 @@ against the same objects, including the Persian messages.
 | Gender | `male` / `female` / `other` | «یکی از گزینه‌ها رو انتخاب کن» |
 | OTP | Exactly 6 digits | «کد اشتباهه، دوباره امتحان کن» |
 | Interests | Every id in the catalog; duplicates dropped; at least 3 categories (`packages/validation/onboarding.ts`) | «حداقل از ۳ دسته انتخاب کن» |
+| Questionnaire answer | Shape by question: one option code, a list of codes (≥ 1, no repeats, within the cap), a ranked list, or an integer 1–10 (`packages/validation/questionnaire.ts`) | «یک گزینه رو انتخاب کن» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 
 The mobile field itself accepts digits only, eleven at most: letters and
 symbols are dropped as they are typed, and a full number pasted in any accepted
@@ -403,7 +594,9 @@ padding.
 |---------|----------|-------|
 | Connect Kaveh-Negar | High | Adapter written; set `SMS_PROVIDER=kavenegar` and turn `OTP_DEBUG_DISPLAY` off |
 | Final Welcome artwork | Done | Animated WebP at `apps/web/public/images/brand/welcome-hero.webp` (source in `assets/illustrations/`), with a still first frame for reduced motion |
-| Onboarding stages 2 and 3 | High | Intro and stage 1 (interests) are built |
+| Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
+| Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
+| Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |
 | Home screen | High | `/` is a placeholder |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
 | Move admin sign-in into `apps/api` | Medium | `apps/admin` still has its own story |

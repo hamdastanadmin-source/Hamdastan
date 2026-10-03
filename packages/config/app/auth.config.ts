@@ -30,6 +30,13 @@ export const SESSION = {
   ACCESS_TOKEN_TTL_SECONDS: 15 * 60,
   /** Rolling: pushed out again on every refresh. */
   REFRESH_TOKEN_TTL_SECONDS: 30 * 24 * 60 * 60,
+  /**
+   * A spent refresh token presented again this soon after is the same client
+   * racing itself — a navigation fires the page and its prefetches at once,
+   * each through `proxy.ts` with the same cookie — and is answered with a
+   * fresh pair. Later than this it is a replay and ends the session.
+   */
+  REFRESH_REUSE_GRACE_SECONDS: 30,
   ACCESS_COOKIE: 'hd_at',
   REFRESH_COOKIE: 'hd_rt',
 } as const;

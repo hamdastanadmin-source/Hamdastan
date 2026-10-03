@@ -2,13 +2,21 @@ import type { FastifyBaseLogger } from 'fastify';
 
 import { buildApp } from './app';
 import { env } from './config';
-import { closePool, isDatabaseConfigured, pingDatabase, runMigrations } from './data';
+import {
+  closePool,
+  describeDrift,
+  hasDrift,
+  isDatabaseConfigured,
+  pingDatabase,
+  runMigrations,
+} from './data';
 import {
   createConsoleSmsSender,
   createKavenegarSmsSender,
   type SmsSender,
 } from './integrations';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
+import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
 
 /**
@@ -40,8 +48,13 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   }
 
   if (env.DATABASE_MIGRATE_ON_BOOT) {
-    const { applied } = await runMigrations(log);
+    const { applied, drift } = await runMigrations(log);
     log(`migrations: ${applied.length} applied`);
+    // Loud, not fatal: a drifted column breaks one feature, while refusing to
+    // boot would take down all of them. `npm run db:migrate` is where it fails.
+    if (hasDrift(drift)) {
+      log(`WARNING — the database has drifted from database/schema/snapshot.txt:\n${describeDrift(drift!)}`);
+    }
   }
 
   // The repositories are bound only once the connection is proven, so a
@@ -49,8 +62,9 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   // up") on a host with no database.
   setUsersRepository(sqlUsersRepository);
   setAuthRepository(sqlAuthRepository);
+  setOnboardingRepository(sqlOnboardingRepository);
 
-  log('database connected — users and auth repositories bound');
+  log('database connected — users, auth and onboarding repositories bound');
 }
 
 /**

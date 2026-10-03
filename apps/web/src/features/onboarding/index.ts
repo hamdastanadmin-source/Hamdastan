@@ -3,10 +3,11 @@
  *
  * Public surface of the feature. Nothing outside it imports past this file.
  *
- * Built so far: the intro screen and stage 1 (interest selection). Stage 1's
- * answers are saved in `apps/api` (`PUT /me/onboarding/interests`); the
- * catalog and the three-category rule live in `@hamdastan/config` and
- * `@hamdastan/validation` because the API applies them too.
+ * Built so far: the intro screen, stage 1 (interest selection) and stage 2
+ * (the social questionnaire). Answers are saved in `apps/api`; the catalog,
+ * the questions and their rules live in `@hamdastan/config` and
+ * `@hamdastan/validation` because the API applies them too. The
+ * questionnaire's scoring is the API's alone.
  *
  * Anything a second feature starts needing moves out: shared UI to
  * `@hamdastan/ui`, shared types to `@hamdastan/types`, shared helpers to
@@ -15,3 +16,4 @@
 
 export { OnboardingIntro } from './components/OnboardingIntro';
 export { InterestsStep } from './components/InterestsStep';
+export { QuestionnaireFlow } from './components/QuestionnaireFlow';

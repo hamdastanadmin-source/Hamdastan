@@ -6,3 +6,4 @@
  */
 
 export { getSavedInterestIds } from './services/saved-interests.service';
+export { getQuestionnaireState } from './services/questionnaire-state.service';

@@ -11,6 +11,7 @@
     "dev:admin": "npm run dev --workspace @hamdastan/admin",
     "dev:api": "npm run dev --workspace @hamdastan/api",
     "db:migrate": "npm run db:migrate --workspace @hamdastan/api",
+    "db:snapshot": "npm run db:snapshot --workspace @hamdastan/api",
     "build": "npm run build --workspaces --if-present",
     "start": "npm run start --workspace @hamdastan/web",
     "lint": "eslint .",

@@ -42,3 +42,38 @@ export function StreamedText({
 export function streamEndMs(text: string, startMs: number, stepMs: number): number {
   return startMs + text.split(' ').length * stepMs;
 }
+
+/**
+ * The pace onboarding's intro screens stream at, so they read as one voice:
+ * the title slower — it is the line that has to land — the body quicker, and
+ * a beat between blocks so each reads as its own line.
+ */
+export const STREAM_PACE = {
+  startMs: 300,
+  titleStepMs: 110,
+  bodyStepMs: 45,
+  noteStepMs: 55,
+  pauseMs: 150,
+} as const;
+
+/**
+ * Start times for blocks that stream one after another, each a pause after
+ * the last one's final word, and `endMs` — when the screen has finished
+ * writing itself, which is when its action should arrive.
+ */
+export function streamSequence(
+  blocks: readonly { text: string; stepMs: number }[],
+  startMs: number = STREAM_PACE.startMs
+): { starts: number[]; endMs: number } {
+  const starts: number[] = [];
+  let at = startMs;
+  for (const { text, stepMs } of blocks) {
+    starts.push(at);
+    at = streamEndMs(text, at, stepMs) + STREAM_PACE.pauseMs;
+  }
+  return { starts, endMs: at };
+}
+
+/** For what arrives once the text has finished: give it `animationDelay: endMs`. */
+export const ARRIVE_AFTER_STREAM =
+  'animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards motion-reduce:animate-none';

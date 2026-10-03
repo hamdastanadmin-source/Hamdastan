@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { getPool, closePool, isDatabaseConfigured } from './pool';
+import { describeDrift, diffSchema, readSchema, readSnapshot, type SchemaDrift } from './schema-check';
 
 /**
  * The migration runner — `npm run db:migrate`.
@@ -22,6 +23,9 @@ import { getPool, closePool, isDatabaseConfigured } from './pool';
  *     a `-- allow-destructive:` comment, why it is meant to.
  *   • An advisory lock serialises runners, so two instances booting together
  *     cannot apply the same file twice.
+ *   • Afterwards, the live schema is compared with `database/schema/
+ *     snapshot.txt` (see `schema-check.ts`). The ledger says which files ran;
+ *     only this says the database actually looks like them.
  */
 
 // apps/api/src/data → apps/api/src → apps/api → apps → the repo root.
@@ -52,7 +56,12 @@ const LEDGER = `
 export type MigrationOutcome = {
   applied: string[];
   alreadyApplied: string[];
+  /** Null when there is no snapshot to compare with. Empty lists mean no drift. */
+  drift: SchemaDrift | null;
 };
+
+export const hasDrift = (drift: SchemaDrift | null) =>
+  Boolean(drift && (drift.missing.length || drift.unexpected.length));
 
 function checksum(sql: string): string {
   return createHash('sha256').update(sql).digest('hex');
@@ -109,7 +118,7 @@ export async function runMigrations(
   for (const file of files) assertSafe(file.name, file.sql);
 
   const client = await getPool().connect();
-  const outcome: MigrationOutcome = { applied: [], alreadyApplied: [] };
+  const outcome: MigrationOutcome = { applied: [], alreadyApplied: [], drift: null };
 
   try {
     await client.query('SELECT pg_advisory_lock($1)', [ADVISORY_LOCK_KEY.toString()]);
@@ -153,6 +162,9 @@ export async function runMigrations(
       outcome.applied.push(file.name);
     }
 
+    const snapshot = await readSnapshot();
+    if (snapshot) outcome.drift = diffSchema(snapshot, await readSchema(client));
+
     return outcome;
   } finally {
     await client
@@ -165,13 +177,28 @@ export async function runMigrations(
 /** `npm run db:migrate` lands here. */
 async function main(): Promise<void> {
   try {
-    const { applied, alreadyApplied } = await runMigrations((message) =>
+    const { applied, alreadyApplied, drift } = await runMigrations((message) =>
       console.log(`[migrate] ${message}`)
     );
 
     console.log(
       `[migrate] ${applied.length} applied, ${alreadyApplied.length} already up to date.`
     );
+
+    if (hasDrift(drift)) {
+      console.error(
+        `[migrate] The database does not match database/schema/snapshot.txt:\n` +
+          `${describeDrift(drift!)}\n` +
+          `[migrate] Every file is recorded as applied, so this is a database ` +
+          `that was changed by hand. Write a new migration that brings it back ` +
+          `to the snapshot — never edit the ledger to make this go away.`
+      );
+      process.exitCode = 1;
+    } else if (drift) {
+      console.log('[migrate] schema matches the snapshot.');
+    } else {
+      console.warn('[migrate] no schema snapshot found; skipped the drift check.');
+    }
   } catch (error) {
     console.error(`[migrate] ${error instanceof Error ? error.message : error}`);
     process.exitCode = 1;

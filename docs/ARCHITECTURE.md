@@ -48,6 +48,7 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | A component the whole app's shell needs | `apps/<app>/src/components` |
 | A call to the backend | `apps/<app>/src/services` |
 | Business logic (backend) | the module's `*.service.ts` |
+| A pure computation a service delegates to (scoring, a derived read-model) | beside the service, as `<module>.<name>.ts` — e.g. `onboarding.scoring.ts` |
 | Data access | the module's `*.repository.ts` |
 | SQL, a pool, a migration | `apps/api/src/data` |
 | A schema change | a new file in `database/migrations` |
@@ -179,6 +180,8 @@ one from beside it:
 
 - **`ScreenTitle`** is the `h1` plus its supporting line. There is exactly one
   per screen, and it is the only place that decides what size a page title is
+  (`size="page"`, the default, or `size="prompt"` for a question put to the
+  person — smaller and lighter, as in the onboarding questionnaire)
   — six screens each hand-rolling the same `<header><h1><p>` is how a type
   scale drifts.
 - **`ScreenBody center`** centres the body's content in the space between the
@@ -249,9 +252,9 @@ src/
 
 ### Modules
 
-`auth`, `users`, `worlds`, `content`, `missions`, `trivia`, `community`,
-`progress`, `events`, `commerce`, `notifications`, `search` — each with the
-same seven files:
+`auth`, `users`, `onboarding`, `worlds`, `content`, `missions`, `trivia`,
+`community`, `progress`, `events`, `commerce`, `notifications`, `search` —
+each with the same seven files:
 
 ```
 module/
@@ -267,7 +270,13 @@ module/
 `modules/index.ts` is the route table: one line per module and the path it
 answers on. Most take a prefix of their own name; `users` takes the bare
 prefix because every route it owns is about *the* current user and `/me` reads
-better than `/users/me`.
+better than `/users/me`. `onboarding` is mounted at `/me/onboarding` for the
+same reason.
+
+A module may add files beside the seven when a service delegates a pure
+computation: `onboarding` keeps its questionnaire scoring in
+`onboarding.scoring.ts` and the result card in `onboarding.result.ts`. They
+import no repository and no HTTP, so they are tested as plain functions.
 
 A module's `*.repository.ts` holds both its port (the interface) and the
 PostgreSQL adapter that satisfies it. They live together because that file is

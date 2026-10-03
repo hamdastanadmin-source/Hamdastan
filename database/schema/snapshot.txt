@@ -1,0 +1,150 @@
+column v2_access_tokens.expires_at timestamp with time zone nullable=NO default=
+column v2_access_tokens.session_id uuid nullable=NO default=
+column v2_access_tokens.token_hash character nullable=NO default=
+column v2_access_tokens.user_id uuid nullable=NO default=
+column v2_onboarding_events.event character varying nullable=NO default=
+column v2_onboarding_events.id bigint nullable=NO default=nextval('v2_onboarding_events_id_seq'::regclass)
+column v2_onboarding_events.occurred_at timestamp with time zone nullable=NO default=now()
+column v2_onboarding_events.presentation_index smallint nullable=YES default=
+column v2_onboarding_events.properties jsonb nullable=NO default='{}'::jsonb
+column v2_onboarding_events.question_id character varying nullable=YES default=
+column v2_onboarding_events.section_id smallint nullable=YES default=
+column v2_onboarding_events.user_id uuid nullable=NO default=
+column v2_otp_challenges.attempts smallint nullable=NO default=0
+column v2_otp_challenges.code_hash character nullable=NO default=
+column v2_otp_challenges.expires_at timestamp with time zone nullable=NO default=
+column v2_otp_challenges.issued_at timestamp with time zone nullable=NO default=now()
+column v2_otp_challenges.phone character varying nullable=NO default=
+column v2_otp_challenges.resend_available_at timestamp with time zone nullable=NO default=
+column v2_otp_sends.id bigint nullable=NO default=nextval('v2_otp_sends_id_seq'::regclass)
+column v2_otp_sends.ip inet nullable=YES default=
+column v2_otp_sends.phone character varying nullable=NO default=
+column v2_otp_sends.sent_at timestamp with time zone nullable=NO default=now()
+column v2_questionnaire_answers.answer jsonb nullable=NO default=
+column v2_questionnaire_answers.answered_at timestamp with time zone nullable=NO default=now()
+column v2_questionnaire_answers.presentation_index smallint nullable=NO default=
+column v2_questionnaire_answers.question_id character varying nullable=NO default=
+column v2_questionnaire_answers.updated_at timestamp with time zone nullable=NO default=now()
+column v2_questionnaire_answers.user_id uuid nullable=NO default=
+column v2_refresh_tokens.expires_at timestamp with time zone nullable=NO default=
+column v2_refresh_tokens.session_id uuid nullable=NO default=
+column v2_refresh_tokens.token_hash character nullable=NO default=
+column v2_refresh_tokens.used_at timestamp with time zone nullable=YES default=
+column v2_refresh_tokens.user_id uuid nullable=NO default=
+column v2_sessions.created_at timestamp with time zone nullable=NO default=now()
+column v2_sessions.expires_at timestamp with time zone nullable=NO default=
+column v2_sessions.id uuid nullable=NO default=gen_random_uuid()
+column v2_sessions.revoked_at timestamp with time zone nullable=YES default=
+column v2_sessions.user_id uuid nullable=NO default=
+column v2_social_profiles.ao numeric nullable=YES default=
+column v2_social_profiles.available_afternoon boolean nullable=YES default=
+column v2_social_profiles.available_evening boolean nullable=YES default=
+column v2_social_profiles.available_morning boolean nullable=YES default=
+column v2_social_profiles.available_weekend boolean nullable=YES default=
+column v2_social_profiles.bp numeric nullable=YES default=
+column v2_social_profiles.cd numeric nullable=YES default=
+column v2_social_profiles.co numeric nullable=YES default=
+column v2_social_profiles.conflict_sensitivities ARRAY nullable=YES default=
+column v2_social_profiles.conversation_preferences jsonb nullable=YES default=
+column v2_social_profiles.cp numeric nullable=YES default=
+column v2_social_profiles.created_at timestamp with time zone nullable=NO default=now()
+column v2_social_profiles.current_question_id character varying nullable=YES default=
+column v2_social_profiles.current_section smallint nullable=YES default=
+column v2_social_profiles.fl numeric nullable=YES default=
+column v2_social_profiles.motivation_profile jsonb nullable=YES default=
+column v2_social_profiles.normalized_signals jsonb nullable=NO default='{}'::jsonb
+column v2_social_profiles.nv numeric nullable=YES default=
+column v2_social_profiles.preferred_group_size character varying nullable=YES default=
+column v2_social_profiles.primary_role character varying nullable=YES default=
+column v2_social_profiles.progress smallint nullable=NO default=0
+column v2_social_profiles.pu numeric nullable=YES default=
+column v2_social_profiles.questionnaire_completed boolean nullable=NO default=false
+column v2_social_profiles.questionnaire_completed_at timestamp with time zone nullable=YES default=
+column v2_social_profiles.raw_dimensions jsonb nullable=NO default='{}'::jsonb
+column v2_social_profiles.raw_score_contributions jsonb nullable=NO default='{}'::jsonb
+column v2_social_profiles.role_scores jsonb nullable=YES default=
+column v2_social_profiles.scoring_version character varying nullable=NO default=
+column v2_social_profiles.se numeric nullable=YES default=
+column v2_social_profiles.secondary_role character varying nullable=YES default=
+column v2_social_profiles.si numeric nullable=YES default=
+column v2_social_profiles.so numeric nullable=YES default=
+column v2_social_profiles.sp numeric nullable=YES default=
+column v2_social_profiles.st numeric nullable=YES default=
+column v2_social_profiles.updated_at timestamp with time zone nullable=NO default=now()
+column v2_social_profiles.user_id uuid nullable=NO default=
+column v2_social_profiles.wu numeric nullable=YES default=
+column v2_user_interests.category_id character varying nullable=NO default=
+column v2_user_interests.created_at timestamp with time zone nullable=NO default=now()
+column v2_user_interests.interest_id character varying nullable=NO default=
+column v2_user_interests.user_id uuid nullable=NO default=
+column v2_users.birth_date date nullable=YES default=
+column v2_users.created_at timestamp with time zone nullable=NO default=now()
+column v2_users.display_name character varying nullable=YES default=
+column v2_users.first_name character varying nullable=YES default=
+column v2_users.gender USER-DEFINED nullable=YES default=
+column v2_users.id uuid nullable=NO default=gen_random_uuid()
+column v2_users.last_login_at timestamp with time zone nullable=YES default=
+column v2_users.last_name character varying nullable=YES default=
+column v2_users.onboarding_stage smallint nullable=NO default=0
+column v2_users.onboarding_step USER-DEFINED nullable=NO default='basic_info'::v2_onboarding_step
+column v2_users.phone character varying nullable=NO default=
+column v2_users.phone_verified_at timestamp with time zone nullable=NO default=now()
+column v2_users.role USER-DEFINED nullable=NO default='USER'::v2_user_role
+column v2_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_user_status
+column v2_users.updated_at timestamp with time zone nullable=NO default=now()
+constraint v2_access_tokens v2_access_tokens_pkey PRIMARY KEY (token_hash)
+constraint v2_access_tokens v2_access_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES v2_sessions(id) ON DELETE CASCADE
+constraint v2_access_tokens v2_access_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_onboarding_events v2_onboarding_events_event CHECK (((event)::text = ANY ((ARRAY['quiz_started'::character varying, 'quiz_question_viewed'::character varying, 'quiz_question_answered'::character varying, 'quiz_back_clicked'::character varying, 'quiz_section_completed'::character varying, 'quiz_abandoned'::character varying, 'quiz_resumed'::character varying, 'quiz_completed'::character varying, 'quiz_result_viewed'::character varying, 'quiz_result_continue_clicked'::character varying])::text[])))
+constraint v2_onboarding_events v2_onboarding_events_pkey PRIMARY KEY (id)
+constraint v2_onboarding_events v2_onboarding_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_otp_challenges v2_otp_challenges_pkey PRIMARY KEY (phone)
+constraint v2_otp_sends v2_otp_sends_pkey PRIMARY KEY (id)
+constraint v2_questionnaire_answers v2_questionnaire_answers_pkey PRIMARY KEY (user_id, question_id)
+constraint v2_questionnaire_answers v2_questionnaire_answers_presentation_index CHECK (((presentation_index >= 1) AND (presentation_index <= 20)))
+constraint v2_questionnaire_answers v2_questionnaire_answers_question_id CHECK (((question_id)::text ~ '^Q([1-9]|1[0-9]|20)$'::text))
+constraint v2_questionnaire_answers v2_questionnaire_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_refresh_tokens v2_refresh_tokens_pkey PRIMARY KEY (token_hash)
+constraint v2_refresh_tokens v2_refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES v2_sessions(id) ON DELETE CASCADE
+constraint v2_refresh_tokens v2_refresh_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_sessions v2_sessions_pkey PRIMARY KEY (id)
+constraint v2_sessions v2_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_social_profiles v2_social_profiles_completed_at CHECK (((NOT questionnaire_completed) OR (questionnaire_completed_at IS NOT NULL)))
+constraint v2_social_profiles v2_social_profiles_current_section CHECK (((current_section >= 1) AND (current_section <= 4)))
+constraint v2_social_profiles v2_social_profiles_group_size CHECK (((preferred_group_size)::text = ANY ((ARRAY['SMALL'::character varying, 'MEDIUM'::character varying, 'LARGE'::character varying, 'XL'::character varying])::text[])))
+constraint v2_social_profiles v2_social_profiles_pkey PRIMARY KEY (user_id)
+constraint v2_social_profiles v2_social_profiles_progress CHECK (((progress >= 0) AND (progress <= 100)))
+constraint v2_social_profiles v2_social_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_user_interests v2_user_interests_pkey PRIMARY KEY (user_id, interest_id)
+constraint v2_user_interests v2_user_interests_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_users v2_users_min_age CHECK (((birth_date IS NULL) OR (birth_date <= (CURRENT_DATE - '13 years'::interval))))
+constraint v2_users v2_users_onboarding_stage_range CHECK (((onboarding_stage >= 0) AND (onboarding_stage <= 3)))
+constraint v2_users v2_users_phone_key UNIQUE (phone)
+constraint v2_users v2_users_pkey PRIMARY KEY (id)
+enum v2_gender MALE,FEMALE,OTHER
+enum v2_onboarding_step basic_info,onboarding,done
+enum v2_user_role USER,ADMIN
+enum v2_user_status ACTIVE,SUSPENDED
+index v2_access_tokens_expires_at CREATE INDEX v2_access_tokens_expires_at ON public.v2_access_tokens USING btree (expires_at)
+index v2_access_tokens_pkey CREATE UNIQUE INDEX v2_access_tokens_pkey ON public.v2_access_tokens USING btree (token_hash)
+index v2_access_tokens_session CREATE INDEX v2_access_tokens_session ON public.v2_access_tokens USING btree (session_id)
+index v2_onboarding_events_funnel CREATE INDEX v2_onboarding_events_funnel ON public.v2_onboarding_events USING btree (event, occurred_at)
+index v2_onboarding_events_pkey CREATE UNIQUE INDEX v2_onboarding_events_pkey ON public.v2_onboarding_events USING btree (id)
+index v2_onboarding_events_user CREATE INDEX v2_onboarding_events_user ON public.v2_onboarding_events USING btree (user_id, occurred_at)
+index v2_otp_challenges_expires_at CREATE INDEX v2_otp_challenges_expires_at ON public.v2_otp_challenges USING btree (expires_at)
+index v2_otp_challenges_pkey CREATE UNIQUE INDEX v2_otp_challenges_pkey ON public.v2_otp_challenges USING btree (phone)
+index v2_otp_sends_ip_window CREATE INDEX v2_otp_sends_ip_window ON public.v2_otp_sends USING btree (ip, sent_at DESC)
+index v2_otp_sends_phone_window CREATE INDEX v2_otp_sends_phone_window ON public.v2_otp_sends USING btree (phone, sent_at DESC)
+index v2_otp_sends_pkey CREATE UNIQUE INDEX v2_otp_sends_pkey ON public.v2_otp_sends USING btree (id)
+index v2_questionnaire_answers_pkey CREATE UNIQUE INDEX v2_questionnaire_answers_pkey ON public.v2_questionnaire_answers USING btree (user_id, question_id)
+index v2_refresh_tokens_expires_at CREATE INDEX v2_refresh_tokens_expires_at ON public.v2_refresh_tokens USING btree (expires_at)
+index v2_refresh_tokens_pkey CREATE UNIQUE INDEX v2_refresh_tokens_pkey ON public.v2_refresh_tokens USING btree (token_hash)
+index v2_refresh_tokens_session CREATE INDEX v2_refresh_tokens_session ON public.v2_refresh_tokens USING btree (session_id)
+index v2_sessions_expires_at CREATE INDEX v2_sessions_expires_at ON public.v2_sessions USING btree (expires_at)
+index v2_sessions_pkey CREATE UNIQUE INDEX v2_sessions_pkey ON public.v2_sessions USING btree (id)
+index v2_sessions_user CREATE INDEX v2_sessions_user ON public.v2_sessions USING btree (user_id)
+index v2_social_profiles_pkey CREATE UNIQUE INDEX v2_social_profiles_pkey ON public.v2_social_profiles USING btree (user_id)
+index v2_user_interests_category CREATE INDEX v2_user_interests_category ON public.v2_user_interests USING btree (category_id)
+index v2_user_interests_pkey CREATE UNIQUE INDEX v2_user_interests_pkey ON public.v2_user_interests USING btree (user_id, interest_id)
+index v2_users_phone_key CREATE UNIQUE INDEX v2_users_phone_key ON public.v2_users USING btree (phone)
+index v2_users_pkey CREATE UNIQUE INDEX v2_users_pkey ON public.v2_users USING btree (id)
