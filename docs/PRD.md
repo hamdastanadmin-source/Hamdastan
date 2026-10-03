@@ -315,7 +315,7 @@ holds خانه and پروفایل. Signing out is not on home.
   «شروع آزمون», the screen's one primary action.
 - **Done:** the card is gone; a quiet row «پروفایل اجتماعی‌ات آماده‌ست» with
   the result's title and «مشاهده نتیجه» leads to `/profile/social`.
-- Below it, the story-world picker under «جهان داستانی‌ات را انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (گیم آو ترونز), and Liverpool (لیورپول). Neither links anywhere yet.
+- Below it, the story-world picker under «جهان داستانی‌ات را انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). Neither links anywhere yet.
 
 ### 4.4 Account — حساب من
 

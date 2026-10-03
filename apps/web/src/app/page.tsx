@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 const WORLD_BANNERS = [
   { src: '/images/worlds/hogwarts-banner-v2.png', alt: 'هاگوارتز، هری پاتر' },
   { src: '/images/worlds/gta-banner-v2.png', alt: 'جی تی ای' },
-  { src: '/images/worlds/game-of-thrones-banner.png', alt: 'گیم آو ترونز' },
+  { src: '/images/worlds/game-of-thrones-banner-v2.png', alt: 'بازی تاج و تخت' },
   { src: '/images/worlds/liverpool-banner.png', alt: 'لیورپول، تنها قدم نخواهی زد' },
 ] as const;
 
