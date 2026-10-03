@@ -7,11 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
 import { OTP } from '@hamdastan/config';
-import {
-  IRAN_MOBILE_LENGTH,
-  toMobileInput,
-  toPersianDigits,
-} from '@hamdastan/shared/format/persian';
+import { toMobileInput, toPersianDigits } from '@hamdastan/shared/format/persian';
 import {
   Button,
   Form,
@@ -112,6 +108,10 @@ export function PhoneForm() {
                         it is what hands the field its id, `aria-describedby`
                         and `aria-invalid`, and those belong on the control,
                         not on a positioning div. */}
+                    {/* No `maxLength`: the browser applies it to a paste
+                        before `onChange` runs, so `+98 912 345 6789` would
+                        arrive cut short. `toMobileInput` caps the value at
+                        eleven digits instead, after normalising it. */}
                     <FormControl>
                       <Input
                         {...field}
@@ -120,7 +120,6 @@ export function PhoneForm() {
                         inputMode="numeric"
                         autoComplete="tel"
                         autoFocus
-                        maxLength={IRAN_MOBILE_LENGTH}
                         placeholder="09123456789"
                         className="h-12 ps-12 text-lg tracking-wider tabular-nums"
                         onChange={(event) =>

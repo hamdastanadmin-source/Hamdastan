@@ -8,6 +8,7 @@
     "build": "tsc --noEmit -p tsconfig.json",
     "start": "tsx --env-file-if-exists=../../.env src/server.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
     "db:migrate": "tsx --env-file-if-exists=../../.env src/data/migrate.ts"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.1"
   }
 }

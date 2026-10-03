@@ -52,13 +52,19 @@ test.describe('the phone field', () => {
     await expect(page.getByRole('button', { name: 'دریافت کد' })).toBeEnabled();
   });
 
-  test('accepts +98 and normalises it', async ({ page }) => {
-    await page.goto('/auth/phone');
+  // A pasted number is longer than the eleven digits it normalises to, so
+  // these fail if the field ever truncates before normalising.
+  for (const pasted of ['+989123456789', '+98 912 345 6789']) {
+    test(`accepts ${pasted} and normalises it`, async ({ page }) => {
+      await page.goto('/auth/phone');
 
-    await page.getByLabel('شماره موبایل').fill('+989123456789');
+      const field = page.getByLabel('شماره موبایل');
+      await field.fill(pasted);
 
-    await expect(page.getByRole('button', { name: 'دریافت کد' })).toBeEnabled();
-  });
+      await expect(field).toHaveValue('09123456789');
+      await expect(page.getByRole('button', { name: 'دریافت کد' })).toBeEnabled();
+    });
+  }
 });
 
 test('form text is one size at every viewport', async ({ page }) => {

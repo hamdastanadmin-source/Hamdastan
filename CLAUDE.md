@@ -164,7 +164,10 @@ shadow the root one.
 - `npm run typecheck` — TypeScript across every workspace, including `apps/api`.
 - `npm run lint:all` — ESLint (architecture boundaries included) plus the RTL
   check. Run for non-trivial changes.
-- `npm test` — unit tests (Vitest).
+- `npm test` — unit tests (Vitest). `apps/api` also runs the sign-in flow
+  against a real PostgreSQL built from the migrations; it needs
+  `TEST_DATABASE_URL` (a throwaway `*_test` database — `createdb
+  hamdastan_test`) and skips without it. It resets that schema every run.
 - `npm run db:migrate` — applies pending migrations. Safe to re-run.
 - `npm run test:e2e` — end-to-end tests (Playwright), at 390×844 and
   1440×900. It starts its own `apps/web` dev server. The specs that walk the
