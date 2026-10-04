@@ -342,28 +342,31 @@ The person's identity and progress hub: "my identity, my progress, my
 profile" — not a settings page, not a game dashboard. Code in
 `apps/web/src/features/profile` and `apps/api/src/modules/account`.
 
-**Profile home — `/profile`.** Top to bottom:
+**Profile home — `/profile`.** One card (shadcn `Card`) per group, top to
+bottom:
 
-1. **Identity.** The avatar's portrait (tap → studio), the display name
-   (the `h1`), `@username` (or «یه نام کاربری انتخاب کن»), then «سطح n»,
-   «xp / next XP» on a neutral bar and «n XP تا سطح بعد», then «ویرایش
-   پروفایل» and «ویرایش آواتار» («آواتارت رو بساز» before one is saved),
-   both secondary. No card around it.
+1. **Identity.** The avatar's portrait (tap → studio) beside the display
+   name (the `h1`) and `@username` (or «یه نام کاربری انتخاب کن»); under a
+   divider «سطح n», «xp / next XP» on a neutral bar and «n XP تا سطح بعد»;
+   then «ویرایش پروفایل» and «ویرایش آواتار» («آواتارت رو بساز» before one is
+   saved), both secondary.
 2. **«پروفایل اجتماعی من».** The result's title, its two lines, the three
-   insights and «مشاهده نتیجه کامل» (→ `/profile/social`, the full result
-   with the five bars behind «جزئیات بیشتر»). No internal codes, never the
-   fourteen dimensions. Before the questionnaire is done: a mission card
-   instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو کامل کن تا
-   پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه», «+50 XP»,
-   «شروع آزمون».
-3. **«ماموریت‌های من».** Open missions as cards (title, description,
-   «+n XP», «انجام نشده», action); finished ones as rows with a green check,
-   «انجام شد» and the reward. The questionnaire is left out while open,
-   because section 2 is already offering it.
-4. **«پیشرفت من».** Level, total XP, XP to the next level, the five newest
-   rewards («هنوز ماموریتی انجام ندادی.» when there are none) and a line on
-   how XP is earned.
-5. «ویرایش پروفایل» and «تنظیمات».
+   insights as label/value rows and «مشاهده نتیجه کامل» (→ `/profile/social`,
+   the full result with the five bars behind «جزئیات بیشتر»). No internal
+   codes, never the fourteen dimensions. Before the questionnaire is done: a
+   mission card instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو
+   کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه»,
+   «+50 XP», «شروع آزمون».
+3. **«ماموریت‌های من».** «n از m انجام شد» beside the title (every mission
+   counts, the questionnaire included); open missions with title,
+   description, «+n XP», «انجام نشده» and their action; finished ones as rows
+   with a green check, «انجام شد» and the reward. The questionnaire is left
+   out of the list while open, because section 2 is already offering it.
+4. **«پیشرفت من».** Total XP beside the title, a line on how XP is earned,
+   and the five newest rewards («هنوز ماموریتی انجام ندادی.» when there are
+   none). The level and XP to the next level are on the identity card only.
+5. **«حساب».** «تنظیمات» and «راهنما و پشتیبانی». (Editing the profile is
+   on the identity card.)
 
 **One primary action.** The next open mission, in catalog order, gets the
 violet button — the questionnaire first, then the avatar, then the profile.

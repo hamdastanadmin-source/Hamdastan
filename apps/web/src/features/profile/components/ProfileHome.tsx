@@ -1,4 +1,4 @@
-import { Settings, UserRoundPen } from 'lucide-react';
+import { CircleHelp, Settings } from 'lucide-react';
 
 import type { AccountOverview } from '@hamdastan/types';
 
@@ -13,13 +13,14 @@ import { SocialProfileSection } from './SocialProfileSection';
 
 /**
  * The account hub — "my identity, my progress, my profile", not a settings
- * page and not a game dashboard. Top to bottom, in the order that matters:
+ * page and not a game dashboard. One card per group, top to bottom in the
+ * order that matters:
  *
  *   1. identity and avatar, with level and XP
  *   2. the social profile (or the questionnaire, as a mission)
- *   3. missions
- *   4. progress and recent XP
- *   5. the way to settings
+ *   3. missions, with how many are done
+ *   4. progress: total XP and recent rewards
+ *   5. «حساب»: settings and help
  *
  * Exactly one primary (violet) action: the next open mission. Everything
  * else is neutral.
@@ -39,7 +40,7 @@ export function ProfileHome({
     <Screen>
       <ScreenHeader />
 
-      <ScreenBody className="gap-10 pb-10">
+      <ScreenBody className="gap-4 pb-10">
         <IdentityBlock profile={overview.profile} progress={overview.progress} gained={reward?.xp ?? 0} />
 
         <SocialProfileSection
@@ -55,9 +56,9 @@ export function ProfileHome({
 
         <ProgressSection progress={overview.progress} />
 
-        <ListGroup>
-          <ListRow icon={UserRoundPen} label="ویرایش پروفایل" href="/profile/edit" />
+        <ListGroup title="حساب">
           <ListRow icon={Settings} label="تنظیمات" href="/profile/settings" />
+          <ListRow icon={CircleHelp} label="راهنما و پشتیبانی" href="/profile/help" />
         </ListGroup>
       </ScreenBody>
 
