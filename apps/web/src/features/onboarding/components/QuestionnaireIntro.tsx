@@ -25,7 +25,7 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
  * it is done.
  */
 
-const TITLE = 'بیا یکم بیشتر بشناسیمت';
+const TITLE = 'ترجیحات شما را بهتر بشناسیم';
 const BODY = 'چند انتخاب کوتاه داریم تا بفهمیم چه آدم‌ها، گروه‌ها و تجربه‌هایی بیشتر بهت می‌خورن.';
 const NOTE = 'جواب درست یا غلطی وجود نداره؛ فقط چیزی رو انتخاب کن که بیشتر شبیه خودته.';
 const DURATION = QUESTIONNAIRE_DURATION_LABEL;
@@ -63,7 +63,7 @@ export function QuestionnaireIntro({
         <ScreenBack href={backHref} />
       </ScreenHeader>
 
-      <ScreenBody center className="gap-5">
+      <ScreenBody className="gap-5">
         <SectionMark reached={0} />
 
         <ScreenTitle

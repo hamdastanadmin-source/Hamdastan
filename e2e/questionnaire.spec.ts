@@ -193,7 +193,7 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
   // No internal codes, anywhere.
   await expect(page.getByText(/\b(SI|SE|CP|CD|ST|CP_support)\b/)).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'تجربه‌های من رو ببین' }).click();
+  await page.getByRole('button', { name: 'ورود به اپلیکیشن' }).click();
   await expect(page).toHaveURL(/\/$/);
 
   // Finished means finished: the questionnaire reopens as the profile's result.
@@ -264,7 +264,7 @@ test('a finished questionnaire shows its result again, not a fresh start', async
   // Leaving before the final action and coming back lands on the result.
   await page.reload();
   await expect(page.getByText('پروفایل اجتماعی تو')).toBeVisible();
-  await page.getByRole('button', { name: 'تجربه‌های من رو ببین' }).click();
+  await page.getByRole('button', { name: 'ورود به اپلیکیشن' }).click();
   await expect(page).toHaveURL(/\/$/);
 });
 

@@ -55,7 +55,7 @@ export function QuestionnaireResultView({
 
       <ScreenFooter className="bg-surface-stage/95 before:from-surface-stage">
         <Button type="button" size="xl" className="w-full" loading={isLeaving} onClick={onContinue}>
-          تجربه‌های من رو ببین
+          ورود به اپلیکیشن
         </Button>
       </ScreenFooter>
     </Screen>

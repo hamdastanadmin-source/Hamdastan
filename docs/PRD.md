@@ -171,7 +171,7 @@ has its own back to this screen.
 
 **Stage 2, the social questionnaire — `/onboarding/questionnaire`.**
 
-Twenty questions that must not feel like twenty: «بیا یکم بیشتر بشناسیمت»,
+Twenty questions that must not feel like twenty: «ترجیحات شما را بهتر بشناسیم»,
 then four short chapters of one decision per screen. The screen never shows a
 question count — only «داریم بیشتر می‌شناسیمت» over a continuous bar.
 
@@ -180,7 +180,7 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   *Connection style* (Q6, Q7, Q18, Q20, Q1, then Q1's ranking) → reward
   (50%) → Section 3 *Experience style* (Q8, Q9, Q11, Q12, Q13) → reward
   (75%) → Section 4 *Group compatibility* (Q10, Q14, Q15, Q16, Q17) →
-  «داریم پروفایلت رو می‌سازیم» → result → «تجربه‌های من رو ببین» → home.
+  «داریم پروفایلت رو می‌سازیم» → result → «ورود به اپلیکیشن» → home.
 - **Ids versus order.** Questions keep the source ids `Q1`–`Q20`; the order
   above is presentation only (`QUESTIONNAIRE_ORDER`). Nothing is scored by
   position. The questions, option codes and copy are
@@ -256,7 +256,7 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) wait behind
   «جزئیات بیشتر». Then the value line «از این شناخت استفاده می‌کنیم تا
   آدم‌ها، گروه‌ها و تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and
-  «تجربه‌های من رو ببین». No internal codes and no diagnostic language. It
+  «ورود به اپلیکیشن». No internal codes and no diagnostic language. It
   is a simplification, built in `onboarding.result.ts`; the stored profile is
   never reduced to it.
 - **Finishing.** `POST /me/onboarding/questionnaire/complete` refuses until
@@ -264,7 +264,7 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   `onboarding_stage` 2, and grants the personality-test mission's +50 XP —
   once: the response's `xpAwarded` is 50 on the call that granted it and 0
   on every later one. When it is 50 the result shows «پروفایلت آماده‌ست ·
-  +۵۰ XP گرفتی», rising in once. «تجربه‌های من رو ببین» calls
+  +۵۰ XP گرفتی», rising in once. «ورود به اپلیکیشن» calls
   `POST /me/onboarding/complete`, which refuses before stage 1, and follows
   the `nextStep` it returns — home.
 - **Later.** An account past onboarding can still open
