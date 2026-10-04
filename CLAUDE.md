@@ -47,7 +47,8 @@ the rule to that document before writing the code.
 - **Violet (the brand) is for the primary action only** — the one main button
   on a screen. Never for surfaces, borders, focus rings, tabs, chips,
   selected states, icons, progress/XP bars or glows; those are neutral
-  (selection = foreground border + check). Success is green.
+  (selection = foreground border + check). Success is green. The one
+  exception: a `Switch`'s "on" track is the stock `primary`.
 - **Never hard-code a design value.** In a `className`, use the Tailwind
   utility. Where a real CSS string is needed, import from
   `@hamdastan/ui/tokens` — those files reference the custom properties rather

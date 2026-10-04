@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import {
   Button,
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -53,16 +54,16 @@ export function LogoutButton() {
       </DialogTrigger>
 
       <DialogContent showCloseButton={false} className="w-[calc(100%-2.5rem)] rounded-2xl">
-        <DialogHeader className="text-start">
+        <DialogHeader>
           <DialogTitle>از حساب خارج می‌شی؟</DialogTitle>
           <DialogDescription>هر وقت خواستی می‌تونی دوباره وارد بشی.</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex-col-reverse gap-2">
-          <DialogTrigger asChild>
+        <DialogFooter>
+          <DialogClose asChild>
             <Button type="button" variant="outline" size="touch" className="w-full">
               انصراف
             </Button>
-          </DialogTrigger>
+          </DialogClose>
           <Button
             type="button"
             variant="destructive"

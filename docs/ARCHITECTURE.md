@@ -501,9 +501,10 @@ deliberately **not** tinted toward the brand: violet is spent on `--primary`
 — the screen's main action — and on nothing else (not surfaces, borders,
 focus rings, selection, progress, icons or glows), so the action is the only
 colour on the screen. `--success` is green (`--success-hue`), never the
-brand. A component that would otherwise draw selection or "on" in
-`primary` — the stock `Switch`, `Tabs`' underline and pill variants — is
-restyled to foreground where it is used.
+brand. A component that would otherwise draw selection in `primary` —
+`Tabs`' underline and pill variants — is restyled to foreground where it is
+used. The one exception is the stock `Switch`, whose "on" stays `primary`:
+a foreground track disappears against the dark surfaces.
 `--surface-0`, a shade darker than `--background`, is what sits behind the
 mobile column.
 

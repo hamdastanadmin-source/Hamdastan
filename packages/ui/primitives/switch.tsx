@@ -13,6 +13,10 @@ function Switch({
 }) {
   return (
     <SwitchPrimitive.Root
+      // A switch reads off-left / on-right in every locale, as on the
+      // phone's own settings; pinning `ltr` keeps the thumb's translate
+      // pointing into the track inside an RTL page.
+      dir="ltr"
       data-slot="switch"
       data-size={size}
       className={cn(

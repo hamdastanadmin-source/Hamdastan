@@ -1,11 +1,12 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Bell, CircleHelp, ShieldCheck, UserRoundPen } from 'lucide-react';
+import { Bell, CircleHelp, Moon, ShieldCheck, UserRoundPen } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { AccountSettings } from '@hamdastan/config';
 import { Switch } from '@hamdastan/ui';
+import { setTheme, useTheme } from '@hamdastan/ui/tokens/theme.store';
 
 import { Screen, ScreenBack, ScreenBody, ScreenHeader, ScreenTitle } from '@/components';
 
@@ -14,15 +15,14 @@ import { ListGroup, ListRow } from './ListGroup';
 import { LogoutButton } from './LogoutButton';
 
 /**
- * «تنظیمات» — kept to what the product has: the profile, notifications,
- * privacy, help, and signing out, set apart at the bottom.
+ * «تنظیمات» — kept to what the product has: the profile, the theme,
+ * notifications, privacy, help, and signing out, set apart at the bottom.
  *
- * A switch saves as it is flipped and flips back if the save fails. Its "on"
- * is foreground on a light track — the brand stays on primary actions.
+ * An account switch saves as it is flipped and flips back if the save fails.
+ * The theme switch is per device: it goes through the theme store, not the
+ * account. A switch's "on" is the stock primary — a black track vanishes on
+ * the dark surfaces.
  */
-
-const SWITCH_CLASS =
-  'data-[state=checked]:bg-foreground [&>[data-slot=switch-thumb][data-state=checked]]:bg-background';
 
 function SettingSwitch({
   label,
@@ -43,13 +43,14 @@ function SettingSwitch({
         <span>{label}</span>
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </span>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} className={SWITCH_CLASS} />
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </label>
   );
 }
 
 export function SettingsScreen({ settings: saved }: { settings: AccountSettings }) {
   const { saveSettings } = useAccountActions();
+  const theme = useTheme();
   const [settings, setSettings] = useState(saved);
 
   const update = async (patch: Partial<AccountSettings>) => {
@@ -75,6 +76,17 @@ export function SettingsScreen({ settings: saved }: { settings: AccountSettings 
 
         <ListGroup title="حساب">
           <ListRow icon={UserRoundPen} label="ویرایش پروفایل" href="/profile/edit" />
+        </ListGroup>
+
+        <ListGroup title="ظاهر">
+          <ListRow>
+            <Moon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+            <SettingSwitch
+              label="حالت تاریک"
+              checked={theme === 'dark'}
+              onChange={(dark) => setTheme(dark ? 'dark' : 'light')}
+            />
+          </ListRow>
         </ListGroup>
 
         <ListGroup title="اعلان‌ها">

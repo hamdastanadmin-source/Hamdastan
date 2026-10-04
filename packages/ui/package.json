@@ -9,6 +9,7 @@
     "./patterns/*": "./patterns/*.tsx",
     "./icons": "./icons/index.ts",
     "./tokens": "./tokens/index.ts",
+    "./tokens/theme.store": "./tokens/theme.store.ts",
     "./tokens/*": "./tokens/*",
     "./styles/*": "./styles/*"
   },

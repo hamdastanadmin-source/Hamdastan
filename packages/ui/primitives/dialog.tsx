@@ -89,7 +89,9 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      // No `sm:` variants: the dialog is always phone-width (capped at the
+      // shell), so a viewport breakpoint would only misfire on a laptop.
+      className={cn("flex flex-col gap-2 text-start", className)}
       {...props}
     />
   )
@@ -107,7 +109,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2",
         className
       )}
       {...props}

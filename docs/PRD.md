@@ -411,15 +411,18 @@ edited here. Profile image, email and social handles are not collected:
 the avatar is the person's image, and nothing in the product uses the
 other two.
 
-**Settings — `/profile/settings`.** «حساب» (ویرایش پروفایل), «اعلان‌ها»
-(ماموریت‌ها و پیشرفت — a switch), «حریم خصوصی» (نمایش پروفایل اجتماعی به
+**Settings — `/profile/settings`.** «حساب» (ویرایش پروفایل), «ظاهر»
+(حالت تاریک — a switch; per device, kept in the browser by the theme store,
+not on the account), «اعلان‌ها» (ماموریت‌ها و پیشرفت — a switch), «حریم خصوصی» (نمایش پروفایل اجتماعی به
 دیگران — a switch), «پشتیبانی» (راهنما و پشتیبانی → `/profile/help`), then,
-set apart, «خروج از حساب» in red text. A switch saves when flipped and flips
-back if the save fails. Both settings are stored; nothing reads them yet,
+set apart, «خروج از حساب» in red text. An account switch saves when flipped
+and flips back if the save fails. A switch's "on" is the brand violet. Both
+account settings are stored; nothing reads them yet,
 because notifications and other people's views do not exist yet.
 
 **Logout.** Only in settings. It asks: «از حساب خارج می‌شی؟» / «هر وقت خواستی
-می‌تونی دوباره وارد بشی.» / «خروج» (destructive red) / «انصراف».
+می‌تونی دوباره وارد بشی.» / «خروج» (destructive red) / «انصراف», in a
+right-aligned dialog with the two buttons stacked full width.
 
 **Help — `/profile/help`.** Four short answers: XP, levels, the social
 profile, and who sees it.
@@ -691,7 +694,7 @@ whitespace is dropped.
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
 | Radius | `--radius: 0.75rem` |
 | Column width | `--shell-max-width: 430px`, as `max-w-shell` and the `shell:` breakpoint |
-| Theme | Dark, as a `.dark` class on `<html>` |
+| Theme | Dark by default, as a `.dark` class on `<html>`; light is chosen in settings and kept per device |
 | Layout | RTL |
 
 Colours are derived from the variables at the top of
