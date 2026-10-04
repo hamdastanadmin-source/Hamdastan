@@ -1,5 +1,5 @@
-import { MISSION_BY_ID, MISSIONS, type MissionId } from '@hamdastan/config';
-import type { Mission } from '@hamdastan/types';
+import { BADGES, MISSION_BY_ID, MISSIONS, type MissionId } from '@hamdastan/config';
+import type { EarnedBadge, Mission } from '@hamdastan/types';
 
 import { progressService, type XpTransaction } from '../progress';
 
@@ -34,6 +34,21 @@ export function missionsFor(transactions: XpTransaction[]): Mission[] {
       ctaHref: mission.ctaHref,
       completedAt: reward ? reward.createdAt.toISOString() : null,
     };
+  });
+}
+
+/**
+ * The badges whose missions are all done, in catalog order. Like a mission,
+ * a badge has no record of its own: it is read off the missions' status.
+ */
+export function badgesFor(missions: Mission[]): EarnedBadge[] {
+  const doneAt = new Map(missions.flatMap((m) => (m.completedAt ? [[m.id, m.completedAt] as const] : [])));
+
+  return BADGES.flatMap((badge) => {
+    const dates = badge.requires.map((id) => doneAt.get(id));
+    if (dates.some((date) => !date)) return [];
+    const { id, title, description, icon } = badge;
+    return [{ id, title, description, icon, earnedAt: (dates as string[]).sort().at(-1)! }];
   });
 }
 

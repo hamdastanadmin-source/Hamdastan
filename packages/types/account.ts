@@ -1,4 +1,4 @@
-import type { AccountSettings, AvatarConfig, MissionId } from '@hamdastan/config';
+import type { AccountSettings, AvatarConfig, BadgeIcon, MissionId } from '@hamdastan/config';
 
 import type { QuestionnaireResult } from './questionnaire';
 
@@ -52,10 +52,22 @@ export type Mission = {
   completedAt: string | null;
 };
 
+/** A badge the person has earned. Badges not yet earned are not sent. */
+export type EarnedBadge = {
+  id: string;
+  title: string;
+  description: string;
+  icon: BadgeIcon;
+  /** ISO timestamp: when its last required mission was done. */
+  earnedAt: string;
+};
+
 export type AccountOverview = {
   profile: AccountProfile;
   progress: AccountProgress;
   missions: Mission[];
+  /** Earned badges, in catalog order. */
+  badges: EarnedBadge[];
   /** Null until the questionnaire is finished. */
   socialProfile: QuestionnaireResult | null;
   settings: AccountSettings;

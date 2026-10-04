@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { missionsFor } from '../modules/missions';
+import { badgesFor, missionsFor } from '../modules/missions';
 import { levelFor, toProgress, type XpTransaction } from '../modules/progress';
 
 const reward = (sourceType: XpTransaction['sourceType'], xp: number, id: string = sourceType): XpTransaction => ({
@@ -44,5 +44,15 @@ describe('missionsFor', () => {
     ]);
     expect(missions[0].title).toBe('آزمون شخصیت');
     expect(missions[0].completedAt).toBe('2026-10-01T10:00:00.000Z');
+  });
+});
+
+describe('badgesFor', () => {
+  it('awards a badge once its missions are done, dated by the mission', () => {
+    expect(badgesFor(missionsFor([]))).toEqual([]);
+
+    const badges = badgesFor(missionsFor([reward('avatar_created', 20)]));
+    expect(badges.map((b) => b.id)).toEqual(['stylist']);
+    expect(badges[0].earnedAt).toBe('2026-10-01T10:00:00.000Z');
   });
 });

@@ -13,23 +13,15 @@ import { SectionCard } from './SectionCard';
  * that link.
  *
  * Before the questionnaire is finished, the section is the questionnaire
- * offered as a mission instead.
+ * offered as a mission instead — the hub's one primary action.
  */
-export function SocialProfileSection({
-  result,
-  testIsPrimary,
-}: {
-  result: QuestionnaireResult | null;
-  /** Whether the questionnaire's action is the screen's primary one. */
-  testIsPrimary: boolean;
-}) {
+export function SocialProfileSection({ result }: { result: QuestionnaireResult | null }) {
   if (!result) {
     return (
       <section aria-label="پروفایل اجتماعی من">
         <PersonalityTestCard
           title="پروفایلت هنوز کامل نیست"
           body="آزمون کوتاه شخصیت رو کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم."
-          primary={testIsPrimary}
         />
       </section>
     );

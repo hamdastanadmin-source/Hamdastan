@@ -40,12 +40,14 @@ export function useAccountActions() {
     [router]
   );
 
-  /** Back to the hub, which plays the reward when this save earned one. */
+  /** Back to the hub, with the reward in the toast when this save earned one. */
   const saveAvatar = useCallback(
     async (input: AvatarInput): Promise<void> => {
       const { xpAwarded } = await accountService.saveAvatar(input);
-      toast.success('آواتارت ذخیره شد');
-      router.push(xpAwarded > 0 ? '/profile?reward=avatar_created' : '/profile');
+      toast.success(
+        xpAwarded > 0 ? `آواتارت ذخیره شد — ${toPersianDigits(xpAwarded)} XP گرفتی` : 'آواتارت ذخیره شد'
+      );
+      router.push('/profile');
       router.refresh();
     },
     [router]

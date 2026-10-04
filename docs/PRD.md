@@ -74,6 +74,7 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **XP** | Experience points, earned only by finishing missions. The total is the sum of the person's XP ledger; nothing else stores it. |
 | **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
 | **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
+| **Badge (نشان)** | A mark of achievement, earned once every mission it requires is finished. Derived, never stored. |
 | **MobileShell** | The 430px column every screen renders inside. |
 
 ---
@@ -354,18 +355,21 @@ holds خانه and پروفایل. Signing out is not on home.
 
 ### 4.4 Account — حساب من
 
-The person's identity and progress hub: "my identity, my progress, my
-profile" — not a settings page, not a game dashboard. Code in
+The person's identity hub: "my identity, my achievements, my profile" —
+not a settings page, not a game dashboard. Code in
 `apps/web/src/features/profile` and `apps/api/src/modules/account`.
 
 **Profile home — `/profile`.** One card (shadcn `Card`) per group, top to
 bottom:
 
-1. **Identity.** The avatar's portrait (tap → studio) beside the display
-   name (the `h1`) and `@username` (or «یه نام کاربری انتخاب کن»); under a
-   divider «سطح n», «xp / next XP» on a neutral bar and «n XP تا سطح بعد»;
-   then «ویرایش پروفایل» and «ویرایش آواتار» («آواتارت رو بساز» before one is
-   saved), both secondary.
+1. **Identity.** The avatar, large — head to chest on a soft neutral disc
+   with a small amber spark — and the whole stage is the link to the studio
+   (no separate edit control). Under it «نشان‌های من» with the count and
+   the earned badges in a three-column grid: a neutral circle with the
+   badge's icon and its title («با انجام ماموریت‌ها، نشان‌هات اینجا جمع
+   می‌شن.» when there are none). The display name is the screen's `h1` for
+   screen readers only; the name, username and edit buttons are not shown
+   here.
 2. **«پروفایل اجتماعی من».** The result's title, its two lines, the three
    insights as label/value rows and «مشاهده نتیجه کامل» (→ `/profile/social`,
    the full result with the five bars behind «جزئیات بیشتر»). No internal
@@ -373,20 +377,15 @@ bottom:
    mission card instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو
    کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه»,
    «+50 XP», «شروع آزمون».
-3. **«ماموریت‌های من».** «n از m انجام شد» beside the title (every mission
-   counts, the questionnaire included); open missions with title,
-   description, «+n XP», «انجام نشده» and their action; finished ones as rows
-   with a green check, «انجام شد» and the reward. The questionnaire is left
-   out of the list while open, because section 2 is already offering it.
-4. **«پیشرفت من».** Total XP beside the title, a line on how XP is earned,
-   and the five newest rewards («هنوز ماموریتی انجام ندادی.» when there are
-   none). The level and XP to the next level are on the identity card only.
-5. **«حساب».** «تنظیمات» and «راهنما و پشتیبانی». (Editing the profile is
-   on the identity card.)
+3. **«حساب».** «تنظیمات» and «راهنما و پشتیبانی». (Editing the profile is
+   under «تنظیمات».)
 
-**One primary action.** The next open mission, in catalog order, gets the
-violet button — the questionnaire first, then the avatar, then the profile.
-Everything else on the screen is neutral.
+The hub no longer lists missions or shows XP and level: what the person has
+achieved is shown as badges. Missions and the XP ledger still run behind
+them (they decide which badges are earned and which avatar items unlock).
+
+**One primary action.** While the questionnaire is open, its «شروع آزمون»
+is the violet button. Everything else on the screen is neutral.
 
 **Missions and XP (MVP).**
 
@@ -402,13 +401,26 @@ unused. A reward is granted by the action that earns it, never by a read,
 and at most once — the ledger's unique key decides, so two requests racing
 cannot both pay. Clearing a field later does not take XP back.
 
-**Reward motion.** A save that earns XP returns to `/profile?reward=<mission>`
-(the avatar) or toasts (a profile field). On arrival the level bar eases
-from where it was to where it is (700ms), «+n XP» rises off it and fades
-(800ms), and the mission's check scales in. The parameter only replays what
-the overview already says — a mission the API does not report as finished
-is ignored — and is removed from the URL. No confetti. Nothing moves with
-reduced motion.
+**Badges (MVP).**
+
+| Badge | Icon | Earned when |
+|-------|------|-------------|
+| خودشناس | sparkles | آزمون شخصیت is done |
+| خوش‌استایل | palette | ساخت آواتار is done |
+| معرفی‌شده | id-card | تکمیل پروفایل is done |
+
+The catalog is `BADGES` in `@hamdastan/config`: id, title, description, an
+icon key from `BADGE_ICONS`, and the missions it `requires`. A badge has no
+table — it is read off the missions, so a new one reaches everyone who
+already qualifies, and adding one is a catalog entry (plus one line in
+`apps/web`'s icon map if it brings a new icon key). Badges for the tasks
+and missions inside a world follow the same rule: once those missions are in
+`MISSIONS`, a badge that `requires` them is all it takes. Only earned badges
+are sent, in catalog order, dated by their last mission.
+
+**Reward feedback.** A save that earns XP says so in its toast — «آواتارت
+ذخیره شد — n XP گرفتی» for the avatar, «پروفایلت کامل شد — n XP گرفتی» for
+a profile field. No confetti.
 
 **Avatar studio — `/profile/avatar`.** «آواتار من»: the full-body figure,
 live as items are picked; tabs «ظاهر» (skin tone), «بالاتنه», «شلوار»,
@@ -616,7 +628,7 @@ decides nothing and keeps the cookies rather than signing the visitor out.
   `source_type` (`personality_test`, `avatar_created`, `profile_completed`,
   `mission`), `source_id`, `xp_amount`, `created_at`. Unique on
   `(user_id, source_type, source_id)` — that key is what makes a reward
-  once-only. XP total, level, mission status, "avatar completed" and
+  once-only. XP total, level, mission status, badges, "avatar completed" and
   "profile completed" are all derived (from this table, `avatar_config`, and
   `username` + `city`), so none of them is stored to drift.
 
@@ -647,7 +659,7 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | PUT | `/me/onboarding/questionnaire/answers/:questionId` | access cookie | `{ answer }` (shape per question) | `QuestionnaireState` |
 | POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireCompletion` — the state with `result`, plus `xpAwarded` (50 once, then 0); 400 until every question is answered |
 | POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
-| GET | `/me/account` | access cookie | — | `AccountOverview`: `{ profile, progress, missions, socialProfile, settings }` |
+| GET | `/me/account` | access cookie | — | `AccountOverview`: `{ profile, progress, missions, badges, socialProfile, settings }` |
 | PATCH | `/me/profile` | access cookie | any of `{ displayName, username, city, bio }` | `AccountUpdate`: `{ account, xpAwarded }`; 409 for a taken username |
 | PUT | `/me/avatar` | access cookie | `{ base, top, bottom, shoes, accessory }` | `AccountUpdate`; 403 for an item above the person's level |
 | PUT | `/me/settings` | access cookie | `{ notifications, showSocialProfile }` | `AccountUpdate` |
@@ -756,7 +768,7 @@ which predate this rule and still use a brand tint.)
   `--surface-stage` (black) instead — the onboarding intro. Screens do not add
   their own; `--gradient-hero-glow` is the halo for a piece of artwork.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
-  on a wrong code, the 800ms «+n XP» float (`animate-xp-float`), and the
+  on a wrong code and the
   200ms `Accordion` open/close (`animate-accordion-down` / `-up`).
   Everything honours `prefers-reduced-motion`.
 - Top-level screens (home, profile) end in `BottomNav` — خانه and پروفایل —

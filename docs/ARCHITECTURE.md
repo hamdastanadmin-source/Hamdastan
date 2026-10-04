@@ -201,10 +201,9 @@ screens — home and the profile — in place of a `ScreenFooter`: sticky for
 the same reason, with the current tab told by weight rather than colour.
 A screen one level down has `ScreenBack` instead and no bottom nav.
 
-**`XpAmount` and `XpGain`** (`components/xp/`) are the app's one way to
-write an amount of XP — isolated as an LTR run so «+۵۰ XP» does not reorder
-inside Persian text — and the 800ms float that marks a reward. Shared here
-because both the questionnaire and the profile use them.
+**`XpAmount`** (`components/xp/`) is the app's one way to write an amount
+of XP — isolated as an LTR run so «+۵۰ XP» does not reorder inside Persian
+text. Shared here because both the questionnaire and the profile use it.
 
 `MobileShell` draws the column's one ambient gradient (`--gradient-shell-glow`,
 via the `shell-ambient` class, which carries its own position, height and
@@ -294,7 +293,8 @@ graph acyclic — `onboarding → users, missions`, `missions → progress`.
 Ownership in the account area: `users` stores the profile columns,
 `progress` owns the XP ledger and the level arithmetic (`levelFor`,
 `toProgress`), `missions` reads mission status off the ledger
-(`missionsFor`) and grants a mission's reward once (`complete`).
+(`missionsFor`), badges off the missions (`badgesFor`), and grants a
+mission's reward once (`complete`).
 
 A module may add files beside the seven when a service delegates a pure
 computation: `onboarding` keeps its questionnaire scoring in

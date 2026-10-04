@@ -17,4 +17,3 @@ export {
 export { ScreenBack } from './layout/ScreenBack';
 export { BottomNav } from './layout/BottomNav';
 export { XpAmount } from './xp/XpAmount';
-export { XpGain } from './xp/XpGain';

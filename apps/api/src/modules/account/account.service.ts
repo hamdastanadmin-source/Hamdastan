@@ -8,7 +8,7 @@ import {
 import type { AccountOverview, AccountUpdate } from '@hamdastan/types';
 
 import { ForbiddenError } from '../../shared/errors';
-import { missionsFor, missionsService } from '../missions';
+import { badgesFor, missionsFor, missionsService } from '../missions';
 import { onboardingService } from '../onboarding';
 import { levelFor, progressService, toProgress } from '../progress';
 import { usersService, type ProfileFields, type UserRecord } from '../users';
@@ -35,6 +35,8 @@ async function overviewOf(user: UserRecord): Promise<AccountOverview> {
     onboardingService.getResult(user.id),
   ]);
 
+  const missions = missionsFor(transactions);
+
   return {
     profile: {
       displayName: user.displayName ?? user.firstName,
@@ -44,7 +46,8 @@ async function overviewOf(user: UserRecord): Promise<AccountOverview> {
       avatar: user.avatarConfig,
     },
     progress: toProgress(transactions),
-    missions: missionsFor(transactions),
+    missions,
+    badges: badgesFor(missions),
     socialProfile,
     settings: settingsOf(user),
   };

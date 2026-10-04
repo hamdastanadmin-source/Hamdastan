@@ -34,6 +34,7 @@ export type {
   AccountProfile,
   AccountProgress,
   AccountUpdate,
+  EarnedBadge,
   Mission,
   MissionStatus,
   XpActivity,

@@ -6,18 +6,19 @@ import { avatarColors as c } from '@hamdastan/ui/tokens';
  * The avatar, drawn from its five catalog ids as flat layered SVG.
  *
  * One drawing serves every size: `frame` picks which part of it the viewBox
- * shows — the whole figure in the studio, head and shoulders in the
+ * shows — the whole figure in the studio, head to chest in the
  * identity block, one garment's region in an item preview — so a preview is
  * always exactly what that item looks like on this person.
  *
  * Every colour is an avatar token (`avatarColors`), never a literal.
  */
 
-export type AvatarFrame = 'full' | 'portrait' | AvatarSlot;
+export type AvatarFrame = 'full' | 'portrait' | 'bust' | AvatarSlot;
 
 const VIEW_BOX: Record<AvatarFrame, string> = {
   full: '0 0 120 250',
   portrait: '24 8 72 72',
+  bust: '14 4 92 92',
   base: '24 8 72 72',
   accessory: '22 4 76 64',
   top: '12 54 96 96',

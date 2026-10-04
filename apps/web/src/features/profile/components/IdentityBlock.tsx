@@ -1,81 +1,81 @@
 import Link from 'next/link';
-import { Pencil } from 'lucide-react';
+import { IdCard, Palette, Sparkles, type LucideIcon } from 'lucide-react';
 
-import { DEFAULT_AVATAR } from '@hamdastan/config';
-import type { AccountProfile, AccountProgress } from '@hamdastan/types';
-import { Button, Card, CardContent, CardFooter, Separator } from '@hamdastan/ui';
-
-import { ScreenTitle } from '@/components';
+import { DEFAULT_AVATAR, type BadgeIcon } from '@hamdastan/config';
+import type { AccountProfile, EarnedBadge } from '@hamdastan/types';
+import { Badge, Card, CardContent } from '@hamdastan/ui';
 
 import { AvatarFigure } from './AvatarFigure';
-import { XpProgressBar } from './XpProgressBar';
+
+/** One drawing per `BADGE_ICONS` key; a new key in the catalog fails to compile until it has one. */
+const BADGE_ICON: Record<BadgeIcon, LucideIcon> = {
+  sparkles: Sparkles,
+  palette: Palette,
+  'id-card': IdCard,
+};
 
 /**
- * The top of the hub, as one card: who this is (avatar, the name as the
- * screen's `h1`, the username), how far they have come (the level bar), and
- * the two ways to change any of it, both secondary — the screen's one
- * primary action is further down, on whatever mission is next.
- *
- * Before an avatar is saved the default one stands in, and its action reads
- * «آواتارت رو بساز».
+ * The top of the hub, as one card: the whole avatar, large, as a link to
+ * the avatar studio, and under it the badges earned so far. The name is the
+ * screen's `h1` for assistive technology only; the screen shows the avatar.
  */
-export function IdentityBlock({
-  profile,
-  progress,
-  gained,
-}: {
-  profile: AccountProfile;
-  progress: AccountProgress;
-  gained: number;
-}) {
-  const name = profile.displayName ?? 'دوست من';
-
+export function IdentityBlock({ profile, badges }: { profile: AccountProfile; badges: EarnedBadge[] }) {
   return (
     <section aria-label="هویت من">
-      <Card className="rounded-2xl shadow-none">
-        <CardContent className="flex flex-col gap-5 p-5">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/profile/avatar"
-              aria-label="ویرایش آواتار"
-              className="group relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
-            >
-              <span className="block size-20 overflow-hidden rounded-full border border-border bg-secondary animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none">
-                <AvatarFigure avatar={profile.avatar ?? DEFAULT_AVATAR} frame="portrait" label="" className="size-full" />
-              </span>
-              <span className="absolute -bottom-0.5 -end-0.5 flex size-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors group-hover:text-foreground">
-                <Pencil aria-hidden="true" className="size-3.5" />
-              </span>
-            </Link>
+      <h1 className="sr-only">{profile.displayName ?? 'دوست من'}</h1>
 
-            <ScreenTitle
-              className="min-w-0"
-              title={name}
-              description={
-                profile.username ? (
-                  <bdi dir="ltr">@{profile.username}</bdi>
-                ) : (
-                  <Link href="/profile/edit" className="underline-offset-4 hover:text-foreground hover:underline">
-                    یه نام کاربری انتخاب کن
-                  </Link>
-                )
-              }
-            />
+      <Card className="overflow-hidden rounded-2xl shadow-none">
+        <Link
+          href="/profile/avatar"
+          aria-label="ویرایش آواتار"
+          className="relative flex justify-center overflow-hidden bg-surface-stage pt-8 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          {/* A soft disc behind the head, and a small spark beside it. */}
+          <span aria-hidden="true" className="absolute top-6 size-56 rounded-full bg-secondary" />
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="absolute end-10 top-6 size-8 text-warning"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M12 3v5M4 9l4 3M20 9l-4 3" />
+          </svg>
+
+          <AvatarFigure
+            avatar={profile.avatar ?? DEFAULT_AVATAR}
+            frame="bust"
+            label=""
+            className="relative size-64 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none"
+          />
+        </Link>
+
+        <CardContent className="flex flex-col gap-4 border-t border-border p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">نشان‌های من</h2>
+            <Badge variant="secondary">{badges.length.toLocaleString('fa-IR')}</Badge>
           </div>
 
-          <Separator />
-
-          <XpProgressBar progress={progress} gained={gained} />
+          {badges.length === 0 ? (
+            <p className="text-sm text-muted-foreground">با انجام ماموریت‌ها، نشان‌هات اینجا جمع می‌شن.</p>
+          ) : (
+            <ul className="grid grid-cols-3 gap-3">
+              {badges.map((badge) => {
+                const Icon = BADGE_ICON[badge.icon];
+                return (
+                  <li key={badge.id} title={badge.description} className="flex flex-col items-center gap-2 text-center">
+                    <span className="flex size-14 items-center justify-center rounded-full border border-border bg-secondary">
+                      <Icon aria-hidden="true" className="size-6" />
+                    </span>
+                    <span className="text-xs font-medium">{badge.title}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
-
-        <CardFooter className="grid grid-cols-2 gap-3 px-5 pb-5">
-          <Button asChild variant="outline" size="touch">
-            <Link href="/profile/edit">ویرایش پروفایل</Link>
-          </Button>
-          <Button asChild variant="outline" size="touch">
-            <Link href="/profile/avatar">{profile.avatar ? 'ویرایش آواتار' : 'آواتارت رو بساز'}</Link>
-          </Button>
-        </CardFooter>
       </Card>
     </section>
   );

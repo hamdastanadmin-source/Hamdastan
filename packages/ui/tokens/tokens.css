@@ -372,8 +372,6 @@
   /* An SVG stroke drawing itself in, once. Needs `pathLength="1"` and
      `stroke-dasharray="1"` on the element. */
   --animate-draw: hd-draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  /* «+50 XP» rising off the bar it was added to and fading — once, 800ms. */
-  --animate-xp-float: hd-xp-float 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
   /* shadcn's `Accordion` opening and closing to Radix's measured height. */
   --animate-accordion-down: hd-accordion-down 200ms ease-out;
   --animate-accordion-up: hd-accordion-up 200ms ease-out;
@@ -389,13 +387,6 @@
   @keyframes hd-caret-blink {
     0%, 70%, 100% { opacity: 1; }
     20%, 50% { opacity: 0; }
-  }
-
-  @keyframes hd-xp-float {
-    0% { opacity: 0; transform: translateY(0.375rem); }
-    25% { opacity: 1; transform: translateY(0); }
-    70% { opacity: 1; transform: translateY(-0.375rem); }
-    100% { opacity: 0; transform: translateY(-0.875rem); }
   }
 
   @keyframes hd-draw {

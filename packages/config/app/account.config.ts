@@ -70,6 +70,51 @@ export const MISSION_BY_ID: ReadonlyMap<MissionId, MissionDefinition> = new Map(
   MISSIONS.map((mission) => [mission.id, mission])
 );
 
+// ─── Badges ──────────────────────────────────────────────────────────────────
+
+/** Icon keys; `apps/web` maps each to its drawing, so a new key needs one line there. */
+export const BADGE_ICONS = ['sparkles', 'palette', 'id-card'] as const;
+export type BadgeIcon = (typeof BADGE_ICONS)[number];
+
+export type BadgeDefinition = {
+  id: string;
+  title: string;
+  description: string;
+  icon: BadgeIcon;
+  /** Earned once every one of these missions is done. */
+  requires: readonly MissionId[];
+};
+
+/**
+ * In the order they are shown. Like a mission, a badge is not stored: it is
+ * earned exactly when its missions are, so a badge added here is granted at
+ * once to everyone who already qualifies. Adding one is an entry here and
+ * nothing else.
+ */
+export const BADGES: readonly BadgeDefinition[] = [
+  {
+    id: 'self_aware',
+    title: 'خودشناس',
+    description: 'آزمون شخصیت رو تموم کردی.',
+    icon: 'sparkles',
+    requires: ['personality_test'],
+  },
+  {
+    id: 'stylist',
+    title: 'خوش‌استایل',
+    description: 'آواتار خودت رو ساختی.',
+    icon: 'palette',
+    requires: ['avatar_created'],
+  },
+  {
+    id: 'introduced',
+    title: 'معرفی‌شده',
+    description: 'پروفایلت رو کامل کردی.',
+    icon: 'id-card',
+    requires: ['profile_completed'],
+  },
+];
+
 /** What the questionnaire's cards say it takes. */
 export const QUESTIONNAIRE_DURATION_LABEL = 'حدود ۵ دقیقه';
 

@@ -4,57 +4,30 @@ import type { AccountOverview } from '@hamdastan/types';
 
 import { BottomNav, Screen, ScreenBody, ScreenHeader } from '@/components';
 
-import { primaryMissionOf, rewardFrom } from '../utils/account-view';
 import { IdentityBlock } from './IdentityBlock';
 import { ListGroup, ListRow } from './ListGroup';
-import { MissionsSection } from './MissionsSection';
-import { ProgressSection } from './ProgressSection';
 import { SocialProfileSection } from './SocialProfileSection';
 
 /**
- * The account hub — "my identity, my progress, my profile", not a settings
- * page and not a game dashboard. One card per group, top to bottom in the
- * order that matters:
+ * The account hub — "my identity, my profile", not a settings page and not a
+ * game dashboard. One card per group, top to bottom:
  *
- *   1. identity and avatar, with level and XP
+ *   1. the avatar, with the badges earned
  *   2. the social profile (or the questionnaire, as a mission)
- *   3. missions, with how many are done
- *   4. progress: total XP and recent rewards
- *   5. «حساب»: settings and help
+ *   3. «حساب»: settings and help
  *
- * Exactly one primary (violet) action: the next open mission. Everything
- * else is neutral.
+ * At most one primary (violet) action: the questionnaire, while it is open.
+ * Everything else is neutral.
  */
-export function ProfileHome({
-  overview,
-  rewardParam,
-}: {
-  overview: AccountOverview;
-  /** `?reward=<missionId>`, set by a save that just earned one. */
-  rewardParam?: string | string[];
-}) {
-  const primaryId = primaryMissionOf(overview.missions);
-  const reward = rewardFrom(rewardParam, overview);
-
+export function ProfileHome({ overview }: { overview: AccountOverview }) {
   return (
     <Screen>
       <ScreenHeader />
 
       <ScreenBody className="gap-4 pb-10">
-        <IdentityBlock profile={overview.profile} progress={overview.progress} gained={reward?.xp ?? 0} />
+        <IdentityBlock profile={overview.profile} badges={overview.badges} />
 
-        <SocialProfileSection
-          result={overview.socialProfile}
-          testIsPrimary={primaryId === 'personality_test'}
-        />
-
-        <MissionsSection
-          missions={overview.missions}
-          primaryId={primaryId}
-          freshId={reward?.missionId ?? null}
-        />
-
-        <ProgressSection progress={overview.progress} />
+        <SocialProfileSection result={overview.socialProfile} />
 
         <ListGroup title="حساب">
           <ListRow icon={Settings} label="تنظیمات" href="/profile/settings" />
