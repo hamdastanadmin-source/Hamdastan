@@ -98,7 +98,12 @@ echo "▸ building and starting containers"
 ssh "${SSH_OPTS[@]}" "$TARGET" "cd '$DEPLOY_PATH' && \
   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
     up -d --build --remove-orphans && \
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+    restart nginx && \
   docker image prune -f >/dev/null"
+# nginx resolves `api` and `web` once, at start. When only those containers
+# are replaced they come back on new addresses and nginx keeps proxying to the
+# old ones (502), so it is restarted to pick up the new ones.
 
 # ── Verify ────────────────────────────────────────────────────
 # /_up is nginx's proxy to the API's readiness probe, so a 200 here means the

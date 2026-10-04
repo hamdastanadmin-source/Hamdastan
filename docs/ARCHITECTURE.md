@@ -430,6 +430,12 @@ server over SSH.
 time, which is why the public URL is a Docker build argument and not only a
 runtime variable. Changing it means rebuilding, not restarting.
 
+The API validates its environment at boot (`apps/api/src/config/env.ts`) and
+refuses to start on an unknown value, so `.env.production` must use the names
+in the template. While the site is served over plain HTTP, `COOKIE_SECURE=false`
+is required: session cookies default to `Secure` in production and a browser
+drops them on `http://`.
+
 ---
 
 ## 6. Design system (`packages/ui`)

@@ -55,7 +55,10 @@ ARG NEXT_PUBLIC_WEB_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
     NEXT_PUBLIC_WEB_BASE_URL=$NEXT_PUBLIC_WEB_BASE_URL
 
-COPY --from=deps /app/node_modules ./node_modules
+# The whole tree, not just the root node_modules: npm nests a dependency under
+# its workspace (apps/web/node_modules) when versions conflict, and leaving
+# those out fails the build with "module not found".
+COPY --from=deps /app ./
 COPY . .
 
 RUN npm run build --workspace @hamdastan/web
