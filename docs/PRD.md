@@ -279,8 +279,8 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   all twenty are answered, then marks the questionnaire done and
   `onboarding_stage` 2, and grants the personality-test mission's +50 XP —
   once: the response's `xpAwarded` is 50 on the call that granted it and 0
-  on every later one. When it is 50 a green badge above the card shows
-  «پروفایلت آماده‌ست · +۵۰ XP گرفتی», rising in once. «ورود به اپلیکیشن» calls
+  on every later one. When it is 50 the action carries the reward —
+  «ورود به اپلیکیشن +۵۰ XP»; on a later visit it is the plain label. It calls
   `POST /me/onboarding/complete`, which refuses before stage 1, and follows
   the `nextStep` it returns — home.
 - **Later.** An account past onboarding can still open
