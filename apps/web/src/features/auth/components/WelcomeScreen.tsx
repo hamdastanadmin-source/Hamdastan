@@ -2,17 +2,17 @@ import { Fragment } from 'react';
 import { getImageProps } from 'next/image';
 import Link from 'next/link';
 
-import { Button, ThemeToggle } from '@hamdastan/ui';
+import { Button } from '@hamdastan/ui';
 
-import { Screen, ScreenBody, ScreenFooter, ScreenHeader } from '@/components';
+import { Screen, ScreenBody, ScreenFooter } from '@/components';
 
 /**
  * First contact: what the product is, in one look.
  *
- * A server component; `ThemeToggle` is the one client island on it. The
- * entrance is `tailwindcss-animate`'s `animate-in`, which is CSS: it plays on
- * first paint without waiting for hydration, and `motion-reduce` turns it off
- * for anyone who has asked for less movement.
+ * A server component with no client island. The entrance is
+ * `tailwindcss-animate`'s `animate-in`, which is CSS: it plays on first paint
+ * without waiting for hydration, and `motion-reduce` turns it off for anyone
+ * who has asked for less movement.
  */
 
 const HEADLINE = 'دنیاهای داستانی‌ات منتظرتن';
@@ -61,17 +61,8 @@ const SUBTITLE_DELAY =
 export function WelcomeScreen() {
   return (
     <Screen>
-      {/* No lockup here. The mark and the name were repeating what the
-          artwork below already says, and they were taking the top of the
-          screen to do it. What a first screen does need is the theme switch:
-          this is the first thing a visitor sees and the only screen where
-          they have nothing else to do. */}
-      <ScreenHeader className="justify-end">
-        <div className="-me-3 animate-in fade-in duration-500 motion-reduce:animate-none">
-          <ThemeToggle />
-        </div>
-      </ScreenHeader>
-
+      {/* No header. The mark and the name would repeat what the artwork
+          already says, and the theme is chosen in settings, not here. */}
       <ScreenBody center className="gap-10 text-center">
         <div className="relative animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none">
           {/* A halo behind the artwork so it sits *in* the screen rather than

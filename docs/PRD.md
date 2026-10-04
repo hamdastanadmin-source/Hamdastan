@@ -122,9 +122,10 @@ top-aligned a fixed distance under the header, start-aligned (right, in RTL),
 and descends in weight: bold title, body, then a quieter
 line. It streams in in that order a word at a time — about two seconds in
 all — and the action appears last; with reduced motion it is all there at
-once. Under the text, an animated illustration (`onboarding-intro.webp`,
-source in `assets/illustrations/`) arrives with the action; reduced motion
-gets its first frame. The header has no control: the button is the only way on, and stage 1
+once. Under the text, an animated illustration — a person fitting two
+puzzle pieces together (`onboarding-intro.webp`, 360×202, source in
+`assets/illustrations/`) — arrives with the action; reduced motion gets its
+first frame (`onboarding-intro-still.webp`). The header has no control: the button is the only way on, and stage 1
 has its own back to this screen.
 
 **Stage 1, interests — `/onboarding/interests`.**
@@ -712,7 +713,7 @@ whitespace is dropped.
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
 | Radius | `--radius: 0.75rem` |
 | Column width | `--shell-max-width: 430px`, as `max-w-shell` and the `shell:` breakpoint |
-| Theme | Dark by default, as a `.dark` class on `<html>`; light is chosen in settings and kept per device |
+| Theme | Light by default; dark is a `.dark` class on `<html>`, chosen in settings and kept per device |
 | Layout | RTL |
 
 Colours are derived from the variables at the top of

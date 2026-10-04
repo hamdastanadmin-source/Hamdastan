@@ -17,4 +17,3 @@ export * from './components';
 export * from './icons';
 export * from './patterns/IconBadge';
 export * from './patterns/SectionHeader';
-export * from './patterns/ThemeToggle';

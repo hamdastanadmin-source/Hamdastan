@@ -58,6 +58,8 @@
     --primary-foreground: 0 0% 98%;
 
     /* ─── Neutral Surfaces ──────────────────────────────────────── */
+    /* Mirrored as THEME_COLOR in tokens/theme.ts — the browser chrome and
+       the web manifest need this value as a literal. */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -194,8 +196,6 @@
        tinted toward the brand: the violet primary is the only colour on the
        screen, and it reads as the action because nothing around it shares
        its hue. Every foreground below clears 4.5:1 on its own surface. */
-    /* Mirrored as THEME_COLOR in tokens/theme.ts — the browser chrome and
-       the web manifest need this value as a literal. */
     --background: 240 5% 7%;
     --foreground: 0 0% 96%;
     --card: 240 4% 11%;

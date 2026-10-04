@@ -12,7 +12,7 @@
 export type Theme = 'dark' | 'light';
 
 export const THEME_STORAGE_KEY = 'theme';
-export const DEFAULT_THEME: Theme = 'dark';
+export const DEFAULT_THEME: Theme = 'light';
 
 /**
  * The colour the browser paints its own chrome with — the Android status bar,
@@ -22,13 +22,13 @@ export const DEFAULT_THEME: Theme = 'dark';
  * from the web manifest, both of which are parsed before any stylesheet, so a
  * `var(--background)` here would resolve to nothing. It is the one place a
  * colour is written twice, which is why it lives beside the tokens rather
- * than in an app — and why `hsl(240 5% 7%)` in `tokens.css` is named right
+ * than in an app — and why `hsl(0 0% 100%)` in `tokens.css` is named right
  * above it.
  *
- * Keep it equal to `--background` in `.dark`, and to `theme_color` and
+ * Keep it equal to `--background` in `:root` (the light default), and to `theme_color` and
  * `background_color` in each app's `manifest.webmanifest`.
  */
-export const THEME_COLOR = '#111113';
+export const THEME_COLOR = '#ffffff';
 
 export function applyTheme(theme: Theme): void {
   const html = document.documentElement;
@@ -53,4 +53,4 @@ export function readStoredTheme(): Theme {
  * loads. The markup ships with the default theme already applied, so this
  * only has to undo it.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light')}}catch(e){}})()`;
+export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()`;

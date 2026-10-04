@@ -62,8 +62,8 @@ export default async function RootLayout({
     <html
       lang={APP_LANG}
       dir={APP_DIR}
-      className={`dark ${yekanBakh.variable}`}
-      data-theme="dark"
+      className={yekanBakh.variable}
+      data-theme="light"
       suppressHydrationWarning
     >
       <head>

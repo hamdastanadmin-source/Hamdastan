@@ -438,7 +438,7 @@ runtime variable. Changing it means rebuilding, not restarting.
 packages/ui/
 ├── components/  the public barrel, with the RTL wrappers
 ├── primitives/  shadcn/Radix building blocks — the only place Radix is imported
-├── patterns/    composed, reusable pieces (SectionHeader, ThemeToggle)
+├── patterns/    composed, reusable pieces (SectionHeader)
 ├── icons/       the dynamic icon loader
 ├── tokens/      colors, typography, spacing, radius, shadows
 └── styles/      the shared base layer
