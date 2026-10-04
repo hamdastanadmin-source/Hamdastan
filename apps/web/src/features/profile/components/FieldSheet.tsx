@@ -54,7 +54,7 @@ const FIELDS: Record<
 > = {
   displayName: {
     title: 'نام',
-    description: 'همون اسمی که بقیه توی هم‌دستان می‌بینن.',
+    description: 'همون اسمی که بقیه توی هم‌داستان می‌بینن.',
     schema: displayNameSchema,
   },
   username: {

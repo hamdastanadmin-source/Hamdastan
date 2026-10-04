@@ -243,8 +243,8 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
 - **Processing.** «داریم پروفایلت رو می‌سازیم» / «جواب‌هات رو کنار هم
   می‌ذاریم.» for as long as the request takes, held to 0.8s — no spinner; the
   section mark's last dot fills.
-- **Result — meaning first, numbers last.** «پروفایل اجتماعی تو» (a quiet
-  muted eyebrow, not the accent), a title
+- **Result — meaning first, numbers last.** One neutral card, made to be
+  screenshotted: «پروفایل اجتماعی تو» (an outline badge, not the accent), a title
   and at most two sentences built from whichever of the person's dimensions
   are furthest from the middle of the scale (joined with «و», or «ولی» when
   they pull opposite ways). Then three plain-language insights, each the end
@@ -252,9 +252,10 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   جمع‌های صمیمی و به‌اندازه / جمع‌های کوچیک و آروم), «توی تجربه‌ها دنبال»
   (NV: تازگی / تنوع / آشنایی, with AO: فعالیت / حس خوب جمع / گفتگو) and
   «توی گروه ترجیح می‌دی» (ST: برنامه‌ی مشخص / ساختار منعطف / تصمیم‌های
-  لحظه‌ای), high ≥ 7, low ≤ 4. The five bars (انرژی اجتماعی، تجربه‌های
+  لحظه‌ای), high ≥ 7, low ≤ 4, each a row of its own with a small icon,
+  divided by hairlines; the card is signed «هم‌داستان». The five bars (انرژی اجتماعی، تجربه‌های
   تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) wait behind
-  «جزئیات بیشتر». Then the value line «از این شناخت استفاده می‌کنیم تا
+  «جزئیات بیشتر» (an accordion). Then the value line «از این شناخت استفاده می‌کنیم تا
   آدم‌ها، گروه‌ها و تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and
   «ورود به اپلیکیشن». No internal codes and no diagnostic language. It
   is a simplification, built in `onboarding.result.ts`; the stored profile is
@@ -263,8 +264,8 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   all twenty are answered, then marks the questionnaire done and
   `onboarding_stage` 2, and grants the personality-test mission's +50 XP —
   once: the response's `xpAwarded` is 50 on the call that granted it and 0
-  on every later one. When it is 50 the result shows «پروفایلت آماده‌ست ·
-  +۵۰ XP گرفتی», rising in once. «ورود به اپلیکیشن» calls
+  on every later one. When it is 50 a green badge above the card shows
+  «پروفایلت آماده‌ست · +۵۰ XP گرفتی», rising in once. «ورود به اپلیکیشن» calls
   `POST /me/onboarding/complete`, which refuses before stage 1, and follows
   the `nextStep` it returns — home.
 - **Later.** An account past onboarding can still open

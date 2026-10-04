@@ -5,7 +5,7 @@
  * alike. App-specific configuration belongs in that app, not in this file.
  */
 
-export const APP_NAME = 'هم‌دستان';
+export const APP_NAME = 'هم‌داستان';
 export const APP_SLUG = 'hamdastan';
 
 /** Default ports each app listens on in development. */

@@ -5,7 +5,7 @@ export default function AdminHomePage() {
     <div className="space-y-8 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">پنل مدیریت</h1>
-        <p className="text-muted-foreground mt-1">هم‌دستان</p>
+        <p className="text-muted-foreground mt-1">هم‌داستان</p>
       </div>
 
       <Card>

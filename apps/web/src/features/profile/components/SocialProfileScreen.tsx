@@ -15,7 +15,7 @@ export function SocialProfileScreen({ result }: { result: QuestionnaireResult })
         <ScreenBack href="/profile" />
       </ScreenHeader>
 
-      <ScreenBody className="gap-8 animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none">
+      <ScreenBody className="gap-6 animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none">
         <SocialProfileResult result={result} eyebrow="پروفایل اجتماعی من" />
 
         <p className="mt-auto text-sm leading-relaxed text-muted-foreground">
