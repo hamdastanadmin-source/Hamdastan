@@ -771,6 +771,12 @@ which predate this rule and still use a brand tint.)
 512 plus a maskable 512, `viewport-fit=cover` with `env(safe-area-inset-*)`
 padding.
 
+The brand mark is the owl in `assets/brand/hamdastan-logo.svg` (green
+`#004431`). `public/images/brand/logo.svg` in each app, `apps/web`'s
+`public/icons/` (SVG, 192, 512, Apple touch 180, maskable 512 with the mark
+scaled into the safe zone) and `favicon.ico` are exported from it on the white
+app background; re-export them all when the master changes.
+
 ---
 
 ## 10. Non-Functional Requirements
@@ -794,6 +800,7 @@ padding.
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | Connect Kaveh-Negar | High | Adapter written; set `SMS_PROVIDER=kavenegar` and turn `OTP_DEBUG_DISPLAY` off |
+| Final logo and app icons | Done | Owl mark from `assets/brand/hamdastan-logo.svg`; see §9.3 |
 | Final Welcome artwork | Done | Animated WebP at `apps/web/public/images/brand/welcome-hero.webp` (source in `assets/illustrations/`), with a still first frame for reduced motion |
 | Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
 | Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
