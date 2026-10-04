@@ -1,9 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { INTEREST_CATEGORIES, MIN_INTEREST_CATEGORIES } from '@hamdastan/config';
+import { Accordion } from '@hamdastan/ui';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
 import { Screen, ScreenBack, ScreenBody, ScreenHeader, ScreenTitle } from '@/components';
@@ -13,10 +15,12 @@ import { useInterestSelection } from '../hooks/use-interest-selection';
 import { categorySelection } from '../utils/interest-selection';
 import { InterestCategoryCard } from './InterestCategoryCard';
 import { OnboardingBottomCTA } from './OnboardingBottomCTA';
-import { OnboardingProgress } from './OnboardingProgress';
 
 /**
  * Onboarding stage 1: what are you into?
+ *
+ * Categories start collapsed, and one opens at a time; which one is open is
+ * view state only, so the picks survive collapsing and opening another.
  *
  * The body scrolls with the page and the action stays pinned in the sticky
  * footer, which sits in the flow — so the last card ends above it rather than
@@ -29,6 +33,7 @@ export function InterestsStep({ initialInterestIds }: { initialInterestIds: stri
   const router = useRouter();
   const { selected, selectedCategoryCount, canContinue, isSaving, setCategorySelection, save } =
     useInterestSelection(initialInterestIds);
+  const [openCategoryId, setOpenCategoryId] = useState('');
 
   const handleContinue = async () => {
     try {
@@ -52,8 +57,6 @@ export function InterestsStep({ initialInterestIds }: { initialInterestIds: stri
       </ScreenHeader>
 
       <ScreenBody className="gap-6">
-        <OnboardingProgress step={1} />
-
         <div className="flex flex-col gap-2">
           <ScreenTitle
             title="به چه چیزهایی علاقه داری؟"
@@ -64,16 +67,27 @@ export function InterestsStep({ initialInterestIds }: { initialInterestIds: stri
           </p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <Accordion
+          type="single"
+          collapsible
+          value={openCategoryId}
+          onValueChange={setOpenCategoryId}
+          className="flex flex-col gap-2"
+        >
           {INTEREST_CATEGORIES.map((category) => (
             <InterestCategoryCard
               key={category.id}
               category={category}
               value={categorySelection(selected, category)}
               onValueChange={(values) => setCategorySelection(category, values)}
+              onOpen={() => setOpenCategoryId(category.id)}
+              onClear={() => {
+                setCategorySelection(category, []);
+                if (openCategoryId === category.id) setOpenCategoryId('');
+              }}
             />
           ))}
-        </div>
+        </Accordion>
       </ScreenBody>
 
       <OnboardingBottomCTA

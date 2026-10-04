@@ -14,6 +14,12 @@ import * as React from 'react';
 import { APP_DIR } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../primitives/accordion';
 import { Alert, AlertDescription, AlertTitle } from '../primitives/alert';
 import {
   Avatar,
@@ -166,6 +172,7 @@ import {
 
 // ─── Pass-through re-exports ─────────────────────────────────────────────────
 
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
 export { Alert, AlertTitle, AlertDescription };
 export {
   Avatar,

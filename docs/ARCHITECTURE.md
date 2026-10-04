@@ -452,7 +452,7 @@ portalled content, and a primitive imported directly skips them.
 
 `primitives/` holds shadcn/ui's components, as shadcn ships them. **Where one
 exists, it is used** — `Button`, `Input`, `Label`, `Form`, `InputOTP`,
-`Select`, `ToggleGroup`, `Alert`, `Separator`, the Sonner `Toaster`. A
+`Select`, `ToggleGroup`, `Accordion`, `Alert`, `Separator`, the Sonner `Toaster`. A
 hand-written equivalent loses the keyboard handling and the ARIA wiring that
 are most of what those components are, and it loses them silently.
 

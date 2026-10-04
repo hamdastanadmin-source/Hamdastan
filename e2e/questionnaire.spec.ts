@@ -71,7 +71,13 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
 
   // Stage 1 leads into stage 2.
   await page.goto('/onboarding/interests');
-  for (const interest of ['کنسرت', 'گالری‌گردی', 'ورکشاپ']) {
+  // Categories start collapsed: open each one, then pick from it.
+  for (const [category, interest] of [
+    ['موسیقی و اجرا', 'کنسرت'],
+    ['هنر و خلاقیت', 'گالری‌گردی'],
+    ['آموزش و مهارت', 'ورکشاپ'],
+  ]) {
+    await page.getByRole('button', { name: category }).click();
     await page.getByRole('button', { name: interest }).click();
   }
   await next(page).click();

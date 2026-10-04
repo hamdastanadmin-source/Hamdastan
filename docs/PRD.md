@@ -129,15 +129,33 @@ has its own back to this screen.
 
 **Stage 1, interests — `/onboarding/interests`.**
 
-- «مرحله ۱ از ۳» over a progress bar, the title «به چه چیزهایی علاقه داری؟»,
+- The title «به چه چیزهایی علاقه داری؟» (no step counter or progress bar),
   and a quiet line that every pick shapes the avatar.
-- Six categories, each a card holding its interests as wrapping chips:
-  موسیقی و اجرا، هنر و خلاقیت، آموزش و مهارت، تفریح و سبک زندگی،
-  اجتماعی و کسب‌وکار، آنلاین. The catalog, with its ids, is
+- Six categories: موسیقی و اجرا، هنر و خلاقیت، آموزش و مهارت، تفریح و سبک
+  زندگی، اجتماعی و کسب‌وکار، آنلاین. The catalog, with its ids, is
   `packages/config/app/onboarding.config.ts`, shared with `apps/api`.
-- A chip toggles on tap. Selected is a brand tint, a brand border **and** a
-  check mark, so it does not rely on colour; each chip is a stock
-  `ToggleGroupItem` and announces `aria-pressed`.
+- Each category is a card in a shadcn `Accordion` (`type="single"`). All
+  start collapsed, so the screen opens on six cards and no chips; tapping a
+  card opens it and closes whichever was open. Which row is open is view
+  state only — collapsing never touches the picks.
+- Each category is a card (radius 16px, 20px × 24px padding, 8px apart).
+  Its header runs, from the start edge: a shadcn `Checkbox`, the title
+  (18px bold), «n انتخاب» once something is picked, an X, and the chevron
+  at the end edge. A category is **selected when at least one of its
+  interests is** (that is what the three-category rule counts); the
+  checkbox mirrors it, and a selected card takes a brand border. Ticking an
+  empty checkbox opens that card to pick from; unticking it, or the X
+  (44px target, 12px before the chevron), clears that category's picks and
+  collapses it.
+- Open, the same card grows: 20px under the header, the interests follow as
+  40px pills, 8px apart, that wrap. A chip toggles on tap. Unselected is
+  outlined; selected is filled with the brand colour (a fill, not just a
+  tint, so it does not rely on hue). Each chip is a stock `ToggleGroupItem`
+  and announces `aria-pressed`.
+- **Brand exception:** on this screen the checkbox, the selected chips and
+  the selected card's border use the brand violet — a product decision for
+  the interest picker, against the general rule that violet is for the
+  primary action only.
 - **The rule is breadth, not volume:** interests from at least **three
   different categories**. There is no maximum. Ten music picks and five
   sports picks is two categories and does not pass.
@@ -684,9 +702,10 @@ not used for surfaces, cards, headers, borders, focus rings, tabs, chips,
 selected states, icons, progress or XP bars, badges or glows. Everything
 around it is neutral: charcoal surfaces, white text, grey secondary text,
 hairline borders; a selected item is a foreground border, a lifted surface
-and a check. Success is green, destructive red, warning amber. (Onboarding
-stage 1's chips and the questionnaire's selected answers predate this rule
-and still use a brand tint.)
+and a check. Success is green, destructive red, warning amber. (Two exceptions:
+onboarding stage 1 — its checkboxes, selected chips and selected cards are
+violet by product decision — and the questionnaire's selected answers,
+which predate this rule and still use a brand tint.)
 
 ### 9.2 Rules for a screen
 
@@ -714,7 +733,8 @@ and still use a brand tint.)
   `--surface-stage` (black) instead — the onboarding intro. Screens do not add
   their own; `--gradient-hero-glow` is the halo for a piece of artwork.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
-  on a wrong code and the 800ms «+n XP» float (`animate-xp-float`).
+  on a wrong code, the 800ms «+n XP» float (`animate-xp-float`), and the
+  200ms `Accordion` open/close (`animate-accordion-down` / `-up`).
   Everything honours `prefers-reduced-motion`.
 - Top-level screens (home, profile) end in `BottomNav` — خانه and پروفایل —
   instead of a footer; a screen one step down has a back control instead.

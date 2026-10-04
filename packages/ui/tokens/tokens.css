@@ -374,6 +374,9 @@
   --animate-draw: hd-draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
   /* «+50 XP» rising off the bar it was added to and fading — once, 800ms. */
   --animate-xp-float: hd-xp-float 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* shadcn's `Accordion` opening and closing to Radix's measured height. */
+  --animate-accordion-down: hd-accordion-down 200ms ease-out;
+  --animate-accordion-up: hd-accordion-up 200ms ease-out;
 
   @keyframes hd-shake {
     0%, 100% { transform: translateX(0); }
@@ -398,6 +401,16 @@
   @keyframes hd-draw {
     from { stroke-dashoffset: 1; }
     to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes hd-accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+
+  @keyframes hd-accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
   }
 
   /* 1.5s in, ~2.9s held, 0.6s out. */
