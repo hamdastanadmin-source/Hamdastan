@@ -6,6 +6,7 @@ import { Button } from '@hamdastan/ui';
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
 
 import { SectionMark } from './SectionMark';
+import { StageArtwork } from './StageArtwork';
 import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from './StreamedText';
 
 /**
@@ -19,6 +20,9 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
  * `stream` is off when the person comes back here from a question: reading
  * the same lines being typed out again is only a wait. With reduced motion
  * it is all there at once either way.
+ *
+ * Under the text, the owl — part of the stage, not a clip on it (see
+ * `StageArtwork`).
  *
  * «بعداً انجام می‌دم» leaves without starting and goes home; nothing is
  * lost, and home and the profile offer the questionnaire as a mission until
@@ -84,6 +88,9 @@ export function QuestionnaireIntro({
           />
           <span>{text(DURATION, DURATION_START, STREAM_PACE.noteStepMs)}</span>
         </p>
+
+        {/* It arrives with the actions, once the text has finished. */}
+        <StageArtwork name="questionnaire-intro" fadeIn={stream} delayMs={ACTION_START} />
       </ScreenBody>
 
       <ScreenFooter className="bg-surface-stage/95 before:from-surface-stage">

@@ -197,6 +197,21 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   word at a time and its actions arrive once they have finished — the same
   `StreamedText`, at the same pace (`STREAM_PACE`), as the onboarding intro.
   Coming back to it from a question shows the text at once.
+- **Artwork.** An owl sits under the text of the intro
+  (`questionnaire-intro.webp`) and of every chapter reward: Section 1 and
+  Section 3 share `questionnaire-section-1.webp`, Section 2 has
+  `questionnaire-section-2.webp` (a single frame until its animated version
+  arrives). The files live in
+  `apps/web/public/images/brand/` (sources in `assets/illustrations/`) and
+  are all prepared the same way — 720×491, the subject kept clear of the
+  edges in every frame, the artwork's grey backdrop and its vignette lifted
+  to white, with a `-still.webp` first frame.
+  On screen it is centred in the space between the text and the footer, so
+  every owl lands in the same place at the same scale whatever the text
+  above it. It belongs to the stage rather than playing on it: no frame or
+  corners, the edges fade out over the clear margin without reaching the
+  subject, and it fades in (on the intro, with the actions). Reduced
+  motion gets the still. One component, `StageArtwork`, renders them all.
 - **Look.** Calm and mostly neutral: the whole flow sits on `surface-stage`
   (near-black in the dark theme, white in the light one), like the onboarding
   intro. The accent is spent only on the selected answer (a soft border, a

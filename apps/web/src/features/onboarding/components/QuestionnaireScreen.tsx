@@ -74,7 +74,7 @@ export function QuestionnaireScreen({
           ref={contentRef}
           tabIndex={-1}
           className={cn(
-            'flex flex-col gap-6 pt-10 outline-none',
+            'flex flex-1 flex-col gap-6 pt-10 outline-none',
             leaving
               ? 'animate-out fade-out slide-out-to-top-1 duration-150 ease-in fill-mode-forwards'
               : 'animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
