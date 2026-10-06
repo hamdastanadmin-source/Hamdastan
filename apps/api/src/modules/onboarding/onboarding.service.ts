@@ -1,5 +1,6 @@
 import { presentationIndexOf, type QuestionId } from '@hamdastan/config';
 import type {
+  Gender,
   QuestionnaireAnswer,
   QuestionnaireAnswers,
   QuestionnaireCompletion,
@@ -32,13 +33,16 @@ export function deriveQuestionnaire(answers: QuestionnaireAnswers): DerivedQuest
   return { ...computeProfile(answers), ...resumePoint(answers) };
 }
 
+/** What the card needs from outside the questionnaire: stage 1's interests, and the gender that picks the character. */
+type ResultContext = { interestIds: readonly string[]; gender: Gender | null };
+
 /**
  * What the browser is allowed to see: its answers, its place, and the card
- * once it has earned it. The card also carries stage 1's interests.
+ * once it has earned it.
  */
 export function toQuestionnaireState(
   record: QuestionnaireRecord,
-  interestIds: readonly string[]
+  { interestIds, gender }: ResultContext
 ): QuestionnaireState {
   const { currentQuestionId, progress } = resumePoint(record.answers);
   return {
@@ -46,21 +50,29 @@ export function toQuestionnaireState(
     resumeQuestionId: currentQuestionId,
     progress,
     completed: record.completed,
-    result: record.completed ? buildResult(computeProfile(record.answers), interestIds) : null,
+    result: record.completed ? buildResult(computeProfile(record.answers), interestIds, gender) : null,
   };
 }
 
-/** Stage 2 follows stage 1: no answers before the interests are saved. Answers with them, for the card. */
-async function requireInterestsSaved(userId: string): Promise<string[]> {
-  const { onboardingStage, interestIds } = await usersService.getOnboardingInterests(userId);
+async function resultContext(userId: string): Promise<ResultContext & { onboardingStage: number }> {
+  const [{ onboardingStage, interestIds }, { gender }] = await Promise.all([
+    usersService.getOnboardingInterests(userId),
+    usersService.getById(userId),
+  ]);
+  return { onboardingStage, interestIds, gender };
+}
+
+/** Stage 2 follows stage 1: no answers before the interests are saved. Answers with what the card needs. */
+async function requireInterestsSaved(userId: string): Promise<ResultContext> {
+  const { onboardingStage, ...context } = await resultContext(userId);
   if (onboardingStage < 1) throw new ForbiddenError('اول علاقه‌مندی‌هات رو انتخاب کن');
-  return interestIds;
+  return context;
 }
 
 export const onboardingService = {
   async getQuestionnaire(userId: string): Promise<QuestionnaireState> {
-    const interestIds = await requireInterestsSaved(userId);
-    return toQuestionnaireState(await onboardingRepository().findQuestionnaire(userId), interestIds);
+    const context = await requireInterestsSaved(userId);
+    return toQuestionnaireState(await onboardingRepository().findQuestionnaire(userId), context);
   },
 
   /**
@@ -72,13 +84,13 @@ export const onboardingService = {
     questionId: QuestionId,
     answer: QuestionnaireAnswer
   ): Promise<QuestionnaireState> {
-    const interestIds = await requireInterestsSaved(userId);
+    const context = await requireInterestsSaved(userId);
     const record = await onboardingRepository().saveAnswer(
       userId,
       { questionId, answer, presentationIndex: presentationIndexOf(questionId) },
       deriveQuestionnaire
     );
-    return toQuestionnaireState(record, interestIds);
+    return toQuestionnaireState(record, context);
   },
 
   /**
@@ -88,23 +100,23 @@ export const onboardingService = {
    * grants it on the retry.
    */
   async complete(userId: string): Promise<QuestionnaireCompletion> {
-    const interestIds = await requireInterestsSaved(userId);
+    const context = await requireInterestsSaved(userId);
     const record = await onboardingRepository().findQuestionnaire(userId);
     if (!isComplete(record.answers)) {
       throw new ValidationError('هنوز به چند سؤال جواب ندادی');
     }
     if (!record.completed) await onboardingRepository().markCompleted(userId);
     const xpAwarded = await missionsService.complete(userId, 'personality_test');
-    return { ...toQuestionnaireState({ ...record, completed: true }, interestIds), xpAwarded };
+    return { ...toQuestionnaireState({ ...record, completed: true }, context), xpAwarded };
   },
 
   /** The result card once the questionnaire is finished; null before. For the account area. */
   async getResult(userId: string): Promise<QuestionnaireResult | null> {
-    const [record, { interestIds }] = await Promise.all([
+    const [record, context] = await Promise.all([
       onboardingRepository().findQuestionnaire(userId),
-      usersService.getOnboardingInterests(userId),
+      resultContext(userId),
     ]);
-    return toQuestionnaireState(record, interestIds).result;
+    return toQuestionnaireState(record, context).result;
   },
 
   async recordEvent(userId: string, body: OnboardingEventBody): Promise<void> {

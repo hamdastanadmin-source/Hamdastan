@@ -458,8 +458,9 @@ portalled content, and a primitive imported directly skips them.
 
 `primitives/` holds shadcn/ui's components, as shadcn ships them. **Where one
 exists, it is used** — `Button`, `Input`, `Label`, `Form`, `InputOTP`,
-`Select`, `ToggleGroup`, `Accordion`, `Alert`, `Separator`, the Sonner `Toaster`. A
-hand-written equivalent loses the keyboard handling and the ARIA wiring that
+`Select`, `ToggleGroup`, `Accordion`, `Alert`, `Separator`, the Sonner
+`Toaster`, and `Chart` (shadcn's Recharts wrapper) for any chart — its colours
+come from `@hamdastan/ui/tokens` through `ChartConfig`. A hand-written equivalent loses the keyboard handling and the ARIA wiring that
 are most of what those components are, and it loses them silently.
 
 Adapting one is fine and expected: a `className` of token utilities on a
@@ -556,6 +557,14 @@ wears — and is never used for interface.
 
 Exporting from `assets/` into `public/` is a deliberate step. Nothing under
 `assets/` reaches a bundle.
+
+The role characters are the worked example: the 1500×1500 PNG masters are
+`assets/avatars/roles/<role>-<gender>.png`; the served copies are
+`apps/web/public/images/avatars/<role>-<gender>.webp`, every one cropped to
+the same 960×1200 box (so all fourteen share one scale) and resized to
+640×800. A new or redrawn character keeps that name, crop and size. They
+are shown only through `RoleCharacter` (`apps/web/src/components/artwork`),
+which crops the head out of that one file — no second export per frame.
 
 ---
 

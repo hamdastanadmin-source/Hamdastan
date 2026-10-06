@@ -171,6 +171,9 @@
     --avatar-rust: 16 38% 44%;
     --avatar-slate: 200 10% 52%;
     --avatar-sole: 0 0% 94%;
+    /* The white the role characters are drawn on (public/images/avatars).
+       Their tile matches it in both themes so the art has no visible edge. */
+    --avatar-backdrop: 0 0% 100%;
 
     /* The app is a mobile product wherever it is opened. This is the widest
        its single column ever gets — see MobileShell in apps/web. */
@@ -328,6 +331,7 @@
 
   --color-surface-0: hsl(var(--surface-0));
   --color-surface-stage: hsl(var(--surface-stage));
+  --color-avatar-backdrop: hsl(var(--avatar-backdrop));
   --color-surface-1: hsl(var(--surface-1));
   --color-surface-2: hsl(var(--surface-2));
   --color-surface-3: hsl(var(--surface-3));

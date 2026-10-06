@@ -10,7 +10,6 @@
  */
 
 export { ProfileHome } from './components/ProfileHome';
-export { AvatarStudio } from './components/AvatarStudio';
 export { EditProfile } from './components/EditProfile';
 export { SettingsScreen } from './components/SettingsScreen';
 export { HelpScreen } from './components/HelpScreen';

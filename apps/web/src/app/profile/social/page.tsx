@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 /** The full result. Before the questionnaire is finished there is none; the hub offers it instead. */
 export default async function SocialProfilePage() {
-  const { socialProfile } = await getAccountOverview();
+  const { profile, socialProfile } = await getAccountOverview();
   if (!socialProfile) redirect('/profile');
-  return <SocialProfileScreen result={socialProfile} />;
+  return <SocialProfileScreen result={socialProfile} avatar={profile.avatar} />;
 }

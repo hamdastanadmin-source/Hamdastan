@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AtSign, FileText, MapPin, Shirt, UserRound } from 'lucide-react';
+import { AtSign, FileText, MapPin, UserRound } from 'lucide-react';
 
 import type { AccountProfile } from '@hamdastan/types';
 
@@ -44,10 +44,6 @@ export function EditProfile({ profile }: { profile: AccountProfile }) {
 
         <ListGroup title="درباره من · اختیاری">
           <ListRow icon={FileText} label="بیو" value={profile.bio ?? empty} onClick={() => setEditing('bio')} />
-        </ListGroup>
-
-        <ListGroup title="ظاهر">
-          <ListRow icon={Shirt} label="آواتار" href="/profile/avatar" />
         </ListGroup>
       </ScreenBody>
 

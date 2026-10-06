@@ -1,21 +1,25 @@
 import { INTEREST_CATEGORIES } from '@hamdastan/config';
 import type {
+  Gender,
   QuestionnaireResult,
   ResultDimension,
   ResultInsight,
   ResultInterestGroup,
+  ResultRole,
+  SocialRole,
 } from '@hamdastan/types';
 
-import type { Dimension, SocialProfile } from './onboarding.scoring';
+import type { Dimension, Role, SocialProfile } from './onboarding.scoring';
 
 /**
  * The result card: a short, friendly reading of the profile, made from the
  * person's actual scores.
  *
  * It is deliberately a simplification — a title, a sentence or two, three
- * plain-language insights, the interests picked in stage 1, and five bars
- * kept behind «جزئیات بیشتر». The profile itself (`SocialProfile`) is what matching uses and is
- * never cut down to this. No clinical vocabulary, no fixed personality
+ * plain-language insights, the interests picked in stage 1, five bars
+ * («DNA اجتماعی تو») and a short summary. The profile itself (`SocialProfile`) is what matching uses and is
+ * never cut down to this. Alongside it, the primary role and its character
+ * art, chosen by role and gender. No clinical vocabulary, no fixed personality
  * types: the title is built from whichever of the person's preferences are
  * furthest from the middle of their scale.
  */
@@ -188,6 +192,54 @@ function insights(profile: SocialProfile): ResultInsight[] {
 }
 
 /**
+ * «این یعنی چی؟» — the same readings as one short paragraph in the second
+ * person: where the energy comes from, what an experience should hold, how
+ * the group should run, and — only when it leans clearly one way — how
+ * competition feels. A dimension not yet scored leaves its clause out.
+ */
+function summary(profile: SocialProfile): string {
+  const d = profile.dimensions;
+  const sentences: string[] = [];
+
+  if (d.SE !== null) {
+    sentences.push(
+      byLevel(
+        d.SE,
+        'یعنی توی جمع‌های کوچیک و آروم بیشتر خودتی',
+        'یعنی جمع‌های صمیمی و به‌اندازه بهترین حالت رو بهت می‌دن',
+        'یعنی کنار آدم‌های تازه و جمع‌های پرجنب‌وجوش سرحال‌تر می‌شی',
+      ),
+    );
+  }
+
+  const seeking = insights(profile).find((insight) => insight.key === 'seeking');
+  if (seeking) sentences.push(`دنبال تجربه‌هایی هستی که ${seeking.value} توشون باشه`);
+
+  if (d.ST !== null) {
+    sentences.push(
+      byLevel(
+        d.ST,
+        'از تصمیم‌های لحظه‌ای لذت می‌بری',
+        'یه برنامه‌ی منعطف بیشتر بهت می‌چسبه',
+        'وقتی برنامه از قبل روشنه راحت‌تری',
+      ),
+    );
+  }
+
+  if (d.CP !== null && (d.CP >= 7 || d.CP <= 4)) {
+    sentences.push(
+      d.CP >= 7 ? 'یه کم رقابت هم تجربه رو برات هیجان‌انگیزتر می‌کنه' : 'همراهی رو به رقابت ترجیح می‌دی',
+    );
+  }
+
+  if (sentences.length === 0) return FALLBACK.description;
+  // «الف. ب، پ و ت. پس …» — the first reading on its own, the rest as one list.
+  const [first, ...rest] = sentences;
+  const list = rest.length > 1 ? `${rest.slice(0, -1).join('، ')} و ${rest.at(-1)}` : rest[0];
+  return `${[first, list, 'پس جمع‌هایی که همین حال‌وهوا رو دارن، احتمالاً بیشتر از همه بهت می‌چسبن'].filter(Boolean).join('. ')}.`;
+}
+
+/**
  * Stage 1's picks as labels, grouped by category in catalog order. An id
  * that has since left the catalog is dropped; an empty category is left out.
  */
@@ -199,9 +251,36 @@ function interestGroups(interestIds: readonly string[]): ResultInterestGroup[] {
   });
 }
 
-export function buildResult(profile: SocialProfile, interestIds: readonly string[] = []): QuestionnaireResult {
+/** The name each role goes by on the card — friendly, never a type label. */
+const ROLE_LABEL: Record<Role, string> = {
+  INITIATOR: 'یخ‌شکن جمع',
+  FACILITATOR: 'میزبان جمع',
+  ENERGIZER: 'انرژی‌بخش جمع',
+  ORGANIZER: 'هماهنگ‌کننده',
+  LISTENER: 'شنونده',
+  ANALYST: 'تحلیل‌گر',
+  IDEATOR: 'ایده‌پرداز',
+};
+
+/**
+ * The primary role and the character drawn for it. The character is picked
+ * by the gender from basic info; without one there is none to pick.
+ */
+function primaryRole(profile: SocialProfile, gender: Gender | null): ResultRole | null {
+  if (!profile.primaryRole) return null;
+  const key = profile.primaryRole.toLowerCase() as SocialRole;
+  return { key, label: ROLE_LABEL[profile.primaryRole], avatarId: gender ? `${key}-${gender}` : null };
+}
+
+export function buildResult(
+  profile: SocialProfile,
+  interestIds: readonly string[] = [],
+  gender: Gender | null = null
+): QuestionnaireResult {
   return {
     ...headline(strongestTraits(profile)),
+    role: primaryRole(profile, gender),
+    summary: summary(profile),
     insights: insights(profile),
     interests: interestGroups(interestIds),
     dimensions: bars(profile),

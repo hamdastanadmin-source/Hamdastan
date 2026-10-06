@@ -260,25 +260,46 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
 - **Processing.** «داریم پروفایلت رو می‌سازیم» / «جواب‌هات رو کنار هم
   می‌ذاریم.» for as long as the request takes, held to 0.8s — no spinner; the
   section mark's last dot fills.
-- **Result — meaning first, numbers last.** One neutral card, made to be
-  screenshotted: «پروفایل اجتماعی تو» (an outline badge, not the accent), a title
-  and at most two sentences built from whichever of the person's dimensions
-  are furthest from the middle of the scale (joined with «و», or «ولی» when
-  they pull opposite ways). Then three plain-language insights, each the end
-  of its label's sentence: «بیشتر انرژی می‌گیری از» (SE: آدم‌ها و تعامل /
-  جمع‌های صمیمی و به‌اندازه / جمع‌های کوچیک و آروم), «توی تجربه‌ها دنبال»
-  (NV: تازگی / تنوع / آشنایی, with AO: فعالیت / حس خوب جمع / گفتگو) and
-  «توی گروه ترجیح می‌دی» (ST: برنامه‌ی مشخص / ساختار منعطف / تصمیم‌های
-  لحظه‌ای), high ≥ 7, low ≤ 4, each a row of its own with a small icon,
-  divided by hairlines. A fourth row, «به این‌ها علاقه داری», lists the
-  interests picked in stage 1 as outline badges, grouped under their
-  category titles in catalog order (an id no longer in the catalog is
-  dropped). The card is signed «هم‌داستان». The five bars (انرژی اجتماعی، تجربه‌های
-  تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) wait behind
-  «جزئیات بیشتر» (an accordion). Then the value line «از این شناخت استفاده می‌کنیم تا
-  آدم‌ها، گروه‌ها و تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and
-  «ورود به اپلیکیشن». No internal codes and no diagnostic language. It
-  is a simplification, built in `onboarding.result.ts`; the stored profile is
+- **Result — meaning first, numbers last.** A social-profile report, made to
+  be shared, in this order:
+  1. **Hero.** The character for the person's primary role, picked by the
+     gender from basic info — fourteen illustrations, one per role
+     (Initiator «یخ‌شکن جمع», Facilitator «میزبان جمع», Energizer
+     «انرژی‌بخش جمع», Organizer «هماهنگ‌کننده», Listener «شنونده», Analyst
+     «تحلیل‌گر», Ideator «ایده‌پرداز») and gender — full-body on a white
+     4:5 tile (`--avatar-backdrop`, white in both themes because the art is
+     drawn on white), captioned «نقشت توی جمع: …». Without a gender on file
+     there is no character and the person's avatar is shown in a shadcn
+     `Avatar` instead (a neutral figure before they have one). Then
+     «پروفایل اجتماعی تو» / «پروفایل اجتماعی من» (an
+     outline badge, not the accent), the title and at most two sentences
+     built from whichever of the person's dimensions are furthest from the
+     middle of the scale (joined with «و», or «ولی» when they pull opposite
+     ways).
+  2. **Three insight cards**, side by side, each a small icon, a muted label
+     and a bold value that ends the label's sentence: «بیشتر انرژی می‌گیری
+     از» (SE: آدم‌ها و تعامل / جمع‌های صمیمی و به‌اندازه / جمع‌های کوچیک و
+     آروم), «توی تجربه‌ها دنبال» (NV: تازگی / تنوع / آشنایی, with AO: فعالیت
+     / حس خوب جمع / گفتگو) and «توی گروه ترجیح می‌دی» (ST: برنامه‌ی مشخص /
+     ساختار منعطف / تصمیم‌های لحظه‌ای), high ≥ 7, low ≤ 4.
+  3. **«دنیای مورد علاقه تو».** The interests picked in stage 1, a card per
+     category in catalog order, each interest a secondary badge (an id no
+     longer in the catalog is dropped). Left out when there are none.
+  4. **«DNA اجتماعی تو»**, always open — nothing in the report waits behind
+     a tap: the five dimensions (انرژی اجتماعی، تجربه‌های
+     تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) as a neutral radar
+     chart (shadcn `Chart`) with the exact value of every axis under it — the
+     list is what screen readers read.
+  5. **«این یعنی چی؟».** `summary`: the same readings as one short paragraph
+     (SE, then NV/AO, ST, and CP only when ≥ 7 or ≤ 4), closing with «پس
+     جمع‌هایی که همین حال‌وهوا رو دارن، احتمالاً بیشتر از همه بهت
+     می‌چسبن.»
+
+  Then the value line «از این شناخت استفاده می‌کنیم تا آدم‌ها، گروه‌ها و
+  تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and, at the end of the
+  questionnaire, «ورود به اپلیکیشن». The brand colour is that button's
+  alone. No internal codes and no diagnostic language. It is a
+  simplification, built in `onboarding.result.ts`; the stored profile is
   never reduced to it.
 - **Finishing.** `POST /me/onboarding/questionnaire/complete` refuses until
   all twenty are answered, then marks the questionnaire done and
@@ -328,6 +349,8 @@ Accumulated dimensions are normalised as `raw / max × 10` and held to 1–10.
 Roles (Initiator, Facilitator, Energizer, Organizer, Listener, Analyst,
 Ideator) are computed once every question is answered; all seven scores are
 kept, the highest is primary, and the second is kept only at ≥ 70% of it.
+The primary role is the only one the person sees: it picks the result
+card's character (see the result, above).
 
 *v1 choices where the brief was open* — change them in the scoring file and
 bump the version:
@@ -345,8 +368,8 @@ bump the version:
 ### 4.3 Home — خانه
 
 `/`. The worlds are not open yet, so home carries the person's next step.
-The header is their avatar and name, linking to the profile; the bottom nav
-holds خانه and پروفایل. Signing out is not on home.
+The header is their avatar (see «Where the avatar comes from», §4.4) and
+name, linking to the profile; the bottom nav holds خانه and پروفایل. Signing out is not on home.
 
 - **Questionnaire not done:** the first thing on the screen is a card —
   «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
@@ -365,9 +388,11 @@ not a settings page, not a game dashboard. Code in
 **Profile home — `/profile`.** One card (shadcn `Card`) per group, top to
 bottom:
 
-1. **Identity.** The avatar, large — head to chest on a soft neutral disc
-   with a small amber spark — and the whole stage is the link to the studio
-   (no separate edit control). Under it «نشان‌های من» with the count and
+1. **Identity.** The avatar, large, with a small amber spark: the role
+   character full-body with no frame, on a stage the same white as the art
+   (`--avatar-backdrop`); or, before the questionnaire, the drawn avatar
+   head to chest on a soft neutral disc. Not a link — there is no avatar
+   screen. Under it «نشان‌های من» with the count and
    the earned badges in a three-column grid: a neutral circle with the
    badge's icon and its title («با انجام ماموریت‌ها، نشان‌هات اینجا جمع
    می‌شن.» when there are none). The display name is the screen's `h1` for
@@ -375,7 +400,7 @@ bottom:
    here.
 2. **«پروفایل اجتماعی من».** The result's title, its two lines, the three
    insights as label/value rows and «مشاهده نتیجه کامل» (→ `/profile/social`,
-   the full result with the five bars behind «جزئیات بیشتر»). No internal
+   the full social-profile report described under stage 2's result). No internal
    codes, never the fourteen dimensions. Before the questionnaire is done: a
    mission card instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو
    کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه»,
@@ -395,7 +420,7 @@ is the violet button. Everything else on the screen is neutral.
 | Mission | Reward | Done when | Action |
 |---------|--------|-----------|--------|
 | آزمون شخصیت | +50 | the questionnaire is finished | `/onboarding/questionnaire` |
-| ساخت آواتار | +20 | an avatar is saved | `/profile/avatar` |
+| ساخت آواتار | +20 | an avatar is saved | — (no avatar screen; earned before it was removed) |
 | تکمیل پروفایل | +20 | a username and a city are both set (the bio is optional) | `/profile/edit` |
 
 The catalog is `MISSIONS` in `@hamdastan/config`. Every mission is available
@@ -425,19 +450,25 @@ are sent, in catalog order, dated by their last mission.
 ذخیره شد — n XP گرفتی» for the avatar, «پروفایلت کامل شد — n XP گرفتی» for
 a profile field. No confetti.
 
-**Avatar studio — `/profile/avatar`.** «آواتار من»: the full-body figure,
-live as items are picked; tabs «ظاهر» (skin tone), «بالاتنه», «شلوار»,
-«کفش», «اکسسوری»; each item a tile previewing it on this avatar. Selection is
-a foreground border, a lifted surface and a check — not the brand. «ذخیره»
-is the one primary action, disabled when an existing avatar is unchanged.
-Before one is saved, the default (`DEFAULT_AVATAR`) is shown everywhere. The
-figure is flat SVG drawn from the five ids (`AvatarFigure`), coloured only
-by the `--avatar-*` tokens. Each item may carry an `unlockLevel`; the API
-refuses a locked item and the studio shows it locked with its level.
-Nothing in today's catalog is locked.
+**Where the avatar comes from.** Once the questionnaire is finished, the
+person's avatar is their role character — the result's `role.avatarId`,
+the illustration for their primary role and gender (§4.2's result). One
+640×800 file per character, shown through `RoleCharacter` in two frames:
+`portrait` (the head, cropped from the file, in the home header's 40px
+circle) and `full` (the whole figure: the result hero and the identity
+card). Always on `--avatar-backdrop`, because the art is drawn on white.
+Before the questionnaire, or without a gender on file, the drawn SVG
+avatar (`AvatarFigure`, from `avatar_config`, coloured only by the
+`--avatar-*` tokens) stands in.
+
+There is no avatar screen. The character's clothes are part of the
+illustration, so the earlier dress-up studio (`/profile/avatar`) is gone,
+with its «ظاهر» row in edit profile. `PUT /me/avatar` and `avatar_config`
+remain in the API, unused by the app. XP and badges already earned stay;
+missions are no longer listed on the profile.
 
 **Edit profile — `/profile/edit`.** A list, not a form: «اطلاعات اصلی» (نام,
-نام کاربری, شهر), «درباره من · اختیاری» (بیو) and «ظاهر» (آواتار). Each row
+نام کاربری, شهر) and «درباره من · اختیاری» (بیو). Each row
 opens a bottom sheet with that one field, a line of help, «ذخیره تغییرات»
 (primary) and «انصراف». A taken username is shown under the field. First
 and last name, birth date and gender were given at sign-up and are not
@@ -658,7 +689,7 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
 | GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |
 | PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |
-| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, insights, interests, dimensions }` (`interests`: stage 1's picks as `{ key, title, interests: label[] }` per category); 403 before stage 1 |
+| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, role, summary, insights, interests, dimensions }` (`role`: `{ key, label, avatarId }`, `avatarId` = `<role>-<gender>` or null without a gender) (`interests`: stage 1's picks as `{ key, title, interests: label[] }` per category); 403 before stage 1 |
 | PUT | `/me/onboarding/questionnaire/answers/:questionId` | access cookie | `{ answer }` (shape per question) | `QuestionnaireState` |
 | POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireCompletion` — the state with `result`, plus `xpAwarded` (50 once, then 0); 400 until every question is answered |
 | POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
@@ -725,6 +756,7 @@ whitespace is dropped.
 | Background (dark) | `hsl(240 5% 7%)` — near-black charcoal, deliberately not tinted toward the brand |
 | Success | `--success-hue: 152` (green) |
 | Avatar | `--avatar-*` — skin tones, hair and muted clothing colours; content, never interface |
+| Role character backdrop | `--avatar-backdrop` (white, both themes) — the tile behind the role illustrations |
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
 | Radius | `--radius: 0.75rem` |
 | Column width | `--shell-max-width: 430px`, as `max-w-shell` and the `shell:` breakpoint |
@@ -822,7 +854,8 @@ app background; re-export them all when the master changes.
 | Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |
 | Home screen | High | Carries the questionnaire mission and the story-world picker |
 | Read the account settings | Medium | `notifications` and `showSocialProfile` are stored; nothing reads them until notifications and other people's profiles exist |
-| Level-gated avatar items | Low | `unlockLevel` is enforced by the API and shown by the studio; no item uses it yet |
+| Level-gated avatar items | Low | `unlockLevel` is enforced by the API; the dress-up studio is gone and no item uses it |
+| «ساخت آواتار» mission | Low | No longer reachable — there is no avatar screen. Earned XP and «خوش‌استایل» badges stay; missions are not listed on the profile |
 | More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
 | Move admin sign-in into `apps/api` | Medium | `apps/admin` still has its own story |

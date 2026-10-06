@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 
 import { DEFAULT_AVATAR } from '@hamdastan/config';
 
-import { BottomNav, Screen, ScreenBody, ScreenHeader } from '@/components';
+import { BottomNav, RoleCharacter, Screen, ScreenBody, ScreenHeader } from '@/components';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
 import { getAccountOverview } from '@/features/profile/server';
 
@@ -41,7 +41,11 @@ export default async function HomePage() {
           className="-ms-1 flex items-center gap-3 rounded-full py-1 pe-3 ps-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="block size-10 overflow-hidden rounded-full border border-border bg-secondary">
-            <AvatarFigure avatar={profile.avatar ?? DEFAULT_AVATAR} frame="portrait" label="" className="size-full" />
+            {socialProfile?.role?.avatarId ? (
+              <RoleCharacter avatarId={socialProfile.role.avatarId} frame="portrait" sizes="72px" className="size-full" />
+            ) : (
+              <AvatarFigure avatar={profile.avatar ?? DEFAULT_AVATAR} frame="portrait" label="" className="size-full" />
+            )}
           </span>
           <span className="flex flex-col">
             <span className="text-2xs text-muted-foreground">خوش برگشتی</span>

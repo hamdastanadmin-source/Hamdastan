@@ -328,6 +328,13 @@ describe('the result card', () => {
     expect(calm).toEqual(['جمع‌های کوچیک و آروم', 'آشنایی و فعالیت', 'برنامه‌ی مشخص']);
   });
 
+  it('explains the profile as one plain paragraph built from the same readings', () => {
+    // BASE: SE 8, NV 10, AO 4, ST 6.
+    expect(buildResult(computeProfile(BASE)).summary).toMatch(
+      /^یعنی کنار آدم‌های تازه .*\. دنبال تجربه‌هایی هستی که تازگی و گفتگو توشون باشه و یه برنامه‌ی منعطف بیشتر بهت می‌چسبه\. پس /
+    );
+  });
+
   it('carries the stage-1 interests as labels, grouped in catalog order', () => {
     const { interests } = buildResult(computeProfile(BASE), ['photography', 'cafe', 'gone-id', 'concert']);
     expect(interests).toEqual([
@@ -335,6 +342,15 @@ describe('the result card', () => {
       { key: 'art', title: 'هنر و خلاقیت', interests: ['عکاسی'] },
       { key: 'lifestyle', title: 'تفریح و سبک زندگی', interests: ['کافه'] },
     ]);
+  });
+
+  it('names the primary role and picks its character by gender', () => {
+    const profile = computeProfile(BASE);
+    const key = profile.primaryRole!.toLowerCase();
+    expect(buildResult(profile, [], 'female').role).toMatchObject({ key, avatarId: `${key}-female` });
+    expect(buildResult(profile, [], 'male').role?.avatarId).toBe(`${key}-male`);
+    expect(buildResult(profile).role).toMatchObject({ key, avatarId: null });
+    expect(buildResult(profile).role?.label).toBeTruthy();
   });
 
   it('shows ST inverted on the planned-to-spontaneous bar', () => {

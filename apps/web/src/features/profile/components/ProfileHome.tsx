@@ -25,7 +25,11 @@ export function ProfileHome({ overview }: { overview: AccountOverview }) {
       <ScreenHeader />
 
       <ScreenBody className="gap-4 pb-10">
-        <IdentityBlock profile={overview.profile} badges={overview.badges} />
+        <IdentityBlock
+          profile={overview.profile}
+          character={overview.socialProfile?.role?.avatarId ?? null}
+          badges={overview.badges}
+        />
 
         <SocialProfileSection result={overview.socialProfile} />
 

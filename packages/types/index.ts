@@ -29,6 +29,9 @@ export type {
   ResultDimension,
   ResultInsight,
   ResultInterestGroup,
+  ResultRole,
+  RoleAvatarId,
+  SocialRole,
 } from './questionnaire';
 export type {
   AccountOverview,

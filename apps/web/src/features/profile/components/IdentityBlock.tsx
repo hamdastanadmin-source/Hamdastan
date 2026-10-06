@@ -1,9 +1,11 @@
-import Link from 'next/link';
 import { IdCard, Palette, Sparkles, type LucideIcon } from 'lucide-react';
 
 import { DEFAULT_AVATAR, type BadgeIcon } from '@hamdastan/config';
-import type { AccountProfile, EarnedBadge } from '@hamdastan/types';
+import type { AccountProfile, EarnedBadge, RoleAvatarId } from '@hamdastan/types';
 import { Badge, Card, CardContent } from '@hamdastan/ui';
+import { cn } from '@hamdastan/shared/cn';
+
+import { RoleCharacter } from '@/components';
 
 import { AvatarFigure } from './AvatarFigure';
 
@@ -15,23 +17,38 @@ const BADGE_ICON: Record<BadgeIcon, LucideIcon> = {
 };
 
 /**
- * The top of the hub, as one card: the whole avatar, large, as a link to
- * the avatar studio, and under it the badges earned so far. The name is the
- * screen's `h1` for assistive technology only; the screen shows the avatar.
+ * The top of the hub, as one card: the avatar, large, and under it the
+ * badges earned so far. The avatar is not a link — there is no avatar screen
+ * to open. The name is the screen's `h1` for assistive technology only; the
+ * screen shows the avatar.
+ *
+ * Once the questionnaire has given the person a role character, that is the
+ * avatar — full-body, with no frame, on a stage the same white as the art.
+ * Before, the drawn avatar stands head to chest on a soft neutral disc.
  */
-export function IdentityBlock({ profile, badges }: { profile: AccountProfile; badges: EarnedBadge[] }) {
+export function IdentityBlock({
+  profile,
+  character,
+  badges,
+}: {
+  profile: AccountProfile;
+  character: RoleAvatarId | null;
+  badges: EarnedBadge[];
+}) {
   return (
     <section aria-label="هویت من">
       <h1 className="sr-only">{profile.displayName ?? 'دوست من'}</h1>
 
       <Card className="overflow-hidden rounded-2xl shadow-none">
-        <Link
-          href="/profile/avatar"
-          aria-label="ویرایش آواتار"
-          className="relative flex justify-center overflow-hidden bg-surface-stage pt-8 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        <div
+          className={cn(
+            'relative flex justify-center overflow-hidden pt-8',
+            // The role art is drawn on white, so its stage is that white in both themes.
+            character ? 'bg-avatar-backdrop pb-4' : 'bg-surface-stage'
+          )}
         >
           {/* A soft disc behind the head, and a small spark beside it. */}
-          <span aria-hidden="true" className="absolute top-6 size-56 rounded-full bg-secondary" />
+          {!character && <span aria-hidden="true" className="absolute top-6 size-56 rounded-full bg-secondary" />}
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -44,13 +61,23 @@ export function IdentityBlock({ profile, badges }: { profile: AccountProfile; ba
             <path d="M12 3v5M4 9l4 3M20 9l-4 3" />
           </svg>
 
-          <AvatarFigure
-            avatar={profile.avatar ?? DEFAULT_AVATAR}
-            frame="bust"
-            label=""
-            className="relative size-64 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none"
-          />
-        </Link>
+          {character ? (
+            <RoleCharacter
+              avatarId={character}
+              frame="full"
+              sizes="15rem"
+              priority
+              className="aspect-[4/5] h-72 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none"
+            />
+          ) : (
+            <AvatarFigure
+              avatar={profile.avatar ?? DEFAULT_AVATAR}
+              frame="bust"
+              label=""
+              className="relative size-64 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none"
+            />
+          )}
+        </div>
 
         <CardContent className="flex flex-col gap-4 border-t border-border p-5">
           <div className="flex items-center justify-between gap-3">

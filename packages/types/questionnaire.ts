@@ -9,6 +9,8 @@
 
 import type { OnboardingEventName, QuestionId, SectionId } from '@hamdastan/config';
 
+import type { Gender } from './auth';
+
 /** One stored answer. Which shape depends on the question's `kind`. */
 export type QuestionnaireAnswer =
   | { option: string }
@@ -34,6 +36,28 @@ export type ResultInsight = { key: string; label: string; value: string };
 /** Stage 1's picks in one category, as labels: «هنر و خلاقیت» → «عکاسی»، «نقاشی». */
 export type ResultInterestGroup = { key: string; title: string; interests: string[] };
 
+/** The seven group roles the profile scores; the strongest is the person's primary role. */
+export type SocialRole =
+  | 'initiator'
+  | 'facilitator'
+  | 'energizer'
+  | 'organizer'
+  | 'listener'
+  | 'analyst'
+  | 'ideator';
+
+/** A role's character art — one per role and gender, `<role>-<gender>`. */
+export type RoleAvatarId = `${SocialRole}-${Gender}`;
+
+/** The person's primary role on the result card: its name and the character drawn for it. */
+export type ResultRole = {
+  key: SocialRole;
+  /** «ایده‌پرداز». */
+  label: string;
+  /** Null when the account has no gender on file, so no character can be picked. */
+  avatarId: RoleAvatarId | null;
+};
+
 /**
  * The simplified interpretation shown once — meaning first, numbers last.
  * The profile itself is richer and never reduced to this.
@@ -41,11 +65,15 @@ export type ResultInterestGroup = { key: string; title: string; interests: strin
 export type QuestionnaireResult = {
   title: string;
   description: string;
+  /** The primary role and its character. Null only if the roles could not be scored. */
+  role: ResultRole | null;
+  /** «این یعنی چی؟» — the insights as one short, plain paragraph. */
+  summary: string;
   /** Three, always: energy, what they look for, how they like a group to run. */
   insights: ResultInsight[];
   /** What the person picked in stage 1, grouped by category in catalog order. */
   interests: ResultInterestGroup[];
-  /** Behind «جزئیات بیشتر». */
+  /** «DNA اجتماعی تو» — the radar and its rows. */
   dimensions: ResultDimension[];
 };
 

@@ -48,6 +48,15 @@ import {
   CardHeader,
   CardTitle,
 } from '../primitives/card';
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../primitives/chart';
+import type { ChartConfig } from '../primitives/chart';
 import { Checkbox } from '../primitives/checkbox';
 import { DirectionProvider } from '../primitives/direction';
 import {
@@ -194,6 +203,15 @@ export {
 };
 export { Button, buttonVariants };
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+};
+export type { ChartConfig };
 export { Checkbox };
 export { DirectionProvider };
 export {
