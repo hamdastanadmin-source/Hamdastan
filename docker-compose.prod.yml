@@ -5,7 +5,8 @@
 # which is what `scripts/deploy.sh` runs on the server. Three things change:
 #
 #   1. `web` and `api` stop publishing host ports. They are reachable only
-#      over the private compose network, so nginx below is the single door.
+#      over the private compose network, so nginx below (:80 and :443) is the
+#      single door.
 #   2. The browser bundle is built against the public URL. NEXT_PUBLIC_
 #      variables are baked in at build time, so this has to be a build
 #      argument — see packages/config/app/app.config.ts.
@@ -62,8 +63,11 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Let's Encrypt certificates, issued and renewed by certbot on the host.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       web:
         condition: service_healthy
