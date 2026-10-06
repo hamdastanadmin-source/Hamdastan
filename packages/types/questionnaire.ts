@@ -31,6 +31,9 @@ export type ResultDimension = {
 /** One plain-language reading of the profile: «توی گروه ترجیح می‌دی» → «ساختار منعطف». */
 export type ResultInsight = { key: string; label: string; value: string };
 
+/** Stage 1's picks in one category, as labels: «هنر و خلاقیت» → «عکاسی»، «نقاشی». */
+export type ResultInterestGroup = { key: string; title: string; interests: string[] };
+
 /**
  * The simplified interpretation shown once — meaning first, numbers last.
  * The profile itself is richer and never reduced to this.
@@ -40,6 +43,8 @@ export type QuestionnaireResult = {
   description: string;
   /** Three, always: energy, what they look for, how they like a group to run. */
   insights: ResultInsight[];
+  /** What the person picked in stage 1, grouped by category in catalog order. */
+  interests: ResultInterestGroup[];
   /** Behind «جزئیات بیشتر». */
   dimensions: ResultDimension[];
 };

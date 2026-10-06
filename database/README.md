@@ -76,6 +76,7 @@ until they agree.
 | `0004` | Onboarding stage 2: `v2_questionnaire_answers` (raw answers), `v2_social_profiles` (progress and the derived profile), `v2_onboarding_events` (funnel) |
 | `0005` | Restores `OTHER` to `v2_gender` where `0001` was applied from a draft |
 | `0006` | The account area: `v2_users.username` (unique), `bio`, `city`, `avatar_config`, `settings`; `v2_xp_transactions` (the XP ledger, once-only per reward); backfills the questionnaire reward for people who had already finished it |
+| `0007` | Drops `OTHER` from `v2_gender`; anyone who had chosen «سایر» has gender cleared and is sent back to the basic-info form |
 
 `docs/PRD.md` §6 explains why each table is shaped the way it is.
 

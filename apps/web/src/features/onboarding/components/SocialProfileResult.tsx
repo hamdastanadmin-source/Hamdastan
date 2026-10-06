@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Compass, Sparkles, Users, Zap, type LucideIcon } from 'lucide-react';
+import { Compass, Heart, Sparkles, Users, Zap, type LucideIcon } from 'lucide-react';
 
 import { APP_NAME } from '@hamdastan/config';
 import type { QuestionnaireResult, ResultDimension } from '@hamdastan/types';
@@ -25,8 +25,8 @@ import { toPersianDigits } from '@hamdastan/shared/format/persian';
  * The social-profile result — meaning first, numbers last.
  *
  * 1. A card worth a screenshot: whose profile, a short title, at most two
- *    sentences and the three plain-language insights, signed with the
- *    product's name.
+ *    sentences, the three plain-language insights and the interests picked
+ *    in stage 1, signed with the product's name.
  * 2. The five bars, for whoever wants them, behind «جزئیات بیشتر».
  *
  * The content of the questionnaire's last screen and of the profile's
@@ -132,6 +132,30 @@ export function SocialProfileResult({
                 </div>
               );
             })}
+
+            {result.interests.length > 0 && (
+              <div
+                className="flex flex-col gap-3 py-4 animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-backwards motion-reduce:animate-none"
+                style={{ animationDelay: `${200 + result.insights.length * 80}ms` }}
+              >
+                <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Heart aria-hidden="true" className="size-3.5" />
+                  به این‌ها علاقه داری
+                </dt>
+                {result.interests.map((group) => (
+                  <dd key={group.key} className="flex flex-col gap-1.5">
+                    <span className="text-xs text-muted-foreground">{group.title}</span>
+                    <ul className="flex flex-wrap gap-1.5">
+                      {group.interests.map((interest) => (
+                        <li key={interest}>
+                          <Badge variant="outline">{interest}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                ))}
+              </div>
+            )}
           </dl>
         </CardContent>
 

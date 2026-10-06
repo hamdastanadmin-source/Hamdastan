@@ -1,4 +1,10 @@
-import type { QuestionnaireResult, ResultDimension, ResultInsight } from '@hamdastan/types';
+import { INTEREST_CATEGORIES } from '@hamdastan/config';
+import type {
+  QuestionnaireResult,
+  ResultDimension,
+  ResultInsight,
+  ResultInterestGroup,
+} from '@hamdastan/types';
 
 import type { Dimension, SocialProfile } from './onboarding.scoring';
 
@@ -7,7 +13,8 @@ import type { Dimension, SocialProfile } from './onboarding.scoring';
  * person's actual scores.
  *
  * It is deliberately a simplification — a title, a sentence or two, three
- * plain-language insights, and five bars kept behind «جزئیات بیشتر». The profile itself (`SocialProfile`) is what matching uses and is
+ * plain-language insights, the interests picked in stage 1, and five bars
+ * kept behind «جزئیات بیشتر». The profile itself (`SocialProfile`) is what matching uses and is
  * never cut down to this. No clinical vocabulary, no fixed personality
  * types: the title is built from whichever of the person's preferences are
  * furthest from the middle of their scale.
@@ -180,10 +187,23 @@ function insights(profile: SocialProfile): ResultInsight[] {
   return list.filter((insight): insight is ResultInsight => insight !== null);
 }
 
-export function buildResult(profile: SocialProfile): QuestionnaireResult {
+/**
+ * Stage 1's picks as labels, grouped by category in catalog order. An id
+ * that has since left the catalog is dropped; an empty category is left out.
+ */
+function interestGroups(interestIds: readonly string[]): ResultInterestGroup[] {
+  const saved = new Set(interestIds);
+  return INTEREST_CATEGORIES.flatMap((category) => {
+    const interests = category.interests.filter(({ id }) => saved.has(id)).map(({ label }) => label);
+    return interests.length ? [{ key: category.id, title: category.title, interests }] : [];
+  });
+}
+
+export function buildResult(profile: SocialProfile, interestIds: readonly string[] = []): QuestionnaireResult {
   return {
     ...headline(strongestTraits(profile)),
     insights: insights(profile),
+    interests: interestGroups(interestIds),
     dimensions: bars(profile),
   };
 }

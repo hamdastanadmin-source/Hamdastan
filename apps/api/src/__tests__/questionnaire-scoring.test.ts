@@ -328,6 +328,15 @@ describe('the result card', () => {
     expect(calm).toEqual(['جمع‌های کوچیک و آروم', 'آشنایی و فعالیت', 'برنامه‌ی مشخص']);
   });
 
+  it('carries the stage-1 interests as labels, grouped in catalog order', () => {
+    const { interests } = buildResult(computeProfile(BASE), ['photography', 'cafe', 'gone-id', 'concert']);
+    expect(interests).toEqual([
+      { key: 'music', title: 'موسیقی و اجرا', interests: ['کنسرت'] },
+      { key: 'art', title: 'هنر و خلاقیت', interests: ['عکاسی'] },
+      { key: 'lifestyle', title: 'تفریح و سبک زندگی', interests: ['کافه'] },
+    ]);
+  });
+
   it('shows ST inverted on the planned-to-spontaneous bar', () => {
     const st = buildResult(computeProfile(withAnswer({ Q10: { option: 'DETAILED' } }))).dimensions.find(
       (d) => d.key === 'ST'

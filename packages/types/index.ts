@@ -28,6 +28,7 @@ export type {
   QuestionnaireState,
   ResultDimension,
   ResultInsight,
+  ResultInterestGroup,
 } from './questionnaire';
 export type {
   AccountOverview,

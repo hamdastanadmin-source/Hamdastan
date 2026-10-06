@@ -63,7 +63,6 @@ import { authErrorMessage } from '../utils/errors';
 const GENDERS = [
   { value: 'male', label: 'مرد' },
   { value: 'female', label: 'زن' },
-  { value: 'other', label: 'سایر' },
 ] as const;
 
 /** The years that put the user inside the age range, newest first. */
@@ -279,7 +278,7 @@ export function BasicInfoForm() {
                       spacing={2}
                       value={field.value ?? ''}
                       onValueChange={(value) => value && field.onChange(value)}
-                      className="grid w-full grid-cols-3"
+                      className="grid w-full grid-cols-2"
                     >
                       {GENDERS.map(({ value, label }) => (
                         <ToggleGroupItem

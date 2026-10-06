@@ -131,8 +131,8 @@ describe('the basic-info form', () => {
     expect(result.firstName).toBe('علی');
   });
 
-  it('accepts `other` as a gender', () => {
-    expect(basicInfoSchema.safeParse({ ...valid, gender: 'other' }).success).toBe(true);
+  it('rejects `other` as a gender', () => {
+    expect(basicInfoSchema.safeParse({ ...valid, gender: 'other' }).success).toBe(false);
   });
 
   it('rejects a Latin name', () => {

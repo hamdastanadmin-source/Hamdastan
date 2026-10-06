@@ -66,7 +66,7 @@ export const lastNameSchema = personNameSchema(
   'نام خانوادگی رو به فارسی وارد کن'
 );
 
-export const genderSchema = z.enum(['male', 'female', 'other'], {
+export const genderSchema = z.enum(['male', 'female'], {
   error: 'یکی از گزینه‌ها رو انتخاب کن',
 });
 

@@ -270,7 +270,10 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   (NV: تازگی / تنوع / آشنایی, with AO: فعالیت / حس خوب جمع / گفتگو) and
   «توی گروه ترجیح می‌دی» (ST: برنامه‌ی مشخص / ساختار منعطف / تصمیم‌های
   لحظه‌ای), high ≥ 7, low ≤ 4, each a row of its own with a small icon,
-  divided by hairlines; the card is signed «هم‌داستان». The five bars (انرژی اجتماعی، تجربه‌های
+  divided by hairlines. A fourth row, «به این‌ها علاقه داری», lists the
+  interests picked in stage 1 as outline badges, grouped under their
+  category titles in catalog order (an id no longer in the catalog is
+  dropped). The card is signed «هم‌داستان». The five bars (انرژی اجتماعی، تجربه‌های
   تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) wait behind
   «جزئیات بیشتر» (an accordion). Then the value line «از این شناخت استفاده می‌کنیم تا
   آدم‌ها، گروه‌ها و تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and
@@ -655,7 +658,7 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
 | GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |
 | PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |
-| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, insights, dimensions }`; 403 before stage 1 |
+| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, insights, interests, dimensions }` (`interests`: stage 1's picks as `{ key, title, interests: label[] }` per category); 403 before stage 1 |
 | PUT | `/me/onboarding/questionnaire/answers/:questionId` | access cookie | `{ answer }` (shape per question) | `QuestionnaireState` |
 | POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireCompletion` — the state with `result`, plus `xpAwarded` (50 once, then 0); 400 until every question is answered |
 | POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
@@ -692,7 +695,7 @@ against the same objects, including the Persian messages.
 | First name | 2–30 characters, Persian letters, space and ZWNJ | «نام رو به فارسی وارد کن» |
 | Last name | 2–40, same rule | «نام خانوادگی رو به فارسی وارد کن» |
 | Birth date | A real Jalali date; age 13–80 | «تاریخ تولد رو کامل انتخاب کن» |
-| Gender | `male` / `female` / `other` | «یکی از گزینه‌ها رو انتخاب کن» |
+| Gender | `male` / `female` | «یکی از گزینه‌ها رو انتخاب کن» |
 | OTP | Exactly 6 digits | «کد اشتباهه، دوباره امتحان کن» |
 | Interests | Every id in the catalog; duplicates dropped; at least 3 categories (`packages/validation/onboarding.ts`) | «حداقل از ۳ دسته انتخاب کن» |
 | Display name | 2–30 letters (any script), space and ZWNJ | «نام باید بین ۲ تا ۳۰ حرف باشه» |

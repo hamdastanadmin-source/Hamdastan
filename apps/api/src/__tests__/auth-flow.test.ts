@@ -321,8 +321,8 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       expect(stored.rows[0].presentation_index).toBe(5);
     });
 
-    it('accepts every gender the form offers, «سایر» included', async () => {
-      for (const gender of ['male', 'female', 'other']) {
+    it('accepts every gender the form offers', async () => {
+      for (const gender of ['male', 'female']) {
         const { cookies } = await signIn(nextPhone());
         const response = await put(
           '/me/basic-info',
@@ -332,6 +332,14 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
         expect(response.statusCode, response.body).toBe(200);
         expect(response.json().data.user.gender).toBe(gender);
       }
+
+      const { cookies } = await signIn(nextPhone());
+      const other = await put(
+        '/me/basic-info',
+        { firstName: 'امید', lastName: 'بهشتی', birthDate: { year: 1349, month: 5, day: 5 }, gender: 'other' },
+        cookies
+      );
+      expect(other.statusCode).toBe(400);
     });
 
     it('rejects interests from fewer than three categories', async () => {

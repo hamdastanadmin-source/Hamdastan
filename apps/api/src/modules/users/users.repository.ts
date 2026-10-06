@@ -75,7 +75,6 @@ const UNIQUE_VIOLATION = '23505';
 const GENDER_TO_DB: Record<Gender, string> = {
   male: 'MALE',
   female: 'FEMALE',
-  other: 'OTHER',
 };
 
 type UserRow = {

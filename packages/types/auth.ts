@@ -9,7 +9,7 @@
 
 export type UserRole = 'USER' | 'ADMIN';
 
-export type Gender = 'male' | 'female' | 'other';
+export type Gender = 'male' | 'female';
 
 /**
  * The three destinations of the routing table. `basic_info` and `onboarding`
