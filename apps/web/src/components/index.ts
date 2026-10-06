@@ -18,3 +18,4 @@ export { ScreenBack } from './layout/ScreenBack';
 export { BottomNav } from './layout/BottomNav';
 export { XpAmount } from './xp/XpAmount';
 export { RoleCharacter, type RoleCharacterFrame } from './artwork/RoleCharacter';
+export { OwlLoader } from './artwork/OwlLoader';

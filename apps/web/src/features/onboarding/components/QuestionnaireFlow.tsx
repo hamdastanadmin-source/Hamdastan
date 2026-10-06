@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
+
 import { QUESTIONS } from '@hamdastan/config';
 import type { QuestionnaireState } from '@hamdastan/types';
+
+import { OwlLoader } from '@/components';
 
 import { useQuestionnaire } from '../hooks/use-questionnaire';
 import { progressOf, selectedCodes } from '../utils/questionnaire-flow';
 import { MotivationRanking } from './MotivationRanking';
 import { QuestionStep } from './QuestionStep';
 import { QuestionnaireIntro } from './QuestionnaireIntro';
-import { QuestionnaireProcessing } from './QuestionnaireProcessing';
 import { QuestionnaireResultView } from './QuestionnaireResultView';
 import { SectionReward } from './SectionReward';
 
@@ -35,6 +38,8 @@ export function QuestionnaireFlow({
   const q = useQuestionnaire(initialState);
   const { step } = q;
   const progress = progressOf(step);
+  // The owl plays on the way to the result, not when a finished person reopens it.
+  const [owlDone, setOwlDone] = useState(() => step.kind === 'result');
 
   switch (step.kind) {
     case 'intro':
@@ -88,19 +93,24 @@ export function QuestionnaireFlow({
         />
       );
 
+    // One branch for both, so the same owl stays mounted from processing to
+    // result; the result mounts once it has gone, so its own entrance plays.
     case 'processing':
-      return <QuestionnaireProcessing />;
-
-    case 'result':
-      return q.result ? (
-        <QuestionnaireResultView
-          result={q.result}
-          xpAwarded={q.xpAwarded}
-          isLeaving={q.isSaving}
-          onContinue={() => void q.finish()}
-        />
-      ) : (
-        <QuestionnaireProcessing />
+    case 'result': {
+      const ready = step.kind === 'result' && q.result !== null;
+      return (
+        <>
+          {ready && owlDone && q.result && (
+            <QuestionnaireResultView
+              result={q.result}
+              xpAwarded={q.xpAwarded}
+              isLeaving={q.isSaving}
+              onContinue={() => void q.finish()}
+            />
+          )}
+          {!owlDone && <OwlLoader ready={ready} onDone={() => setOwlDone(true)} />}
+        </>
       );
+    }
   }
 }

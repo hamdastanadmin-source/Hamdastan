@@ -14,5 +14,6 @@ export { EditProfile } from './components/EditProfile';
 export { SettingsScreen } from './components/SettingsScreen';
 export { HelpScreen } from './components/HelpScreen';
 export { SocialProfileScreen } from './components/SocialProfileScreen';
+export { SocialProfileLoader, SocialProfilePending } from './components/SocialProfileLoader';
 export { AvatarFigure } from './components/AvatarFigure';
 export { PersonalityTestCard } from './components/PersonalityTestCard';

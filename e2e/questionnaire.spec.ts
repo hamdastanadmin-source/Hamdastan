@@ -177,8 +177,9 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
   await slide(page, 'End'); // Q17
 
   // ── Processing, result, home ──────────────────────────────────────────
-  await expect(heading(page, 'داریم پروفایلت رو می‌سازیم')).toBeVisible();
-  await expect(page.getByText('پروفایل اجتماعی تو')).toBeVisible({ timeout: 10_000 });
+  // The owl holds the result for one full 5s loop, then fades.
+  await expect(page.getByRole('status', { name: 'در حال آماده کردن نتیجه' })).toBeVisible();
+  await expect(page.getByText('پروفایل اجتماعی تو')).toBeVisible({ timeout: 15_000 });
 
   // Meaning first: three insights, and the bars only on request.
   await expect(page.getByText('بیشتر انرژی می‌گیری از')).toBeVisible();

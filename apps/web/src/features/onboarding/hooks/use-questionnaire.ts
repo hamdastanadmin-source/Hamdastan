@@ -46,8 +46,6 @@ const PATH_FOR: Record<NextStep, string> = {
 const SINGLE_CHOICE_FEEDBACK_MS = 160;
 /** The outgoing screen's fade; the incoming one takes 200ms (`QuestionnaireScreen`). */
 const EXIT_MS = 150;
-/** Long enough for the section mark's last dot to fill; no longer. */
-const PROCESSING_MIN_MS = 800;
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -124,10 +122,8 @@ export function useQuestionnaire(initial: QuestionnaireState) {
   const complete = useCallback(async () => {
     await show({ kind: 'processing' });
     try {
-      const [state] = await Promise.all([
-        onboardingService.completeQuestionnaire(),
-        wait(PROCESSING_MIN_MS),
-      ]);
+      // No minimum wait here: `OwlLoader` holds the result for one full loop.
+      const state = await onboardingService.completeQuestionnaire();
       track({ event: 'quiz_section_completed', sectionId: 4 });
       track({ event: 'quiz_completed' });
       setResult(state.result);

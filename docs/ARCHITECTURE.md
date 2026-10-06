@@ -566,6 +566,15 @@ the same 960×1200 box (so all fourteen share one scale) and resized to
 are shown only through `RoleCharacter` (`apps/web/src/components/artwork`),
 which crops the head out of that one file — no second export per frame.
 
+The detective owl is the loader in front of a social-profile result (the
+questionnaire's processing step and `/profile/social`). The master is
+`assets/illustrations/owl-detective.webp` (960×540, off-white backdrop);
+the served copy `apps/web/public/images/brand/owl-detective.webp` is
+prepared like the stage owls — backdrop lifted to white, owl scaled to the
+same height and centred on 720×491 — and keeps the 60-frame, 5-second loop.
+It is shown only through `OwlLoader` (`apps/web/src/components/artwork`),
+on `bg-owl-backdrop`, white in both themes.
+
 ---
 
 ## 8. Checks

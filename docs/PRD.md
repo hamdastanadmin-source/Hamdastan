@@ -182,7 +182,7 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   *Connection style* (Q6, Q7, Q18, Q20, Q1, then Q1's ranking) → reward
   (50%) → Section 3 *Experience style* (Q8, Q9, Q11, Q12, Q13) → reward
   (75%) → Section 4 *Group compatibility* (Q10, Q14, Q15, Q16, Q17) →
-  «داریم پروفایلت رو می‌سازیم» → result → «ورود به اپلیکیشن» → home.
+  the detective owl → result → «ورود به اپلیکیشن» → home.
 - **Ids versus order.** Questions keep the source ids `Q1`–`Q20`; the order
   above is presentation only (`QUESTIONNAIRE_ORDER`). Nothing is scored by
   position. The questions, option codes and copy are
@@ -257,9 +257,11 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   the journey has begun there is no "later" action — the header holds back
   and nothing else. The intro's back goes to the interests during
   onboarding and home after it.
-- **Processing.** «داریم پروفایلت رو می‌سازیم» / «جواب‌هات رو کنار هم
-  می‌ذاریم.» for as long as the request takes, held to 0.8s — no spinner; the
-  section mark's last dot fills.
+- **Processing.** The animated detective owl (`OwlLoader`, the same one
+  that opens `/profile/social`) over the whole screen, on white in both
+  themes — no text, no spinner. It stays for at least one full 5-second loop
+  and until the request has returned, looping while it waits; then it fades
+  and the result enters. Reopening a finished result does not replay it.
 - **Result — meaning first, numbers last.** A social-profile report, made to
   be shared, in this order:
   1. **Hero.** The character for the person's primary role, picked by the
@@ -398,10 +400,14 @@ bottom:
    می‌شن.» when there are none). The display name is the screen's `h1` for
    screen readers only; the name, username and edit buttons are not shown
    here.
-2. **«پروفایل اجتماعی من».** The result's title, its two lines, the three
-   insights as label/value rows and «مشاهده نتیجه کامل» (→ `/profile/social`,
-   the full social-profile report described under stage 2's result). No internal
-   codes, never the fourteen dimensions. Before the questionnaire is done: a
+2. **«پروفایل اجتماعی من».** A list group like «حساب» with one row,
+   «مشاهده نتیجه کامل» (→ `/profile/social`, the full social-profile report
+   described under stage 2's result); the result's title, description and
+   insights are not repeated on the hub. Opening `/profile/social` shows the
+   animated detective owl (`OwlLoader`, `owl-detective.webp`, a 5-second
+   loop) over the whole screen, on white in both themes so it reads as the
+   screen rather than a clip. The result is not shown until one full loop has
+   played *and* the result has loaded; the owl keeps looping while it waits. Before the questionnaire is done: a
    mission card instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو
    کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه»,
    «+50 XP», «شروع آزمون».
