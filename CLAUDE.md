@@ -148,8 +148,9 @@ constraints.
 ### Deployment
 
 The stack runs on one Ubuntu host as three containers behind nginx, which is
-the only published port: `:80` serves the product at `/` and the API at
-`/api/v1`. `./scripts/deploy.sh` rsyncs the source, uploads
+the only published door: `https://hamdaastaan.ir` (`:443`, Let's Encrypt via
+certbot on the host) serves the product at `/` and the API at `/api/v1`; `:80`
+redirects there. `./scripts/deploy.sh` rsyncs the source, uploads
 `deploy/.env.production` as the server's `.env`, and rebuilds there.
 
 `NEXT_PUBLIC_` variables are baked into the browser bundle at **build** time,

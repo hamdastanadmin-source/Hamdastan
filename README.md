@@ -126,8 +126,8 @@ One host, three containers on a private network, and nginx as the only
 published port:
 
 ```
-:80 → nginx ─┬─ /api/v1/ → api:4000
-             └─ /         → web:3000
+:443 → nginx ─┬─ /api/v1/ → api:4000
+              └─ /         → web:3000
 ```
 
 ```bash
@@ -142,9 +142,27 @@ instance the script never touches.
 
 Because both apps are served from one origin, the browser calls the API on the
 host it loaded the page from: the session cookie is first-party and CORS does
-not arise. Pointing a domain at the server means changing `PUBLIC_BASE_URL`
-and **redeploying** rather than restarting — `NEXT_PUBLIC_` variables are baked
-into the browser bundle at build time.
+not arise. Changing the domain means changing `PUBLIC_BASE_URL` and
+`deploy/nginx.conf`, and **redeploying** rather than restarting —
+`NEXT_PUBLIC_` variables are baked into the browser bundle at build time.
+
+The site is served at `https://hamdaastaan.ir`; :80 redirects there. nginx
+reads its certificate from `/etc/letsencrypt` on the host and will not start
+without one, so a new server needs the certificate issued once **before** the
+first deploy:
+
+```bash
+# on the server, as root
+apt install -y certbot
+certbot certonly --standalone --non-interactive --agree-tos --no-eff-email \
+  -m <email> -d hamdaastaan.ir -d www.hamdaastaan.ir \
+  --pre-hook  "docker stop hamdastan-nginx || true" \
+  --post-hook "docker start hamdastan-nginx || true"
+```
+
+The hooks are saved with the certificate, so the `certbot.timer` that the
+package installs renews it unattended (nginx is down for a few seconds,
+roughly every two months).
 
 ## Theming
 

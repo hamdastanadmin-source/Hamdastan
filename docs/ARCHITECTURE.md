@@ -413,8 +413,8 @@ One host, three containers on a private network, and nginx as the only
 published port:
 
 ```
-:80 → nginx ─┬─ /api/v1/  → api:4000
-             └─ /          → web:3000
+:443 → nginx ─┬─ /api/v1/  → api:4000
+              └─ /          → web:3000
 ```
 
 Serving both from one origin is deliberate: the browser calls the API on the
@@ -432,9 +432,15 @@ runtime variable. Changing it means rebuilding, not restarting.
 
 The API validates its environment at boot (`apps/api/src/config/env.ts`) and
 refuses to start on an unknown value, so `.env.production` must use the names
-in the template. While the site is served over plain HTTP, `COOKIE_SECURE=false`
-is required: session cookies default to `Secure` in production and a browser
-drops them on `http://`.
+in the template.
+
+The site is `https://hamdaastaan.ir`. nginx terminates TLS with a Let's
+Encrypt certificate that certbot on the host issues and renews into
+`/etc/letsencrypt` (mounted read-only); :80 only redirects to the canonical
+origin, apart from `/_up`, which the deploy script probes over plain HTTP from
+the server itself. Session cookies default to `Secure` in production; were the
+site ever served over plain HTTP again, `COOKIE_SECURE=false` would be
+required, because a browser drops a `Secure` cookie on `http://`.
 
 ---
 

@@ -74,7 +74,7 @@ writing a migration, not after.
     a developer's machine, with `NODE_ENV=development` and the development
     one-time-code echo switched on.
 
-9.  The deployed stack publishes **one** port. `web` and `api` are reachable
-    only on the private compose network; nginx on :80 is the whole public
+9.  The deployed stack publishes **one** door, nginx. `web` and `api` are reachable
+    only on the private compose network; nginx on :80 and :443 is the whole public
     surface. Adding a `ports:` entry to either is what quietly re-opens the
     backend to the internet.
