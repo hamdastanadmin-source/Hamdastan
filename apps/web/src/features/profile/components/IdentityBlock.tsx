@@ -1,24 +1,15 @@
-import { IdCard, Palette, Sparkles, type LucideIcon } from 'lucide-react';
-
-import { DEFAULT_AVATAR, type BadgeIcon } from '@hamdastan/config';
-import type { AccountProfile, EarnedBadge, RoleAvatarId } from '@hamdastan/types';
-import { Badge, Card, CardContent } from '@hamdastan/ui';
+import { DEFAULT_AVATAR } from '@hamdastan/config';
+import type { AccountProfile, RoleAvatarId } from '@hamdastan/types';
+import { Card } from '@hamdastan/ui';
 import { cn } from '@hamdastan/shared/cn';
 
 import { RoleCharacter } from '@/components';
 
 import { AvatarFigure } from './AvatarFigure';
 
-/** One drawing per `BADGE_ICONS` key; a new key in the catalog fails to compile until it has one. */
-const BADGE_ICON: Record<BadgeIcon, LucideIcon> = {
-  sparkles: Sparkles,
-  palette: Palette,
-  'id-card': IdCard,
-};
-
 /**
- * The top of the hub, as one card: the avatar, large, and under it the
- * badges earned so far. The avatar is not a link — there is no avatar screen
+ * The top of the hub, as one card: the avatar, large. The badges earned
+ * are a card of their own (`BadgesCard`) under it. The avatar is not a link — there is no avatar screen
  * to open. The name is the screen's `h1` for assistive technology only; the
  * screen shows the avatar.
  *
@@ -29,11 +20,9 @@ const BADGE_ICON: Record<BadgeIcon, LucideIcon> = {
 export function IdentityBlock({
   profile,
   character,
-  badges,
 }: {
   profile: AccountProfile;
   character: RoleAvatarId | null;
-  badges: EarnedBadge[];
 }) {
   return (
     <section aria-label="هویت من">
@@ -78,31 +67,6 @@ export function IdentityBlock({
             />
           )}
         </div>
-
-        <CardContent className="flex flex-col gap-4 border-t border-border p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">نشان‌های من</h2>
-            <Badge variant="secondary">{badges.length.toLocaleString('fa-IR')}</Badge>
-          </div>
-
-          {badges.length === 0 ? (
-            <p className="text-sm text-muted-foreground">با انجام ماموریت‌ها، نشان‌هات اینجا جمع می‌شن.</p>
-          ) : (
-            <ul className="grid grid-cols-3 gap-3">
-              {badges.map((badge) => {
-                const Icon = BADGE_ICON[badge.icon];
-                return (
-                  <li key={badge.id} title={badge.description} className="flex flex-col items-center gap-2 text-center">
-                    <span className="flex size-14 items-center justify-center rounded-full border border-border bg-secondary">
-                      <Icon aria-hidden="true" className="size-6" />
-                    </span>
-                    <span className="text-xs font-medium">{badge.title}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
       </Card>
     </section>
   );

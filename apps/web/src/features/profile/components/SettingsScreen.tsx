@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Bell, CircleHelp, Moon, ShieldCheck, UserRoundPen } from 'lucide-react';
+import { Bell, CircleHelp, Moon, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { AccountSettings } from '@hamdastan/config';
@@ -15,7 +15,7 @@ import { ListGroup, ListRow } from './ListGroup';
 import { LogoutButton } from './LogoutButton';
 
 /**
- * «تنظیمات» — kept to what the product has: the profile, the theme,
+ * «تنظیمات» — kept to what the product has: the theme,
  * notifications, privacy, help, and signing out, set apart at the bottom.
  *
  * An account switch saves as it is flipped and flips back if the save fails.
@@ -73,10 +73,6 @@ export function SettingsScreen({ settings: saved }: { settings: AccountSettings 
 
       <ScreenBody className="gap-8">
         <ScreenTitle title="تنظیمات" />
-
-        <ListGroup title="حساب">
-          <ListRow icon={UserRoundPen} label="ویرایش پروفایل" href="/profile/edit" />
-        </ListGroup>
 
         <ListGroup title="ظاهر">
           <ListRow>

@@ -23,7 +23,16 @@ import {
   SheetTitle,
   Textarea,
 } from '@hamdastan/ui';
-import { bioSchema, citySchema, displayNameSchema, usernameSchema, z } from '@hamdastan/validation';
+import {
+  bioSchema,
+  citySchema,
+  displayNameSchema,
+  instagramSchema,
+  linkedinSchema,
+  telegramSchema,
+  usernameSchema,
+  z,
+} from '@hamdastan/validation';
 
 import { HttpError } from '@/services';
 
@@ -39,7 +48,7 @@ import { accountErrorMessage, useAccountActions } from '../hooks/use-account-act
  * included, which only the server can know.
  */
 
-export type ProfileField = 'displayName' | 'username' | 'city' | 'bio';
+export type ProfileField = 'displayName' | 'username' | 'city' | 'bio' | 'instagram' | 'telegram' | 'linkedin';
 
 const FIELDS: Record<
   ProfileField,
@@ -75,6 +84,27 @@ const FIELDS: Record<
     description: 'اختیاری — چند خط کوتاه درباره خودت.',
     schema: bioSchema,
     multiline: true,
+  },
+  instagram: {
+    title: 'اینستاگرام',
+    description: 'اختیاری — آیدی یا لینک پیجت.',
+    schema: instagramSchema,
+    ltr: true,
+    placeholder: 'username',
+  },
+  telegram: {
+    title: 'تلگرام',
+    description: 'اختیاری — آیدی یا لینک تلگرامت.',
+    schema: telegramSchema,
+    ltr: true,
+    placeholder: 'username',
+  },
+  linkedin: {
+    title: 'لینکدین',
+    description: 'اختیاری — آیدی یا لینک پروفایلت.',
+    schema: linkedinSchema,
+    ltr: true,
+    placeholder: 'username',
   },
 };
 

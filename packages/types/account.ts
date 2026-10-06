@@ -14,6 +14,10 @@ export type AccountProfile = {
   username: string | null;
   city: string | null;
   bio: string | null;
+  /** Social handles, without `@`; null when not given. */
+  instagram: string | null;
+  telegram: string | null;
+  linkedin: string | null;
   /** Null until the person saves an avatar of their own. */
   avatar: AvatarConfig | null;
 };

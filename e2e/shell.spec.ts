@@ -15,7 +15,8 @@ test('renders right-to-left in Persian', async ({ page }) => {
 
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
-  await expect(page.locator('html')).toHaveClass(/dark/);
+  // Light by default (PRD §Theme); dark is opt-in from settings.
+  await expect(page.locator('html')).not.toHaveClass(/dark/);
 });
 
 test('keeps the content in a centred column and never scrolls sideways', async ({

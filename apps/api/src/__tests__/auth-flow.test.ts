@@ -425,6 +425,28 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       expect(invalid.statusCode).toBe(400);
     });
 
+    it('stores social handles, from a handle or a pasted link, and clears them', async () => {
+      const cookies = await homeUser();
+
+      const saved = await patch(
+        '/me/profile',
+        { instagram: 'https://www.instagram.com/Neg.Sal/', telegram: '@Neg_Sal', linkedin: 'neg-sal' },
+        cookies
+      );
+      expect(saved.statusCode, saved.body).toBe(200);
+      expect(saved.json().data.account.profile).toMatchObject({
+        instagram: 'neg.sal',
+        telegram: 'neg_sal',
+        linkedin: 'neg-sal',
+      });
+
+      const cleared = await patch('/me/profile', { telegram: '' }, cookies);
+      expect(cleared.json().data.account.profile.telegram).toBeNull();
+
+      const invalid = await patch('/me/profile', { telegram: 'ab' }, cookies);
+      expect(invalid.statusCode).toBe(400);
+    });
+
     it('saves an avatar from the catalog and rewards the first one', async () => {
       const cookies = await homeUser();
       const avatar = { base: 'base-3', top: 'hoodie', bottom: 'jeans', shoes: 'boots', accessory: 'cap' };

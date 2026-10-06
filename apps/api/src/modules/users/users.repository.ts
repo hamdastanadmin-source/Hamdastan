@@ -66,6 +66,9 @@ const PROFILE_COLUMNS: Record<keyof ProfileFields, string> = {
   username: 'username',
   city: 'city',
   bio: 'bio',
+  instagram: 'instagram',
+  telegram: 'telegram',
+  linkedin: 'linkedin',
 };
 
 /** PostgreSQL's unique_violation. */
@@ -88,6 +91,9 @@ type UserRow = {
   username: string | null;
   city: string | null;
   bio: string | null;
+  instagram: string | null;
+  telegram: string | null;
+  linkedin: string | null;
   avatar_config: AvatarConfig | null;
   settings: Partial<AccountSettings>;
   onboarding_step: OnboardingStep;
@@ -103,7 +109,8 @@ type UserRow = {
 const SELECT_COLUMNS = `
   id, phone, first_name, last_name,
   to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
-  gender, display_name, username, city, bio, avatar_config, settings,
+  gender, display_name, username, city, bio, instagram, telegram, linkedin,
+  avatar_config, settings,
   onboarding_step, role, status
 `;
 
@@ -119,6 +126,9 @@ function toRecord(row: UserRow): UserRecord {
     username: row.username,
     city: row.city,
     bio: row.bio,
+    instagram: row.instagram,
+    telegram: row.telegram,
+    linkedin: row.linkedin,
     avatarConfig: row.avatar_config,
     settings: row.settings,
     onboardingStep: row.onboarding_step,

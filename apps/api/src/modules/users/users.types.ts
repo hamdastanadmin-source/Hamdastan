@@ -27,6 +27,9 @@ export type UserRecord = {
   username: string | null;
   city: string | null;
   bio: string | null;
+  instagram: string | null;
+  telegram: string | null;
+  linkedin: string | null;
   /** Null until the person saves an avatar. */
   avatarConfig: AvatarConfig | null;
   /** As stored: keys missing here take `DEFAULT_SETTINGS`. */
@@ -42,6 +45,9 @@ export type ProfileFields = Partial<{
   username: string;
   city: string | null;
   bio: string | null;
+  instagram: string | null;
+  telegram: string | null;
+  linkedin: string | null;
 }>;
 
 /** The four fields the basic-info form collects, already validated. */

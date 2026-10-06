@@ -81,7 +81,7 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
     await page.getByRole('button', { name: interest }).click();
   }
   await next(page).click();
-  await expect(heading(page, 'بیا یکم بیشتر بشناسیمت')).toBeVisible();
+  await expect(heading(page, 'ترجیحات شما را بهتر بشناسیم')).toBeVisible();
   await expect(page.getByText('حدود ۵ دقیقه')).toBeVisible();
   // No question count anywhere.
   await expect(page.getByText(/از ۲۰|۲۰ سؤال/)).toHaveCount(0);
@@ -181,16 +181,12 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
   await expect(page.getByRole('status', { name: 'در حال آماده کردن نتیجه' })).toBeVisible();
   await expect(page.getByText('پروفایل اجتماعی تو')).toBeVisible({ timeout: 15_000 });
 
-  // Meaning first: three insights, and the bars only on request.
+  // Meaning first: three insights, then «DNA اجتماعی تو», always open.
   await expect(page.getByText('بیشتر انرژی می‌گیری از')).toBeVisible();
   await expect(page.getByText('توی تجربه‌ها دنبال')).toBeVisible();
   await expect(page.getByText('توی گروه ترجیح می‌دی')).toBeVisible();
-  await expect(page.getByText('انرژی اجتماعی', { exact: true })).toHaveCount(0);
-  const detail = page.getByRole('button', { name: 'جزئیات بیشتر' });
-  await expect(detail).toHaveAttribute('aria-expanded', 'false');
-  await detail.click();
-  await expect(detail).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByText('انرژی اجتماعی', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'DNA اجتماعی تو' })).toBeVisible();
+  await expect(page.getByRole('term').filter({ hasText: /^انرژی اجتماعی$/ })).toBeVisible();
   // No internal codes, anywhere.
   await expect(page.getByText(/\b(SI|SE|CP|CD|ST|CP_support)\b/)).toHaveCount(0);
 

@@ -394,13 +394,13 @@ bottom:
    character full-body with no frame, on a stage the same white as the art
    (`--avatar-backdrop`); or, before the questionnaire, the drawn avatar
    head to chest on a soft neutral disc. Not a link — there is no avatar
-   screen. Under it «نشان‌های من» with the count and
-   the earned badges in a three-column grid: a neutral circle with the
+   screen. The display name is the screen's `h1` for screen readers only;
+   the name, username and edit buttons are not shown here.
+2. **«نشان‌های من».** A card of its own under the avatar: the count, and
+   the earned badges in a three-column grid — a neutral circle with the
    badge's icon and its title («با انجام ماموریت‌ها، نشان‌هات اینجا جمع
-   می‌شن.» when there are none). The display name is the screen's `h1` for
-   screen readers only; the name, username and edit buttons are not shown
-   here.
-2. **«پروفایل اجتماعی من».** A list group like «حساب» with one row,
+   می‌شن.» when there are none).
+3. **«پروفایل اجتماعی من».** A list group like «حساب» with one row,
    «مشاهده نتیجه کامل» (→ `/profile/social`, the full social-profile report
    described under stage 2's result); the result's title, description and
    insights are not repeated on the hub. Opening `/profile/social` shows the
@@ -411,8 +411,8 @@ bottom:
    mission card instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو
    کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه»,
    «+50 XP», «شروع آزمون».
-3. **«حساب».** «تنظیمات» and «راهنما و پشتیبانی». (Editing the profile is
-   under «تنظیمات».)
+4. **«حساب».** «ویرایش پروفایل» (→ `/profile/edit`), «تنظیمات» and
+   «راهنما و پشتیبانی».
 
 The hub no longer lists missions or shows XP and level: what the person has
 achieved is shown as badges. Missions and the XP ledger still run behind
@@ -473,16 +473,20 @@ with its «ظاهر» row in edit profile. `PUT /me/avatar` and `avatar_config`
 remain in the API, unused by the app. XP and badges already earned stay;
 missions are no longer listed on the profile.
 
-**Edit profile — `/profile/edit`.** A list, not a form: «اطلاعات اصلی» (نام,
-نام کاربری, شهر) and «درباره من · اختیاری» (بیو). Each row
+**Edit profile — `/profile/edit`.** Opened from «حساب» on the profile
+home; its back button returns there. A list, not a form: «اطلاعات اصلی» (نام,
+نام کاربری, شهر), «درباره من · اختیاری» (بیو) and «شبکه‌های اجتماعی ·
+اختیاری» (اینستاگرام, تلگرام, لینکدین — each shown as `@handle`). Each row
 opens a bottom sheet with that one field, a line of help, «ذخیره تغییرات»
 (primary) and «انصراف». A taken username is shown under the field. First
 and last name, birth date and gender were given at sign-up and are not
-edited here. Profile image, email and social handles are not collected:
-the avatar is the person's image, and nothing in the product uses the
-other two.
+edited here. A social field takes a handle or a pasted profile link; only
+the handle is kept (lower case, no `@`), so a stored value can only point
+at its own network, and an empty value clears it. Social handles do not
+count towards «تکمیل پروفایل». Profile image and email are not collected:
+the avatar is the person's image, and nothing in the product uses email.
 
-**Settings — `/profile/settings`.** «حساب» (ویرایش پروفایل), «ظاهر»
+**Settings — `/profile/settings`.** «ظاهر»
 (حالت تاریک — a switch; per device, kept in the browser by the theme store,
 not on the account), «اعلان‌ها» (ماموریت‌ها و پیشرفت — a switch), «حریم خصوصی» (نمایش پروفایل اجتماعی به
 دیگران — a switch), «پشتیبانی» (راهنما و پشتیبانی → `/profile/help`), then,
@@ -661,7 +665,7 @@ decides nothing and keeps the cookies rather than signing the visitor out.
 - **`v2_onboarding_events`** — append-only funnel events. The presentation
   index is filled in by the API from the question id.
 - **`v2_users` account columns** — `username` (unique, stored lower-case,
-  held to it by a CHECK), `bio`, `city`, `avatar_config` (`jsonb`, the five
+  held to it by a CHECK), `bio`, `city`, `instagram`, `telegram`, `linkedin` (handles only, from `0008`), `avatar_config` (`jsonb`, the five
   catalog ids; null until saved) and `settings` (`jsonb`; missing keys take
   `DEFAULT_SETTINGS`, so a new setting needs no migration).
 - **`v2_xp_transactions`** — the XP ledger, append-only: `user_id`,
@@ -700,7 +704,7 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireCompletion` — the state with `result`, plus `xpAwarded` (50 once, then 0); 400 until every question is answered |
 | POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
 | GET | `/me/account` | access cookie | — | `AccountOverview`: `{ profile, progress, missions, badges, socialProfile, settings }` |
-| PATCH | `/me/profile` | access cookie | any of `{ displayName, username, city, bio }` | `AccountUpdate`: `{ account, xpAwarded }`; 409 for a taken username |
+| PATCH | `/me/profile` | access cookie | any of `{ displayName, username, city, bio, instagram, telegram, linkedin }` | `AccountUpdate`: `{ account, xpAwarded }`; 409 for a taken username |
 | PUT | `/me/avatar` | access cookie | `{ base, top, bottom, shoes, accessory }` | `AccountUpdate`; 403 for an item above the person's level |
 | PUT | `/me/settings` | access cookie | `{ notifications, showSocialProfile }` | `AccountUpdate` |
 

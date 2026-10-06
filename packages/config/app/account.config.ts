@@ -128,6 +128,11 @@ export const ACCOUNT_LIMITS = {
   CITY_MIN: 2,
   CITY_MAX: 40,
   BIO_MAX: 160,
+  INSTAGRAM_MAX: 30,
+  TELEGRAM_MIN: 5,
+  TELEGRAM_MAX: 32,
+  LINKEDIN_MIN: 3,
+  LINKEDIN_MAX: 100,
 } as const;
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────

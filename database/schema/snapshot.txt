@@ -86,8 +86,10 @@ column v2_users.display_name character varying nullable=YES default=
 column v2_users.first_name character varying nullable=YES default=
 column v2_users.gender USER-DEFINED nullable=YES default=
 column v2_users.id uuid nullable=NO default=gen_random_uuid()
+column v2_users.instagram character varying nullable=YES default=
 column v2_users.last_login_at timestamp with time zone nullable=YES default=
 column v2_users.last_name character varying nullable=YES default=
+column v2_users.linkedin character varying nullable=YES default=
 column v2_users.onboarding_stage smallint nullable=NO default=0
 column v2_users.onboarding_step USER-DEFINED nullable=NO default='basic_info'::v2_onboarding_step
 column v2_users.phone character varying nullable=NO default=
@@ -95,6 +97,7 @@ column v2_users.phone_verified_at timestamp with time zone nullable=NO default=n
 column v2_users.role USER-DEFINED nullable=NO default='USER'::v2_user_role
 column v2_users.settings jsonb nullable=NO default='{}'::jsonb
 column v2_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_user_status
+column v2_users.telegram character varying nullable=YES default=
 column v2_users.updated_at timestamp with time zone nullable=NO default=now()
 column v2_users.username character varying nullable=YES default=
 column v2_xp_transactions.created_at timestamp with time zone nullable=NO default=now()
