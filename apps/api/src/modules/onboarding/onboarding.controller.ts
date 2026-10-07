@@ -14,19 +14,19 @@ import { onboardingService } from './onboarding.service';
  */
 export const onboardingController = {
   async questionnaire(request: FastifyRequest, reply: FastifyReply) {
-    const state = await onboardingService.getQuestionnaire(currentUser(request).id);
+    const state = await onboardingService.getQuestionnaire(currentUser(request));
     return reply.send(ok(state));
   },
 
   async saveAnswer(request: FastifyRequest, reply: FastifyReply) {
     const { questionId } = parseBody(onboardingSchemas.answer.params, request.params);
     const { answer } = parseBody(onboardingSchemas.answer.body(questionId), request.body);
-    const state = await onboardingService.saveAnswer(currentUser(request).id, questionId, answer);
+    const state = await onboardingService.saveAnswer(currentUser(request), questionId, answer);
     return reply.send(ok(state));
   },
 
   async complete(request: FastifyRequest, reply: FastifyReply) {
-    const state = await onboardingService.complete(currentUser(request).id);
+    const state = await onboardingService.complete(currentUser(request));
     return reply.send(ok(state));
   },
 

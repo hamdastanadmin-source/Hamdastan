@@ -32,7 +32,7 @@ const settingsOf = (user: UserRecord): AccountSettings => ({ ...DEFAULT_SETTINGS
 async function overviewOf(user: UserRecord): Promise<AccountOverview> {
   const [transactions, socialProfile] = await Promise.all([
     progressService.listTransactions(user.id),
-    onboardingService.getResult(user.id),
+    onboardingService.getResult(user),
   ]);
 
   const missions = missionsFor(transactions);
@@ -60,13 +60,17 @@ async function currentLevel(userId: string): Promise<number> {
   return levelFor(toProgress(await progressService.listTransactions(userId)).xpTotal).level;
 }
 
+/**
+ * Every method takes the `UserRecord` `authenticate` loaded for this
+ * request, so none of them reads the user row again.
+ */
 export const accountService = {
-  async getOverview(userId: string): Promise<AccountOverview> {
-    return overviewOf(await usersService.getById(userId));
+  async getOverview(current: UserRecord): Promise<AccountOverview> {
+    return overviewOf(current);
   },
 
-  async updateProfile(userId: string, fields: ProfileFields): Promise<AccountUpdate> {
-    await usersService.getById(userId);
+  async updateProfile(current: UserRecord, fields: ProfileFields): Promise<AccountUpdate> {
+    const userId = current.id;
     const user = await usersService.updateProfile(userId, fields);
     const xpAwarded = isProfileComplete(user)
       ? await missionsService.complete(userId, 'profile_completed')
@@ -75,8 +79,8 @@ export const accountService = {
   },
 
   /** The catalog check is the schema's; the level check is here, because only the server knows the level. */
-  async saveAvatar(userId: string, avatar: AvatarConfig): Promise<AccountUpdate> {
-    await usersService.getById(userId);
+  async saveAvatar(current: UserRecord, avatar: AvatarConfig): Promise<AccountUpdate> {
+    const userId = current.id;
     const level = await currentLevel(userId);
     const locked = AVATAR_SLOTS.some((slot) => {
       const item = AVATAR_CATALOG[slot].find(({ id }) => id === avatar[slot]);
@@ -89,9 +93,8 @@ export const accountService = {
     return { account: await overviewOf(user), xpAwarded };
   },
 
-  async saveSettings(userId: string, settings: AccountSettings): Promise<AccountUpdate> {
-    await usersService.getById(userId);
-    const user = await usersService.saveSettings(userId, settings);
+  async saveSettings(current: UserRecord, settings: AccountSettings): Promise<AccountUpdate> {
+    const user = await usersService.saveSettings(current.id, settings);
     return { account: await overviewOf(user), xpAwarded: 0 };
   },
 };

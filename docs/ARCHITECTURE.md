@@ -456,7 +456,11 @@ packages/ui/
 └── styles/      the shared base layer
 ```
 
-Apps import from `@hamdastan/ui`. Importing `radix-ui` anywhere but
+Apps import from `@hamdastan/ui`. The one exception is the chart, which is
+`@hamdastan/ui/chart`: the component barrel is a single client module, so
+everything it exports ships with every screen, and Recharts (~200 KB gzipped)
+belongs only to the screens that draw one. A heavy component added later goes
+on an entry of its own the same way. Importing `radix-ui` anywhere but
 `packages/ui/primitives` is a lint error: the wrappers are what set `dir` on
 portalled content, and a primitive imported directly skips them.
 

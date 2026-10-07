@@ -16,21 +16,21 @@ import { accountService } from './account.service';
  */
 export const accountController = {
   async overview(request: FastifyRequest, reply: FastifyReply) {
-    return reply.send(ok(await accountService.getOverview(currentUser(request).id)));
+    return reply.send(ok(await accountService.getOverview(currentUser(request))));
   },
 
   async updateProfile(request: FastifyRequest, reply: FastifyReply) {
     const fields = parseBody(accountSchemas.profile.body, request.body);
-    return reply.send(ok(await accountService.updateProfile(currentUser(request).id, fields)));
+    return reply.send(ok(await accountService.updateProfile(currentUser(request), fields)));
   },
 
   async saveAvatar(request: FastifyRequest, reply: FastifyReply) {
     const avatar = parseBody(accountSchemas.avatar.body, request.body) as AvatarConfig;
-    return reply.send(ok(await accountService.saveAvatar(currentUser(request).id, avatar)));
+    return reply.send(ok(await accountService.saveAvatar(currentUser(request), avatar)));
   },
 
   async saveSettings(request: FastifyRequest, reply: FastifyReply) {
     const settings = parseBody(accountSchemas.settings.body, request.body);
-    return reply.send(ok(await accountService.saveSettings(currentUser(request).id, settings)));
+    return reply.send(ok(await accountService.saveSettings(currentUser(request), settings)));
   },
 };

@@ -284,7 +284,18 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       await answerQuestionnaire(cookies);
 
       // Editing an answer replaces it: one row, and the score of the new answer only.
-      await put('/me/onboarding/questionnaire/answers/Q2', { answer: { option: 'LISTENER' } }, cookies);
+      const edited = await put('/me/onboarding/questionnaire/answers/Q2', { answer: { option: 'LISTENER' } }, cookies);
+      expect(edited.statusCode, edited.body).toBe(200);
+      const editedState = edited.json().data;
+      // The answers read back in the same statement as the write: the new
+      // one, and every other exactly once.
+      expect(editedState.answers.Q2).toEqual({ option: 'LISTENER' });
+      expect(Object.keys(editedState.answers)).toHaveLength(20);
+      expect(editedState.answers.Q17).toEqual(FULL_ANSWERS.Q17);
+      // Still finished, so the card comes back with it.
+      expect(editedState.completed).toBe(true);
+      expect(editedState.result.title).toBeTruthy();
+
       const userId = (await get('/me', cookies)).json().data.user.id as string;
       const rows = await getPool().query(
         'SELECT question_id, presentation_index FROM v2_questionnaire_answers WHERE user_id = $1',
@@ -340,6 +351,18 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
         cookies
       );
       expect(other.statusCode).toBe(400);
+    });
+
+    it('stops a suspended account on its next request, and refuses a dead token', async () => {
+      const { cookies, body } = await signIn(nextPhone());
+      expect((await get('/me', cookies)).statusCode).toBe(200);
+
+      await getPool().query(`UPDATE v2_users SET status = 'SUSPENDED' WHERE id = $1`, [body.user.id]);
+      expect((await get('/me', cookies)).statusCode).toBe(403);
+      expect((await get('/me/account', cookies)).statusCode).toBe(403);
+
+      const unknown = { ...cookies, [SESSION.ACCESS_COOKIE]: 'not-a-token' };
+      expect((await get('/me', unknown)).statusCode).toBe(401);
     });
 
     it('rejects interests from fewer than three categories', async () => {

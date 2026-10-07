@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { QUESTIONS } from '@hamdastan/config';
 import type { QuestionnaireState } from '@hamdastan/types';
@@ -14,6 +14,7 @@ import { QuestionStep } from './QuestionStep';
 import { QuestionnaireIntro } from './QuestionnaireIntro';
 import { QuestionnaireResultView } from './QuestionnaireResultView';
 import { SectionReward } from './SectionReward';
+import { preloadSocialDnaChart } from './SocialDnaChart';
 
 /**
  * Onboarding stage 2: the questionnaire, as one page of many short screens.
@@ -40,6 +41,12 @@ export function QuestionnaireFlow({
   const progress = progressOf(step);
   // The owl plays on the way to the result, not when a finished person reopens it.
   const [owlDone, setOwlDone] = useState(() => step.kind === 'result');
+
+  // The result's chart loads on demand; fetch it while the owl plays, so it
+  // is there when the result is.
+  useEffect(() => {
+    if (step.kind === 'processing') preloadSocialDnaChart();
+  }, [step.kind]);
 
   switch (step.kind) {
     case 'intro':

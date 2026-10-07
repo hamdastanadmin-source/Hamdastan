@@ -43,6 +43,11 @@ services:
       - NEXT_PUBLIC_API_BASE_URL=${PUBLIC_BASE_URL}
       - WEB_BASE_URL=${PUBLIC_BASE_URL}
       - NEXT_PUBLIC_WEB_BASE_URL=${PUBLIC_BASE_URL}
+    volumes:
+      # next/image's resized copies. Without a volume they live in the
+      # container and every deploy starts cold: the first visitors wait while
+      # each world banner is re-encoded.
+      - web-image-cache:/app/apps/web/.next/cache
 
   admin:
     ports: !override []
@@ -79,3 +84,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  web-image-cache:

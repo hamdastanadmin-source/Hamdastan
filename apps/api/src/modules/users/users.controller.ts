@@ -15,31 +15,33 @@ import { toOnboardingInterests, toSession, usersService } from './users.service'
  * route on however it arrived there.
  */
 export const usersController = {
-  /** The session, re-read. This is what the front-end calls on every load. */
+  /**
+   * The session. This is what the front-end calls on every load; the row
+   * `authenticate` read for this request is the fresh one.
+   */
   async me(request: FastifyRequest, reply: FastifyReply) {
-    const user = await usersService.getById(currentUser(request).id);
-    return reply.send(ok(toSession(user)));
+    return reply.send(ok(toSession(currentUser(request))));
   },
 
   async updateBasicInfo(request: FastifyRequest, reply: FastifyReply) {
     const info = parseBody(usersSchemas.basicInfo.body, request.body);
-    const updated = await usersService.saveBasicInfo(currentUser(request).id, info);
+    const updated = await usersService.saveBasicInfo(currentUser(request), info);
     return reply.send(ok(toSession(updated)));
   },
 
   async completeOnboarding(request: FastifyRequest, reply: FastifyReply) {
-    const updated = await usersService.completeOnboarding(currentUser(request).id);
+    const updated = await usersService.completeOnboarding(currentUser(request));
     return reply.send(ok(toSession(updated)));
   },
 
   async onboardingInterests(request: FastifyRequest, reply: FastifyReply) {
-    const record = await usersService.getOnboardingInterests(currentUser(request).id);
+    const record = await usersService.getOnboardingInterests(currentUser(request));
     return reply.send(ok(toOnboardingInterests(record)));
   },
 
   async saveOnboardingInterests(request: FastifyRequest, reply: FastifyReply) {
     const { interestIds } = parseBody(usersSchemas.interests.body, request.body);
-    const record = await usersService.saveInterests(currentUser(request).id, interestIds);
+    const record = await usersService.saveInterests(currentUser(request), interestIds);
     return reply.send(ok(toOnboardingInterests(record)));
   },
 };

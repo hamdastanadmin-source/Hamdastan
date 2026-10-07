@@ -25,6 +25,15 @@ import type {
  */
 export interface UsersRepository {
   findById(id: string): Promise<UserRecord | null>;
+  /**
+   * The user a live access token belongs to: the token unexpired, its session
+   * neither revoked nor expired. Null otherwise.
+   *
+   * Whether a token is live is the Auth module's rule, but it is answered
+   * here, joined to the user row, because it runs before every protected
+   * request — one round trip to the database rather than two.
+   */
+  findByAccessToken(tokenHash: string, now: Date): Promise<UserRecord | null>;
   findByPhone(phone: string): Promise<UserRecord | null>;
   /**
    * The row a verified code creates. Returns the existing user when the
@@ -36,7 +45,8 @@ export interface UsersRepository {
   setOnboardingStep(id: string, step: OnboardingStep): Promise<UserRecord>;
 
   // ─── Onboarding answers ──────────────────────────────────────
-  findOnboardingInterests(id: string): Promise<OnboardingInterestsRecord>;
+  /** The saved interest ids. The stage that goes with them is on the user row. */
+  findInterestIds(id: string): Promise<string[]>;
   /**
    * Replaces the person's whole interest set and records stage 1 as
    * finished, in one transaction: a half-saved selection is never visible.
@@ -97,6 +107,7 @@ type UserRow = {
   avatar_config: AvatarConfig | null;
   settings: Partial<AccountSettings>;
   onboarding_step: OnboardingStep;
+  onboarding_stage: number;
   role: 'USER' | 'ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
 };
@@ -111,7 +122,7 @@ const SELECT_COLUMNS = `
   to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
   gender, display_name, username, city, bio, instagram, telegram, linkedin,
   avatar_config, settings,
-  onboarding_step, role, status
+  onboarding_step, onboarding_stage, role, status
 `;
 
 function toRecord(row: UserRow): UserRecord {
@@ -132,6 +143,7 @@ function toRecord(row: UserRow): UserRecord {
     avatarConfig: row.avatar_config,
     settings: row.settings,
     onboardingStep: row.onboarding_step,
+    onboardingStage: row.onboarding_stage,
     role: row.role,
     status: row.status,
   };
@@ -142,6 +154,21 @@ export const sqlUsersRepository: UsersRepository = {
     const row = await queryOne<UserRow>(
       `SELECT ${SELECT_COLUMNS} FROM v2_users WHERE id = $1`,
       [id]
+    );
+    return row ? toRecord(row) : null;
+  },
+
+  async findByAccessToken(tokenHash, now) {
+    const row = await queryOne<UserRow>(
+      `SELECT ${SELECT_COLUMNS} FROM v2_users
+        WHERE id = (SELECT t.user_id
+                      FROM v2_access_tokens t
+                      JOIN v2_sessions s ON s.id = t.session_id
+                     WHERE t.token_hash = $1
+                       AND t.expires_at > $2
+                       AND s.revoked_at IS NULL
+                       AND s.expires_at > $2)`,
+      [tokenHash, now]
     );
     return row ? toRecord(row) : null;
   },
@@ -199,21 +226,12 @@ export const sqlUsersRepository: UsersRepository = {
     return toRecord(rows[0]);
   },
 
-  async findOnboardingInterests(id) {
-    const [stage, interests] = await Promise.all([
-      queryOne<{ onboarding_stage: number }>(
-        `SELECT onboarding_stage FROM v2_users WHERE id = $1`,
-        [id]
-      ),
-      query<{ interest_id: string }>(
-        `SELECT interest_id FROM v2_user_interests WHERE user_id = $1`,
-        [id]
-      ),
-    ]);
-    return {
-      onboardingStage: stage?.onboarding_stage ?? 0,
-      interestIds: interests.map((row) => row.interest_id),
-    };
+  async findInterestIds(id) {
+    const rows = await query<{ interest_id: string }>(
+      `SELECT interest_id FROM v2_user_interests WHERE user_id = $1`,
+      [id]
+    );
+    return rows.map((row) => row.interest_id);
   },
 
   async saveInterests(id, interests) {

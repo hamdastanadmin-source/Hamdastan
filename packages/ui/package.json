@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
+    "./chart": "./chart.ts",
     "./primitives/*": "./primitives/*.tsx",
     "./patterns/*": "./patterns/*.tsx",
     "./icons": "./icons/index.ts",

@@ -6,4 +6,8 @@
  * feature uses belongs in that feature's `utils/`.
  */
 
-export {};
+export {
+  SESSION_HANDOFF_HEADER,
+  decodeSessionHandoff,
+  encodeSessionHandoff,
+} from './session-handoff';

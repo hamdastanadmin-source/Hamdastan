@@ -6,11 +6,14 @@
  * are applied in exactly one place.
  *
  *   @hamdastan/ui           components, patterns and icons (this file)
+ *   @hamdastan/ui/chart     the Recharts wrapper
  *   @hamdastan/ui/tokens    design values for TypeScript consumers
  *
  * Deliberately not re-exported here: `tokens` (importing a token should not
- * pull the whole component library in) and `tokens/theme.store` (a client
- * module that server components must be able to avoid).
+ * pull the whole component library in), `tokens/theme.store` (a client
+ * module that server components must be able to avoid) and `chart` (the
+ * component barrel is one client module, so anything in it ships with every
+ * screen — Recharts would add ~200 KB to each).
  */
 
 export * from './components';

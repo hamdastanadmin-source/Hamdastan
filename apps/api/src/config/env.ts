@@ -41,7 +41,12 @@ const envSchema = z.object({
   DATABASE_SSL: z.stringbool().default(false),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(100).default(10_000),
-  DATABASE_IDLE_TIMEOUT_MS: z.coerce.number().int().min(0).default(30_000),
+  /**
+   * How long an unused pooled connection is kept. Long enough that a quiet
+   * minute does not mean the next request pays to reconnect to a database
+   * across the network.
+   */
+  DATABASE_IDLE_TIMEOUT_MS: z.coerce.number().int().min(0).default(300_000),
   /**
    * Apply pending migrations during boot. Convenient for a single-container
    * deployment; leave it off where more than one instance starts at once and

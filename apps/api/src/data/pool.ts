@@ -43,6 +43,11 @@ export function getPool(): Pool {
     max: env.DATABASE_POOL_MAX,
     connectionTimeoutMillis: env.DATABASE_CONNECT_TIMEOUT_MS,
     idleTimeoutMillis: env.DATABASE_IDLE_TIMEOUT_MS,
+    // The database is across a network, where opening a connection costs
+    // several round trips (TCP, then SCRAM). TCP keepalive stops a firewall
+    // or NAT silently dropping a pooled connection while it sits idle, so a
+    // kept connection is still usable when the next request reaches for it.
+    keepAlive: true,
     application_name: 'hamdastan-api',
   });
 

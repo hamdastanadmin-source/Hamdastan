@@ -80,6 +80,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
+# Where next/image keeps the images it has resized. Created here, owned by
+# the runtime user, so the volume docker-compose.prod.yml mounts over it is
+# writable and the resized images outlive a deploy.
+RUN mkdir -p apps/web/.next/cache && chown -R nextjs:nodejs apps/web/.next/cache
+
 USER nextjs
 
 EXPOSE 3000

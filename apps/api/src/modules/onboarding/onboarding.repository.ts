@@ -142,19 +142,26 @@ export const sqlOnboardingRepository: OnboardingRepository = {
       await client.query(`SELECT 1 FROM v2_users WHERE id = $1 FOR UPDATE`, [userId]);
 
       // An edit replaces the answer; `answered_at` keeps the first time.
-      await client.query(
-        `INSERT INTO v2_questionnaire_answers (user_id, question_id, answer, presentation_index)
-              VALUES ($1, $2, $3, $4)
-         ON CONFLICT (user_id, question_id) DO UPDATE
-               SET answer             = EXCLUDED.answer,
-                   presentation_index = EXCLUDED.presentation_index,
-                   updated_at         = now()`,
-        [userId, questionId, JSON.stringify(answer), presentationIndex]
-      );
-
+      //
+      // The write and the read-back are one statement. Every part of a
+      // statement sees the same snapshot, so the SELECT below would see the
+      // row as it was *before* the upsert: it skips that question and the
+      // upsert's own RETURNING supplies it instead.
       const { rows } = await client.query<AnswerRow>(
-        `SELECT question_id, answer FROM v2_questionnaire_answers WHERE user_id = $1`,
-        [userId]
+        `WITH saved AS (
+           INSERT INTO v2_questionnaire_answers (user_id, question_id, answer, presentation_index)
+                VALUES ($1, $2, $3, $4)
+           ON CONFLICT (user_id, question_id) DO UPDATE
+                 SET answer             = EXCLUDED.answer,
+                     presentation_index = EXCLUDED.presentation_index,
+                     updated_at         = now()
+           RETURNING question_id, answer
+         )
+         SELECT question_id, answer FROM saved
+         UNION ALL
+         SELECT question_id, answer FROM v2_questionnaire_answers
+          WHERE user_id = $1 AND question_id <> $2`,
+        [userId, questionId, JSON.stringify(answer), presentationIndex]
       );
       const answers = toAnswers(rows);
 

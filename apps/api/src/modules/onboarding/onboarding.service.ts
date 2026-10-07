@@ -11,7 +11,7 @@ import type { OnboardingEventBody } from '@hamdastan/validation';
 
 import { ForbiddenError, ValidationError } from '../../shared/errors';
 import { missionsService } from '../missions';
-import { usersService } from '../users';
+import { usersService, type UserRecord } from '../users';
 
 import { onboardingRepository } from './onboarding.repository';
 import { buildResult } from './onboarding.result';
@@ -54,25 +54,35 @@ export function toQuestionnaireState(
   };
 }
 
-async function resultContext(userId: string): Promise<ResultContext & { onboardingStage: number }> {
-  const [{ onboardingStage, interestIds }, { gender }] = await Promise.all([
-    usersService.getOnboardingInterests(userId),
-    usersService.getById(userId),
-  ]);
-  return { onboardingStage, interestIds, gender };
+/** What the result card needs beyond the answers. Only read when there is a card to build. */
+async function resultContext(user: UserRecord): Promise<ResultContext> {
+  const { interestIds } = await usersService.getOnboardingInterests(user);
+  return { interestIds, gender: user.gender };
 }
 
-/** Stage 2 follows stage 1: no answers before the interests are saved. Answers with what the card needs. */
-async function requireInterestsSaved(userId: string): Promise<ResultContext> {
-  const { onboardingStage, ...context } = await resultContext(userId);
-  if (onboardingStage < 1) throw new ForbiddenError('اول علاقه‌مندی‌هات رو انتخاب کن');
-  return context;
+/** The state, reading the card's context only when the questionnaire is finished. */
+async function stateOf(user: UserRecord, record: QuestionnaireRecord): Promise<QuestionnaireState> {
+  const context = record.completed ? await resultContext(user) : { interestIds: [], gender: user.gender };
+  return toQuestionnaireState(record, context);
 }
 
+/** Stage 2 follows stage 1: no answers before the interests are saved. */
+function requireInterestsSaved(user: UserRecord): void {
+  if (user.onboardingStage < 1) throw new ForbiddenError('اول علاقه‌مندی‌هات رو انتخاب کن');
+}
+
+/**
+ * Every method takes the `UserRecord` `authenticate` loaded for this
+ * request, so none of them reads the user row again.
+ */
 export const onboardingService = {
-  async getQuestionnaire(userId: string): Promise<QuestionnaireState> {
-    const context = await requireInterestsSaved(userId);
-    return toQuestionnaireState(await onboardingRepository().findQuestionnaire(userId), context);
+  async getQuestionnaire(user: UserRecord): Promise<QuestionnaireState> {
+    requireInterestsSaved(user);
+    const [record, context] = await Promise.all([
+      onboardingRepository().findQuestionnaire(user.id),
+      resultContext(user),
+    ]);
+    return toQuestionnaireState(record, context);
   },
 
   /**
@@ -80,17 +90,17 @@ export const onboardingService = {
    * index is looked up here, never taken from the request.
    */
   async saveAnswer(
-    userId: string,
+    user: UserRecord,
     questionId: QuestionId,
     answer: QuestionnaireAnswer
   ): Promise<QuestionnaireState> {
-    const context = await requireInterestsSaved(userId);
+    requireInterestsSaved(user);
     const record = await onboardingRepository().saveAnswer(
-      userId,
+      user.id,
       { questionId, answer, presentationIndex: presentationIndexOf(questionId) },
       deriveQuestionnaire
     );
-    return toQuestionnaireState(record, context);
+    return stateOf(user, record);
   },
 
   /**
@@ -99,22 +109,25 @@ export const onboardingService = {
    * however many times this is called, and a call that failed half-way
    * grants it on the retry.
    */
-  async complete(userId: string): Promise<QuestionnaireCompletion> {
-    const context = await requireInterestsSaved(userId);
-    const record = await onboardingRepository().findQuestionnaire(userId);
+  async complete(user: UserRecord): Promise<QuestionnaireCompletion> {
+    requireInterestsSaved(user);
+    const [record, context] = await Promise.all([
+      onboardingRepository().findQuestionnaire(user.id),
+      resultContext(user),
+    ]);
     if (!isComplete(record.answers)) {
       throw new ValidationError('هنوز به چند سؤال جواب ندادی');
     }
-    if (!record.completed) await onboardingRepository().markCompleted(userId);
-    const xpAwarded = await missionsService.complete(userId, 'personality_test');
+    if (!record.completed) await onboardingRepository().markCompleted(user.id);
+    const xpAwarded = await missionsService.complete(user.id, 'personality_test');
     return { ...toQuestionnaireState({ ...record, completed: true }, context), xpAwarded };
   },
 
   /** The result card once the questionnaire is finished; null before. For the account area. */
-  async getResult(userId: string): Promise<QuestionnaireResult | null> {
+  async getResult(user: UserRecord): Promise<QuestionnaireResult | null> {
     const [record, context] = await Promise.all([
-      onboardingRepository().findQuestionnaire(userId),
-      resultContext(userId),
+      onboardingRepository().findQuestionnaire(user.id),
+      resultContext(user),
     ]);
     return toQuestionnaireState(record, context).result;
   },

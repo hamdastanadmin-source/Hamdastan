@@ -15,10 +15,10 @@ import {
   hashesMatch,
   sha256,
 } from '../../shared/crypto';
-import { toSession, usersService } from '../users';
+import { toSession, usersService, type UserRecord } from '../users';
 
 import { authRepository } from './auth.repository';
-import type { ResolvedSession, SessionTokens, TokenHashes } from './auth.types';
+import type { SessionTokens, TokenHashes } from './auth.types';
 
 /**
  * Business logic for the Auth module — proving that someone owns a phone
@@ -194,9 +194,13 @@ export const authService = {
     return { session: { ...toSession(user), isNew }, tokens };
   },
 
-  /** Resolves an access token to its session, or nothing. */
-  async resolveAccessToken(accessToken: string): Promise<ResolvedSession | null> {
-    return authRepository().findUserByAccessToken(sha256(accessToken), new Date());
+  /**
+   * The user a live access token belongs to, or nothing. Throws for a
+   * suspended account. Read together with the user row: this runs before
+   * every protected request.
+   */
+  async resolveUser(accessToken: string): Promise<UserRecord | null> {
+    return usersService.findByAccessToken(sha256(accessToken), new Date());
   },
 
   /**

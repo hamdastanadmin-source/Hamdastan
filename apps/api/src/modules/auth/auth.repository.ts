@@ -29,7 +29,8 @@ export interface AuthRepository {
   // ─── Sessions ────────────────────────────────────────────────
   /** Opens a session and issues its first token pair, in one transaction. */
   createSession(userId: string, tokens: TokenHashes): Promise<string>;
-  findUserByAccessToken(tokenHash: string, now: Date): Promise<ResolvedSession | null>;
+  // Resolving an access token is `UsersRepository.findByAccessToken`: it is
+  // read together with the user row, in one round trip, on every request.
   /**
    * Spends a refresh token and issues the next pair. Returns null when the
    * token is unknown, expired, spent more than `reuseGraceSeconds` ago (which
@@ -161,20 +162,6 @@ export const sqlAuthRepository: AuthRepository = {
 
       return sessionId;
     });
-  },
-
-  async findUserByAccessToken(tokenHash, now) {
-    const row = await queryOne<{ user_id: string; session_id: string }>(
-      `SELECT t.user_id, t.session_id
-         FROM v2_access_tokens t
-         JOIN v2_sessions s ON s.id = t.session_id
-        WHERE t.token_hash = $1
-          AND t.expires_at > $2
-          AND s.revoked_at IS NULL
-          AND s.expires_at > $2`,
-      [tokenHash, now]
-    );
-    return row ? { userId: row.user_id, sessionId: row.session_id } : null;
   },
 
   async rotateRefreshToken(tokenHash, now, next, reuseGraceSeconds) {

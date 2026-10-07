@@ -3,7 +3,6 @@ import type { FastifyRequest } from 'fastify';
 import { SESSION } from '@hamdastan/config';
 
 import { authService } from '../modules/auth';
-import { usersService } from '../modules/users';
 import type { UserRecord } from '../modules/users';
 import { UnauthorizedError } from '../shared/errors';
 
@@ -32,12 +31,13 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
   const token = request.cookies[SESSION.ACCESS_COOKIE];
   if (!token) throw new UnauthorizedError();
 
-  const resolved = await authService.resolveAccessToken(token);
-  if (!resolved) throw new UnauthorizedError();
-
   // Loaded rather than trusted from the token: a suspended account must stop
   // working on its next request, not when its access token happens to expire.
-  request.user = await usersService.getById(resolved.userId);
+  // The token and the row are read in one query, and handlers use this row
+  // rather than reading it again.
+  const user = await authService.resolveUser(token);
+  if (!user) throw new UnauthorizedError();
+  request.user = user;
 }
 
 /** The authenticated user, for handlers that registered `authenticate`. */

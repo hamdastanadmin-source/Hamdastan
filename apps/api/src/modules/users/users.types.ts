@@ -5,9 +5,9 @@ import type { Gender, UserRole } from '@hamdastan/types';
  * Types internal to the Users module.
  *
  * `AuthUser` in `@hamdastan/types` is what leaves the API. `UserRecord` is
- * what the repository returns: the same person plus the two columns the
- * browser has no business seeing — where they are in onboarding, and whether
- * the account is suspended.
+ * what the repository returns: the same person plus the columns the browser
+ * has no business seeing — where they are in onboarding, and whether the
+ * account is suspended.
  */
 
 /** `v2_users.onboarding_step`. `done` is the only finished value. */
@@ -35,6 +35,8 @@ export type UserRecord = {
   /** As stored: keys missing here take `DEFAULT_SETTINGS`. */
   settings: Partial<AccountSettings>;
   onboardingStep: OnboardingStep;
+  /** `v2_users.onboarding_stage`: the last onboarding stage saved, 0 before any. */
+  onboardingStage: number;
   role: UserRole;
   status: UserStatus;
 };

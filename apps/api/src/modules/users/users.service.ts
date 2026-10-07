@@ -89,15 +89,34 @@ export function toOnboardingInterests(record: OnboardingInterestsRecord): Onboar
   };
 }
 
+/** A suspended account stops working on its next request. */
+function requireActive(user: UserRecord): UserRecord {
+  if (user.status !== 'ACTIVE') {
+    throw new ForbiddenError('حساب کاربری شما غیرفعال شده است');
+  }
+  return user;
+}
+
+/**
+ * Every method below that takes a `UserRecord` is handed the row
+ * `authenticate` loaded for this request — already read from the database
+ * and already checked active — rather than reading it a second time.
+ */
 export const usersService = {
   /** Throws rather than returning null: every caller here has a session. */
   async getById(id: string): Promise<UserRecord> {
     const user = await usersRepository().findById(id);
     if (!user) throw new NotFoundError('کاربر یافت نشد');
-    if (user.status !== 'ACTIVE') {
-      throw new ForbiddenError('حساب کاربری شما غیرفعال شده است');
-    }
-    return user;
+    return requireActive(user);
+  },
+
+  /**
+   * The user behind a live access token, or null when the token is not
+   * live. Throws for a suspended account, like `getById`.
+   */
+  async findByAccessToken(tokenHash: string, now: Date): Promise<UserRecord | null> {
+    const user = await usersRepository().findByAccessToken(tokenHash, now);
+    return user && requireActive(user);
   },
 
   async findByPhone(phone: string): Promise<UserRecord | null> {
@@ -116,9 +135,8 @@ export const usersService = {
     return { user: await usersRepository().createWithPhone(phone), isNew: true };
   },
 
-  async saveBasicInfo(id: string, info: BasicInfo): Promise<UserRecord> {
-    await this.getById(id);
-    return usersRepository().saveBasicInfo(id, info);
+  async saveBasicInfo(user: UserRecord, info: BasicInfo): Promise<UserRecord> {
+    return usersRepository().saveBasicInfo(user.id, info);
   },
 
   /**
@@ -127,18 +145,18 @@ export const usersService = {
    * be put off: «بعداً انجام می‌دم» comes here too, and home then offers it
    * as a mission. Stage 3 is not built yet.
    */
-  async completeOnboarding(id: string): Promise<UserRecord> {
-    await this.getById(id);
-    const { onboardingStage } = await usersRepository().findOnboardingInterests(id);
-    if (onboardingStage < 1) {
+  async completeOnboarding(user: UserRecord): Promise<UserRecord> {
+    if (user.onboardingStage < 1) {
       throw new ForbiddenError('اول مراحل آشنایی رو کامل کن');
     }
-    return usersRepository().setOnboardingStep(id, 'done');
+    return usersRepository().setOnboardingStep(user.id, 'done');
   },
 
-  async getOnboardingInterests(id: string): Promise<OnboardingInterestsRecord> {
-    await this.getById(id);
-    return usersRepository().findOnboardingInterests(id);
+  async getOnboardingInterests(user: UserRecord): Promise<OnboardingInterestsRecord> {
+    return {
+      onboardingStage: user.onboardingStage,
+      interestIds: await usersRepository().findInterestIds(user.id),
+    };
   },
 
   /**
@@ -148,14 +166,13 @@ export const usersService = {
    * category of each interest looked up here rather than trusted from the
    * request.
    */
-  async saveInterests(id: string, interestIds: string[]): Promise<OnboardingInterestsRecord> {
-    const user = await this.getById(id);
+  async saveInterests(user: UserRecord, interestIds: string[]): Promise<OnboardingInterestsRecord> {
     if (nextStepFor(user) === 'basic_info') {
       throw new ForbiddenError('اول اطلاعات پایه‌ات رو کامل کن');
     }
 
     return usersRepository().saveInterests(
-      id,
+      user.id,
       interestIds.map((interestId) => ({
         interestId,
         categoryId: INTEREST_CATEGORY_BY_ID.get(interestId)!,

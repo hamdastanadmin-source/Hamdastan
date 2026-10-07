@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { SESSION } from '@hamdastan/config';
-import type { NextStep } from '@hamdastan/types';
+import type { NextStep, SessionResponse } from '@hamdastan/types';
 
+import { SESSION_HANDOFF_HEADER, encodeSessionHandoff } from '@/lib';
 import { HttpError, authService, refreshSession } from '@/services';
 
 /**
@@ -54,6 +55,37 @@ function applyCookies(response: NextResponse, setCookie: string[]): NextResponse
   return response;
 }
 
+/**
+ * The request headers the page renders with.
+ *
+ * Any handoff the browser sent is dropped: only this function may set it.
+ * With a session, it is handed on (see `@/lib/session-handoff`). After a
+ * refresh, the rotated cookies replace the spent ones in the `cookie` header
+ * too — otherwise the render would call the API with the access token that
+ * just expired, while the browser is being given the new one.
+ */
+function forwardedHeaders(
+  request: NextRequest,
+  session: SessionResponse | null = null,
+  setCookie: string[] = []
+): Headers {
+  const headers = new Headers(request.headers);
+  headers.delete(SESSION_HANDOFF_HEADER);
+  if (session) headers.set(SESSION_HANDOFF_HEADER, encodeSessionHandoff(session));
+
+  if (setCookie.length > 0) {
+    const jar = new Map(request.cookies.getAll().map(({ name, value }) => [name, value]));
+    for (const cookie of setCookie) {
+      const [pair] = cookie.split(';');
+      const separator = pair.indexOf('=');
+      if (separator > 0) jar.set(pair.slice(0, separator).trim(), pair.slice(separator + 1).trim());
+    }
+    headers.set('cookie', [...jar].map(([name, value]) => `${name}=${value}`).join('; '));
+  }
+
+  return headers;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookie = request.headers.get('cookie') ?? '';
@@ -63,43 +95,46 @@ export async function proxy(request: NextRequest) {
 
   const redirectTo = (path: string) =>
     NextResponse.redirect(new URL(path, request.url));
+  /** On to the page, with no session handed on. */
+  const proceed = () => NextResponse.next({ request: { headers: forwardedHeaders(request) } });
 
   if (!hasSessionCookie) {
-    return isPublic(pathname) ? NextResponse.next() : redirectTo('/welcome');
+    return isPublic(pathname) ? proceed() : redirectTo('/welcome');
   }
 
   // A session cookie is present, so ask the API what it is worth. The access
   // token lives fifteen minutes and the refresh token thirty days, so most
   // visits after the first go through the refresh branch below.
-  let nextStep: NextStep | null = null;
+  let session: SessionResponse | null = null;
   let setCookie: string[] = [];
 
   try {
-    nextStep = (await authService.getSession({ cookie })).nextStep;
+    session = await authService.getSession({ cookie });
   } catch (error) {
     // The API did not answer at all — down, restarting, unreachable. That
     // says nothing about the session, so decide nothing: keep the cookies
     // and let the page render what it can. Treating it as an expired session
     // would sign every visitor out each time the API restarts.
-    if (!(error instanceof HttpError)) return NextResponse.next();
+    if (!(error instanceof HttpError)) return proceed();
 
     const refreshed = await refreshSession(cookie).catch(() => undefined);
-    if (refreshed === undefined) return NextResponse.next();
+    if (refreshed === undefined) return proceed();
     if (refreshed) {
-      nextStep = refreshed.session.nextStep;
+      session = refreshed.session;
       setCookie = refreshed.setCookie;
     }
   }
 
-  if (!nextStep) {
+  if (!session) {
     // The session is gone for good. Clearing the cookies here stops every
     // later navigation paying for the same two failed calls.
-    const response = isPublic(pathname) ? NextResponse.next() : redirectTo('/welcome');
+    const response = isPublic(pathname) ? proceed() : redirectTo('/welcome');
     response.cookies.delete(SESSION.ACCESS_COOKIE);
     response.cookies.delete(SESSION.REFRESH_COOKIE);
     return response;
   }
 
+  const { nextStep } = session;
   const target = PATH_FOR[nextStep];
 
   // An unfinished account is pinned to its step: it may be on that step's
@@ -120,7 +155,10 @@ export async function proxy(request: NextRequest) {
     return applyCookies(redirectTo('/'), setCookie);
   }
 
-  return applyCookies(NextResponse.next(), setCookie);
+  return applyCookies(
+    NextResponse.next({ request: { headers: forwardedHeaders(request, session, setCookie) } }),
+    setCookie
+  );
 }
 
 export const config = {
