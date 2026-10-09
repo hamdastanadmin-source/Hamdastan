@@ -165,7 +165,11 @@ desktop layout. Two things follow from that:
 - Anything that leaves the column in the DOM — a toast, a `Sheet`, any
   portalled overlay — has to be constrained to `max-w-shell` where it is used,
   because a portal is not a descendant of that div. The `Toaster` in
-  `layout.tsx` is the worked example.
+  `layout.tsx` is the worked example: Sonner's `--width` is the column less
+  its gutters, and its `mobileOffset` (used below Sonner's own 600px
+  breakpoint) insets it by the column's margin plus the same gutter.
+  Overriding the toaster's own `width` instead leaves the toast anchored to
+  one edge of the column in RTL.
 
 `e2e/shell.spec.ts` asserts the column is exactly `MOBILE_SHELL_MAX_WIDTH` and
 centred at 1440, 1920 and 2560, so a stray breakpoint fails CI rather than
@@ -493,6 +497,13 @@ One adaptation is for direction rather than width: **`Progress` fills from
 the reading start.** shadcn moves the indicator with an inline
 `translateX(-n%)`, which fills from the left — backwards in RTL. The offset
 rides in `--progress-gap` instead, so an `rtl:` variant can reverse it.
+
+And one is for script: **the Sonner `Toaster` inherits the app font at
+14px.** Sonner sets its own system font stack and a 13px size, which drops
+Yekan Bakh from every toast and leaves Persian too small to read at a glance.
+The same wrapper turns on `richColors` and points Sonner's `--success-*` and
+`--error-*` at the soft feedback tokens in `tokens.css`, so success and error
+are tinted while everything else stays on the neutral popover.
 
 The local `Input` used to be a bespoke component: a wrapper `<div>` and a
 `state="error" | "success"` prop. It is stock shadcn now, because the wrapper

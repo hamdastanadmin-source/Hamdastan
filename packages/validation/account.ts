@@ -12,7 +12,11 @@ import {
   AVATAR_SLOTS,
   type AvatarSlot,
 } from '@hamdastan/config';
-import { normalizePersianText, toLatinDigits } from '@hamdastan/shared/format/persian';
+import {
+  normalizePersianText,
+  toLatinDigits,
+  toPersianDigits,
+} from '@hamdastan/shared/format/persian';
 
 import { z } from 'zod';
 
@@ -30,7 +34,7 @@ const lettersSchema = (min: number, max: number, message: string) =>
 export const displayNameSchema = lettersSchema(
   ACCOUNT_LIMITS.DISPLAY_NAME_MIN,
   ACCOUNT_LIMITS.DISPLAY_NAME_MAX,
-  `نام باید بین ${ACCOUNT_LIMITS.DISPLAY_NAME_MIN} تا ${ACCOUNT_LIMITS.DISPLAY_NAME_MAX} حرف باشه`
+  `نام باید بین ${toPersianDigits(ACCOUNT_LIMITS.DISPLAY_NAME_MIN)} تا ${toPersianDigits(ACCOUNT_LIMITS.DISPLAY_NAME_MAX)} حرف باشه`
 );
 
 const USERNAME_MESSAGE =
@@ -59,7 +63,7 @@ export const bioSchema = z
   .string()
   .transform((value) => value.trim())
   .refine((value) => value.length <= ACCOUNT_LIMITS.BIO_MAX, {
-    error: `حداکثر ${ACCOUNT_LIMITS.BIO_MAX} کاراکتر`,
+    error: `بیو حداکثر ${toPersianDigits(ACCOUNT_LIMITS.BIO_MAX)} کاراکتر می‌تونه باشه`,
   })
   .transform((value) => value || null);
 
@@ -93,7 +97,7 @@ export const instagramSchema = handleSchema(
 
 export const telegramSchema = handleSchema(
   new RegExp(`^[a-z][a-z0-9_]{${ACCOUNT_LIMITS.TELEGRAM_MIN - 1},${ACCOUNT_LIMITS.TELEGRAM_MAX - 1}}$`),
-  `آیدی تلگرام با حرف انگلیسی شروع می‌شه و بین ${ACCOUNT_LIMITS.TELEGRAM_MIN} تا ${ACCOUNT_LIMITS.TELEGRAM_MAX} کاراکتره`
+  `آیدی تلگرام با حرف انگلیسی شروع می‌شه و بین ${toPersianDigits(ACCOUNT_LIMITS.TELEGRAM_MIN)} تا ${toPersianDigits(ACCOUNT_LIMITS.TELEGRAM_MAX)} کاراکتره`
 );
 
 export const linkedinSchema = handleSchema(

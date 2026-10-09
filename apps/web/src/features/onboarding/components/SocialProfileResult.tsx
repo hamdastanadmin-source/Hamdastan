@@ -24,9 +24,9 @@ import { SocialDnaChart } from './SocialDnaChart';
  *
  * 1. The hero: the character for the person's primary role and gender (or
  *    their avatar when there is none), whose profile this is, the title.
- * 2. The three plain-language insights, as three small cards.
+ * 2. The three plain-language insights, as rows of one card.
  * 3. «دنیای مورد علاقه تو»: stage 1's picks, a card per category.
- * 4. «DNA اجتماعی تو»: the five dimensions as a radar with exact values.
+ * 4. «DNA اجتماعی تو»: the seven axes as a radar with exact values.
  * 5. «این یعنی چی؟»: the readings as one short paragraph.
  *
  * The content of the questionnaire's last screen and of the profile's
@@ -100,22 +100,30 @@ export function SocialProfileResult({
       </header>
 
       {/* 2. Insights: the label is the start of a sentence, the value its ending. */}
-      <dl className="grid grid-cols-3 gap-3">
-        {result.insights.map((insight, index) => {
-          const Icon = INSIGHT_ICON[insight.key] ?? Sparkles;
-          return (
-            <Card
-              key={insight.key}
-              className={cn('flex flex-col gap-2 p-3 shadow-none', enter)}
-              style={{ animationDelay: `${150 + index * 70}ms` }}
-            >
-              <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
-              <dt className="text-xs leading-snug text-muted-foreground">{insight.label}</dt>
-              <dd className="text-sm font-bold leading-snug">{insight.value}</dd>
-            </Card>
-          );
-        })}
-      </dl>
+      {/* One card, one row per insight: three columns squeezed a sentence
+          into a third of the width and broke it mid-phrase. */}
+      <Card className="px-4 py-1 shadow-none">
+        <dl className="flex flex-col divide-y divide-border">
+          {result.insights.map((insight, index) => {
+            const Icon = INSIGHT_ICON[insight.key] ?? Sparkles;
+            return (
+              <div
+                key={insight.key}
+                className={cn('flex items-center gap-3 py-3', enter)}
+                style={{ animationDelay: `${150 + index * 70}ms` }}
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+                  <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <dt className="text-xs leading-snug text-muted-foreground">{insight.label}</dt>
+                  <dd className="text-sm font-bold leading-snug">{insight.value}</dd>
+                </div>
+              </div>
+            );
+          })}
+        </dl>
+      </Card>
 
       {/* 3. Interests. */}
       {result.interests.length > 0 && (
@@ -146,7 +154,7 @@ export function SocialProfileResult({
         </section>
       )}
 
-      {/* 4. The five dimensions, as one shape with its exact values. */}
+      {/* 4. The seven axes, as one shape with its exact values. */}
       {result.dimensions.length > 0 && (
         <section aria-labelledby="dna-heading" className="flex flex-col gap-4">
           <SectionHeading id="dna-heading" icon={Compass}>
@@ -167,7 +175,9 @@ export function SocialProfileResult({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-5 pt-0">
-          <p className="text-sm leading-7 text-pretty">{result.summary}</p>
+          {/* Justified: a paragraph this long reads as a block, and the last
+              line still sits at the start edge. */}
+          <p className="text-justify text-sm leading-7">{result.summary}</p>
         </CardContent>
       </Card>
     </div>

@@ -171,6 +171,8 @@ vite.config.ts.timestamp-*
 *.sql
 *.db
 .dolt/
+# Database backups (pg_dump). They hold real users' rows.
+backups/
 
 # …but the schema is not a dump. database/ is the reviewed, version-controlled
 # definition of what the database looks like, and the API's migration runner

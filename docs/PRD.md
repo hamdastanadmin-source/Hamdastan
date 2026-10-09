@@ -123,10 +123,13 @@ top-aligned a fixed distance under the header, start-aligned (right, in RTL),
 and descends in weight: bold title, body, then a quieter
 line. It streams in in that order a word at a time — about two seconds in
 all — and the action appears last; with reduced motion it is all there at
-once. Under the text, an animated illustration — a person fitting two
-puzzle pieces together (`onboarding-intro.webp`, 360×202, source in
-`assets/illustrations/`) — arrives with the action; reduced motion gets its
-first frame (`onboarding-intro-still.webp`). The header has no control: the button is the only way on, and stage 1
+once. Under the text, the owl fitting two puzzle pieces together
+(`onboarding-intro.webp`, source in `assets/illustrations/`) arrives with the
+action — a single frame until its animated version arrives. It is prepared
+and shown exactly like the questionnaire's owls (see *Artwork* under Stage 2
+below; `StageArtwork`), centred between the text and the footer, so
+it reads as part of the stage rather than a clip on it. The
+header has no control: the button is the only way on, and stage 1
 has its own back to this screen.
 
 **Stage 1, interests — `/onboarding/interests`.**
@@ -161,9 +164,10 @@ has its own back to this screen.
 - **The rule is breadth, not volume:** interests from at least **three
   different categories**. There is no maximum. Ten music picks and five
   sports picks is two categories and does not pass.
-- The sticky footer shows «n از ۳ دسته انتخاب شده», then «عالیه! آماده‌ای
-  بریم مرحله بعد» once the rule is met, above «ادامه», which is disabled
-  until then. The status line is a polite live region.
+- The sticky footer shows «n از ۳ دسته انتخاب شده», then «عالیه! حالا می‌تونی
+  بری مرحله‌ی بعد» (in the success green) once the rule is met, above
+  «ادامه», which is disabled until then. The status line is a polite live
+  region.
 - «ادامه» sends the selected interest ids to `PUT /me/onboarding/interests`.
   The API checks them against the same `interestsSchema` the button uses
   (every id in the catalog, three categories or more), derives each
@@ -173,7 +177,7 @@ has its own back to this screen.
 
 **Stage 2, the social questionnaire — `/onboarding/questionnaire`.**
 
-Twenty questions that must not feel like twenty: «ترجیحات شما را بهتر بشناسیم»,
+Twenty questions that must not feel like twenty: «ترجیحاتت رو بهتر بشناسیم»,
 then four short chapters of one decision per screen. The screen never shows a
 question count — only «داریم بیشتر می‌شناسیمت» over a continuous bar.
 
@@ -200,7 +204,8 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   `StreamedText`, at the same pace (`STREAM_PACE`), as the onboarding intro.
   Coming back to it from a question shows the text at once.
 - **Artwork.** An owl sits under the text of the intro
-  (`questionnaire-intro.webp`) and of every chapter reward: Section 1 and
+  (`questionnaire-intro.webp`), of the onboarding intro
+  (`onboarding-intro.webp`), and of every chapter reward: Section 1 and
   Section 3 share `questionnaire-section-1.webp`, Section 2 has
   `questionnaire-section-2.webp` (a single frame until its animated version
   arrives). The files live in
@@ -278,8 +283,9 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
      built from whichever of the person's dimensions are furthest from the
      middle of the scale (joined with «و», or «ولی» when they pull opposite
      ways).
-  2. **Three insight cards**, side by side, each a small icon, a muted label
-     and a bold value that ends the label's sentence: «بیشتر انرژی می‌گیری
+  2. **Three insights in one card**, stacked as rows split by hairlines,
+     each a small icon in a neutral circle, a muted label and under it a
+     bold value that ends the label's sentence: «بیشتر انرژی می‌گیری
      از» (SE: آدم‌ها و تعامل / جمع‌های صمیمی و به‌اندازه / جمع‌های کوچیک و
      آروم), «توی تجربه‌ها دنبال» (NV: تازگی / تنوع / آشنایی, with AO: فعالیت
      / حس خوب جمع / گفتگو) and «توی گروه ترجیح می‌دی» (ST: برنامه‌ی مشخص /
@@ -288,14 +294,15 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
      category in catalog order, each interest a secondary badge (an id no
      longer in the catalog is dropped). Left out when there are none.
   4. **«DNA اجتماعی تو»**, always open — nothing in the report waits behind
-     a tap: the five dimensions (انرژی اجتماعی، تجربه‌های
-     تازه، گفتگو ↔ فعالیت، رقابت، برنامه‌ریزی ↔ بداهه) as a neutral radar
-     chart (shadcn `Chart`) with the exact value of every axis under it — the
-     list is what screen readers read.
+     a tap: seven axes (انرژی اجتماعی، تجربه‌های تازه، گفتگو،
+     فعالیت، رقابت، برنامه‌ریزی، بداهه) as a neutral radar chart (shadcn
+     `Chart`) with the exact value of every axis under it — the list is what
+     screen readers read. The two two-ended scales get one axis per end:
+     فعالیت = AO, گفتگو = 11 − AO, برنامه‌ریزی = ST, بداهه = 11 − ST.
   5. **«این یعنی چی؟».** `summary`: the same readings as one short paragraph
      (SE, then NV/AO, ST, and CP only when ≥ 7 or ≤ 4), closing with «پس
      جمع‌هایی که همین حال‌وهوا رو دارن، احتمالاً بیشتر از همه بهت
-     می‌چسبن.»
+     می‌چسبن.» Set justified, the last line at the start edge.
 
   Then the value line «از این شناخت استفاده می‌کنیم تا آدم‌ها، گروه‌ها و
   تجربه‌هایی که بیشتر بهت می‌خورن رو پیشنهاد بدیم.» and, at the end of the
@@ -379,7 +386,7 @@ name, linking to the profile; the bottom nav holds خانه and پروفایل. 
   «شروع آزمون», the screen's one primary action.
 - **Done:** the card is gone; a quiet row «پروفایل اجتماعی‌ات آماده‌ست» with
   the result's title and «مشاهده نتیجه» leads to `/profile/social`.
-- Below it, the story-world picker under «جهان داستانی‌ات را انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). Neither links anywhere yet.
+- Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). Neither links anywhere yet.
 
 ### 4.4 Account — حساب من
 
@@ -765,6 +772,7 @@ whitespace is dropped.
 | Brand | `--brand-hue: 270`, `--brand-saturation: 70%` (violet) — **the primary action only** |
 | Background (dark) | `hsl(240 5% 7%)` — near-black charcoal, deliberately not tinted toward the brand |
 | Success | `--success-hue: 152` (green) |
+| Toast feedback | `--success-soft*` (soft green) and `--destructive-soft*` (soft red): a tint, a hairline and a ≥4.5:1 text colour per theme |
 | Avatar | `--avatar-*` — skin tones, hair and muted clothing colours; content, never interface |
 | Role character backdrop | `--avatar-backdrop` (white, both themes) — the tile behind the role illustrations |
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
@@ -785,7 +793,10 @@ hairline borders; a selected item is a foreground border, a lifted surface
 and a check. Success is green, destructive red, warning amber. (Two exceptions:
 onboarding stage 1 — its checkboxes, selected chips and selected cards are
 violet by product decision — and the questionnaire's selected answers,
-which predate this rule and still use a brand tint.)
+which predate this rule and still use a brand tint.) Basic info's gender
+segments follow the rule: the chosen one takes a foreground border and a
+check. Secondary links and buttons («ویرایش شماره», «ارسال دوباره‌ی کد») are
+foreground, not violet.
 
 ### 9.2 Rules for a screen
 
@@ -812,6 +823,19 @@ which predate this rule and still use a brand tint.)
   is a screen built around a single piece of artwork, which sits on
   `--surface-stage` (black) instead — the onboarding intro. Screens do not add
   their own; `--gradient-hero-glow` is the halo for a piece of artwork.
+- **Copy speaks in one voice:** informal second person singular (تو), in
+  spoken Persian — «کد اشتباهه، دوباره امتحان کن», never «لطفاً دوباره تلاش
+  کنید». That includes errors the API sends, which a toast or a field shows
+  verbatim. Numbers inside Persian text are Persian digits (`toPersianDigits`),
+  validation limits included; an LTR value such as the phone number on the
+  verification screen is too.
+- **Feedback.** A field's own problem is written under the field
+  (`FormMessage`); anything else — a network failure, a rate limit, a save
+  that did not land — is a toast. Error toasts are a soft red and success
+  toasts a soft green (`--destructive-soft*` / `--success-soft*`, each text
+  colour above 4.5:1 on its tint, in both themes); other toasts stay neutral.
+  Toasts are set in the app font at 14px, sit at the top of the column 16px
+  in from its edges at every width, and never span past it.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
   on a wrong code and the
   200ms `Accordion` open/close (`animate-accordion-down` / `-up`).

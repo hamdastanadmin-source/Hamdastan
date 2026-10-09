@@ -47,12 +47,12 @@ export function SectionMark({ reached, className }: { reached: number; className
         index === newest ? (
           // The animation sits on a wrapper: through `cn`, tailwind-merge
           // reads `fill-mode-backwards` as a fill colour and would drop the
-          // circle's `fill-primary`.
+          // circle's `fill-foreground`.
           <g
             key={index}
             className="origin-center [transform-box:fill-box] animate-in fade-in zoom-in-50 delay-300 duration-500 fill-mode-backwards motion-reduce:animate-none"
           >
-            <circle cx={xOf(index)} cy={CY} r={4} className="fill-primary" />
+            <circle cx={xOf(index)} cy={CY} r={4} className="fill-foreground" />
           </g>
         ) : (
           <circle

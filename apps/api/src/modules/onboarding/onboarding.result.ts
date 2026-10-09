@@ -16,7 +16,7 @@ import type { Dimension, Role, SocialProfile } from './onboarding.scoring';
  * person's actual scores.
  *
  * It is deliberately a simplification — a title, a sentence or two, three
- * plain-language insights, the interests picked in stage 1, five bars
+ * plain-language insights, the interests picked in stage 1, seven axes
  * («DNA اجتماعی تو») and a short summary. The profile itself (`SocialProfile`) is what matching uses and is
  * never cut down to this. Alongside it, the primary role and its character
  * art, chosen by role and gender. No clinical vocabulary, no fixed personality
@@ -126,31 +126,33 @@ function headline(traits: Picked[]): Pick<QuestionnaireResult, 'title' | 'descri
   return { title, description };
 }
 
+/** The mirror of a 1–10 value: how strongly the other end of a two-ended scale holds. */
+const mirror = (value: number) => 11 - value;
+
 /**
- * The five bars. Two-ended scales are labelled at both ends; the label at
- * 1 sits at the reading start (right). «برنامه‌ریزی ↔ بداهه» reads from
- * the planned end, so ST is shown inverted.
+ * The seven axes. The two two-ended scales are shown as one axis per end —
+ * AO as «گفتگو» (mirrored) and «فعالیت», ST as «برنامه‌ریزی» and «بداهه»
+ * (mirrored) — so every axis reads the same way: more is more of that word.
  */
 function bars(profile: SocialProfile): ResultDimension[] {
   const d = profile.dimensions;
-  const list: (ResultDimension | null)[] = [
-    d.SE === null ? null : { key: 'SE', label: 'انرژی اجتماعی', value: d.SE },
-    d.NV === null ? null : { key: 'NV', label: 'تجربه‌های تازه', value: d.NV },
+  return [
+    d.SE === null ? [] : [{ key: 'SE', label: 'انرژی اجتماعی', value: d.SE }],
+    d.NV === null ? [] : [{ key: 'NV', label: 'تجربه‌های تازه', value: d.NV }],
     d.AO === null
-      ? null
-      : { key: 'AO', label: 'گفتگو ↔ فعالیت', value: d.AO, minLabel: 'گفتگو', maxLabel: 'فعالیت' },
-    d.CP === null ? null : { key: 'CP', label: 'رقابت', value: d.CP },
+      ? []
+      : [
+          { key: 'CONVERSATION', label: 'گفتگو', value: mirror(d.AO) },
+          { key: 'ACTIVITY', label: 'فعالیت', value: d.AO },
+        ],
+    d.CP === null ? [] : [{ key: 'CP', label: 'رقابت', value: d.CP }],
     d.ST === null
-      ? null
-      : {
-          key: 'ST',
-          label: 'برنامه‌ریزی ↔ بداهه',
-          value: 11 - d.ST,
-          minLabel: 'برنامه‌ریزی',
-          maxLabel: 'بداهه',
-        },
-  ];
-  return list.filter((bar): bar is ResultDimension => bar !== null);
+      ? []
+      : [
+          { key: 'PLANNING', label: 'برنامه‌ریزی', value: d.ST },
+          { key: 'SPONTANEITY', label: 'بداهه', value: mirror(d.ST) },
+        ],
+  ].flat();
 }
 
 /** Picks a phrase by where a 1–10 value falls: low, middle or high. */

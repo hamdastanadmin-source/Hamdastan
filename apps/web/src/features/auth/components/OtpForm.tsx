@@ -125,12 +125,12 @@ export function OtpForm({ phone }: { phone: string }) {
             <>
               کد {toPersianDigits(OTP.LENGTH)} رقمی به{' '}
               <span dir="ltr" className="font-medium text-foreground tabular-nums">
-                {phone}
+                {toPersianDigits(phone)}
               </span>{' '}
               فرستاده شد.{' '}
               <Link
                 href="/auth/phone"
-                className="font-medium text-primary underline-offset-4 hover:underline"
+                className="font-medium text-foreground underline underline-offset-4"
               >
                 ویرایش شماره
               </Link>
@@ -149,7 +149,7 @@ export function OtpForm({ phone }: { phone: string }) {
               >
                 {debugCode}
               </span>
-              <span>تا وصل شدن سرویس پیامک، کد همین‌جا نمایش داده می‌شود.</span>
+              <span>تا وصل شدن سرویس پیامک، کد همین‌جا نمایش داده می‌شه.</span>
             </AlertDescription>
           </Alert>
         )}
@@ -259,7 +259,7 @@ export function OtpForm({ phone }: { phone: string }) {
             variant="ghost"
             size="xl"
             onClick={resend}
-            className="w-full text-primary hover:text-primary"
+            className="w-full"
           >
             <RotateCcw aria-hidden="true" />
             ارسال دوباره‌ی کد

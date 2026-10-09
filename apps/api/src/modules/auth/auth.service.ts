@@ -48,7 +48,7 @@ export function setSmsSender(sender: SmsSender): void {
 
 function sender(): SmsSender {
   if (!smsSender) {
-    throw new AppError(501, 'SMS_NOT_CONFIGURED', 'سرویس پیامک پیکربندی نشده است');
+    throw new AppError(501, 'SMS_NOT_CONFIGURED', 'ارسال پیامک فعلاً ممکن نیست، کمی بعد دوباره امتحان کن');
   }
   return smsSender;
 }
@@ -62,7 +62,7 @@ function secondsUntil(when: Date, now: Date): number {
 
 class RateLimitedError extends AppError {
   constructor(retryAfter: number) {
-    super(429, 'OTP_RATE_LIMITED', 'تعداد درخواست‌ها زیاد است، کمی بعد دوباره تلاش کن', {
+    super(429, 'OTP_RATE_LIMITED', 'درخواست‌ها زیاد بود، کمی بعد دوباره امتحان کن', {
       retryAfter,
     });
   }
@@ -163,11 +163,11 @@ export const authService = {
     const challenge = await repository.findChallenge(phone);
 
     if (!challenge) {
-      throw new AppError(400, 'OTP_NOT_FOUND', 'کدی برای این شماره صادر نشده');
+      throw new AppError(400, 'OTP_NOT_FOUND', 'برای این شماره کدی فرستاده نشده، کد جدید بگیر');
     }
     if (challenge.expiresAt <= now) {
       await repository.deleteChallenge(phone);
-      throw new AppError(400, 'OTP_EXPIRED', 'کد منقضی شده، دوباره درخواست بده');
+      throw new AppError(400, 'OTP_EXPIRED', 'کد منقضی شده، کد جدید بگیر');
     }
     if (challenge.attempts >= OTP.MAX_ATTEMPTS) {
       await repository.deleteChallenge(phone);
@@ -228,7 +228,7 @@ export const authService = {
       hashes,
       SESSION.REFRESH_REUSE_GRACE_SECONDS
     );
-    if (!resolved) throw new UnauthorizedError('نشست شما منقضی شده، دوباره وارد شو');
+    if (!resolved) throw new UnauthorizedError('نشستت تموم شده، دوباره وارد شو');
 
     const user = await usersService.getById(resolved.userId);
     return { session: toSession(user), tokens };

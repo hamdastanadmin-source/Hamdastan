@@ -22,7 +22,7 @@ import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
 import { z } from 'zod';
 
-export const questionIdSchema = z.enum(QUESTION_IDS, { error: 'سؤال نامعتبر است' });
+export const questionIdSchema = z.enum(QUESTION_IDS, { error: 'سؤال معتبر نیست' });
 
 const INVALID_OPTION = 'یکی از گزینه‌ها معتبر نیست';
 const PICK_ONE = 'یک گزینه رو انتخاب کن';

@@ -6,7 +6,7 @@ import type { ResultDimension } from '@hamdastan/types';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
 /**
- * «DNA اجتماعی تو» — the five dimensions as one shape, and under it the
+ * «DNA اجتماعی تو» — the seven axes as one shape, and under it the
  * exact value of every axis, so nothing the chart shows is only a shape.
  *
  * The shape is Recharts, loaded on demand: still rendered on the server, but

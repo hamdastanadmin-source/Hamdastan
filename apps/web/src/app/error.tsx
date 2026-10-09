@@ -27,8 +27,8 @@ export default function Error({
           <AlertTriangle aria-hidden="true" />
         </IconBadge>
         <ScreenTitle
-          title="خطایی رخ داد"
-          description="مشکلی در بارگذاری این صفحه پیش آمده است. لطفاً دوباره تلاش کن."
+          title="یه مشکلی پیش اومد"
+          description="این صفحه درست بارگذاری نشد. دوباره امتحان کن."
         />
         {error.digest && (
           <p dir="ltr" className="font-mono text-xs text-muted-foreground/60">

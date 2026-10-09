@@ -27,7 +27,7 @@ export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.outp
   }
 
   throw new ValidationError(
-    Object.values(fieldErrors)[0] ?? 'ورودی نامعتبر است',
+    Object.values(fieldErrors)[0] ?? 'اطلاعات واردشده درست نیست',
     { fields: fieldErrors }
   );
 }

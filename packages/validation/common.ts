@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 
-export const idSchema = z.string().min(1, 'شناسه الزامی است');
+export const idSchema = z.string().min(1, 'شناسه لازمه');
 
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

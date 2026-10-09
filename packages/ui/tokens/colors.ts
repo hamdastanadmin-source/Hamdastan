@@ -43,6 +43,13 @@ export const colors = {
   errorForeground: hsl('error-foreground'),
   info: hsl('info'),
   infoForeground: hsl('info-foreground'),
+
+  successSoft: hsl('success-soft'),
+  successSoftForeground: hsl('success-soft-foreground'),
+  successSoftBorder: hsl('success-soft-border'),
+  destructiveSoft: hsl('destructive-soft'),
+  destructiveSoftForeground: hsl('destructive-soft-foreground'),
+  destructiveSoftBorder: hsl('destructive-soft-border'),
 } as const;
 
 /** The brand ramp. Every step derives from `--brand-hue` in tokens.css. */

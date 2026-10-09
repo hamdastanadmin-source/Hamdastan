@@ -14,6 +14,57 @@ the `pg` driver.
 There is no separate schema file to keep in step with the migrations: applying
 `migrations/` in order is the definition of what the database looks like.
 
+## Environments
+
+Development and production are **separate databases**. Each has its own
+`DATABASE_URL`:
+
+| Environment | Where it is set           | Database                          |
+| ----------- | ------------------------- | --------------------------------- |
+| Development | root `.env`               | `9b7f7403….db.arvandbaas.ir`      |
+| Production  | `deploy/.env.production`  | `4d4ea9fb….db.arvandbaas.ir`      |
+| Tests       | `TEST_DATABASE_URL`       | local `hamdastan_test` (throwaway) |
+
+`npm run db:migrate` on a laptop therefore touches the development database
+only. Production migrates itself when the API boots.
+
+## Backup and restore
+
+A backup is a plain-SQL `pg_dump` of the whole database — every `v2_` table,
+its rows and the `v2_migrations` ledger. Because the ledger travels with it,
+the restored database already counts as migrated and the API boots straight
+onto it. Backups go in `backups/`, which is gitignored; they hold phone numbers
+and sessions, so do not share them and delete them once used.
+
+```sh
+# Back up (read-only). pg_dump must be the server's major version or newer.
+# No --schema=public: naming it makes pg_dump emit CREATE SCHEMA public, which
+# fails on any target, where public already exists.
+pg_dump "$SOURCE_URL" --no-owner --no-privileges \
+  --file=backups/hamdastan-$(date +%Y%m%d-%H%M).sql
+
+# Restore into an EMPTY database. One transaction: it applies fully or not at all.
+psql "$TARGET_URL" -X -v ON_ERROR_STOP=1 --single-transaction \
+  -f backups/hamdastan-<stamp>.sql
+```
+
+Restore only into an empty database. If the API has already booted against it
+with `DATABASE_MIGRATE_ON_BOOT=true`, the tables exist and the restore fails
+on the first `CREATE TABLE`.
+
+The arvandbaas hosts are not always reachable from a developer's machine; the
+server reaches them reliably. If a connection times out, tunnel through it
+(`ssh -N -L 15432:<db-host>:5432 root@<server>`) and use `127.0.0.1:15432`.
+
+To move production to a new database, the order matters. Rows written between
+the dump and the switch would otherwise be lost:
+
+1. Stop the API on the server: `docker compose stop api`.
+2. Dump the old database and restore it into the new one (above).
+3. Compare row counts on both, e.g. `select count(*) from v2_users;`.
+4. Point `DATABASE_URL` in `deploy/.env.production` at the new database and
+   deploy.
+
 ## Applying them
 
 ```sh

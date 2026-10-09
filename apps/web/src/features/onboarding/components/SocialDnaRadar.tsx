@@ -18,17 +18,11 @@ const CHART_CONFIG = {
   value: { label: 'امتیاز', color: colors.foreground },
 } satisfies ChartConfig;
 
-/** A two-ended axis («برنامه‌ریزی ↔ بداهه») on two lines, so it fits beside the shape. */
+/** An axis label in the muted text colour. */
 function AxisTick({ x, y, textAnchor, payload }: BaseTickContentProps) {
-  const [first, second] = String(payload.value).split(' ↔ ');
   return (
-    <text x={x} y={y} textAnchor={textAnchor} fill={colors.mutedForeground} fontSize={11}>
-      <tspan x={x}>{first}</tspan>
-      {second && (
-        <tspan x={x} dy="1.3em">
-          ↔ {second}
-        </tspan>
-      )}
+    <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fill={colors.mutedForeground} fontSize={11}>
+      {payload.value}
     </text>
   );
 }

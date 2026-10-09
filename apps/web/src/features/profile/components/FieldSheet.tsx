@@ -80,7 +80,7 @@ const FIELDS: Record<
     placeholder: 'مثلاً تهران',
   },
   bio: {
-    title: 'درباره من',
+    title: 'بیو',
     description: 'اختیاری — چند خط کوتاه درباره خودت.',
     schema: bioSchema,
     multiline: true,

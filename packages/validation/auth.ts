@@ -115,7 +115,7 @@ export const jalaliBirthDateSchema = z
       // Persian digits: this string is read by the user, under the field.
       error: `سن باید بین ${toPersianDigits(PROFILE.MIN_AGE)} تا ${toPersianDigits(
         PROFILE.MAX_AGE
-      )} سال باشد`,
+      )} سال باشه`,
     }
   );
 

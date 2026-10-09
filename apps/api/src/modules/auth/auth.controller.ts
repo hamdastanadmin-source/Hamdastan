@@ -40,7 +40,7 @@ export const authController = {
       clearSessionCookies(reply);
       return reply.status(401).send({
         ok: false,
-        error: { code: 'UNAUTHORIZED', message: 'نشستی برای تمدید وجود ندارد' },
+        error: { code: 'UNAUTHORIZED', message: 'نشستت تموم شده، دوباره وارد شو' },
       });
     }
 

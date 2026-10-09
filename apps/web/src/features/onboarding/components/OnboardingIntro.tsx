@@ -1,10 +1,10 @@
-import { getImageProps } from 'next/image';
 import Link from 'next/link';
 
 import { Button } from '@hamdastan/ui';
 
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
 
+import { StageArtwork } from './StageArtwork';
 import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from './StreamedText';
 
 /**
@@ -18,8 +18,9 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
  *
  * Top-aligned rather than centred: the text sits a fixed distance below the
  * header on every phone, instead of drifting with the screen's height, and
- * the artwork follows it. The screen is `surface-stage` — black in the dark
- * theme — so the artwork is the only light on it.
+ * the owl follows it — part of the stage, not a clip on it (see
+ * `StageArtwork`). The screen is `surface-stage` — black in the dark theme —
+ * so the artwork is the only light on it.
  *
  * No header control: the only way on is the button, and stage 1 has its own
  * back to this screen.
@@ -29,25 +30,6 @@ const TITLE = 'بیا دنیای تو رو بسازیم';
 const BODY =
   'چند قدم کوتاه با هم پیش می‌ریم تا بیشتر بشناسیمت، علایقت رو بفهمیم و در نهایت آواتار شخصی تو رو در دنیای «هم‌داستان» بسازیم.';
 const NOTE = 'هر انتخابت، یک تکه از دنیای تو رو کامل‌تر می‌کنه.';
-
-/**
- * The artwork under the text: an animated WebP, the same treatment as the
- * Welcome hero. `unoptimized` because the image optimiser would hand back a
- * single still frame. The source is `assets/illustrations/onboarding-intro.webp`.
- */
-const ARTWORK = {
-  motion: '/images/brand/onboarding-intro.webp',
-  still: '/images/brand/onboarding-intro-still.webp',
-} as const;
-
-const { props: artworkProps } = getImageProps({
-  src: ARTWORK.motion,
-  alt: '',
-  width: 360,
-  height: 202,
-  priority: true,
-  unoptimized: true,
-});
 
 /** Title, body, note — one after another, at the shared onboarding pace. */
 const {
@@ -79,17 +61,8 @@ export function OnboardingIntro() {
           </p>
         </div>
 
-        {/* Arrives with the action, once the text has finished writing
-            itself. Decorative — the text says everything — so `alt` is
-            empty. Anyone who has asked for less movement gets the first
-            frame: an animated image cannot be paused by `motion-reduce`. */}
-        <picture
-          className="block animate-in fade-in zoom-in-95 duration-500 fill-mode-backwards motion-reduce:animate-none"
-          style={{ animationDelay: `${ACTION_START}ms` }}
-        >
-          <source media="(prefers-reduced-motion: reduce)" srcSet={ARTWORK.still} />
-          <img {...artworkProps} alt="" className="h-auto w-full rounded-2xl" />
-        </picture>
+        {/* It arrives with the action, once the text has finished. */}
+        <StageArtwork name="onboarding-intro" delayMs={ACTION_START} />
       </ScreenBody>
 
       {/* The footer's fill and its fade have to match the stage, or the

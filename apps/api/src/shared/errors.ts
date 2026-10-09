@@ -21,31 +21,31 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message = 'ورودی نامعتبر است', details?: unknown) {
+  constructor(message = 'اطلاعات واردشده درست نیست', details?: unknown) {
     super(400, 'VALIDATION_ERROR', message, details);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = 'برای این درخواست باید وارد شوید') {
+  constructor(message = 'اول وارد حسابت شو') {
     super(401, 'UNAUTHORIZED', message);
   }
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message = 'اجازهٔ دسترسی به این بخش را ندارید') {
+  constructor(message = 'به این بخش دسترسی نداری') {
     super(403, 'FORBIDDEN', message);
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message = 'موردی یافت نشد') {
+  constructor(message = 'پیدا نشد') {
     super(404, 'NOT_FOUND', message);
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message = 'این مورد از قبل وجود دارد') {
+  constructor(message = 'این مورد از قبل وجود داره') {
     super(409, 'CONFLICT', message);
   }
 }

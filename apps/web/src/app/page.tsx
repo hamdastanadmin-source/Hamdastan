@@ -48,7 +48,7 @@ export default async function HomePage() {
             )}
           </span>
           <span className="flex flex-col">
-            <span className="text-2xs text-muted-foreground">خوش برگشتی</span>
+            <span className="text-xs text-muted-foreground">خوش برگشتی</span>
             <h1 className="text-sm font-bold leading-tight">{name}</h1>
           </span>
         </Link>
@@ -77,7 +77,7 @@ export default async function HomePage() {
         )}
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold leading-tight">جهان داستانی‌ات را انتخاب کن</h2>
+          <h2 className="text-lg font-bold leading-tight">دنیای داستانی‌ات رو انتخاب کن</h2>
           <ul className="flex flex-col gap-3">
             {WORLD_BANNERS.map((world) => (
               <li key={world.src}>

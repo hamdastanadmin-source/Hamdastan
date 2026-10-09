@@ -291,7 +291,15 @@ describe('the result card', () => {
       computeProfile(withAnswer({ Q4: { value: 10 }, Q13: { option: 'NEW' }, Q8: { value: 5 } }))
     );
     expect(result.title).toBe('پرانرژی و کنجکاو');
-    expect(result.dimensions.map((d) => d.key)).toEqual(['SE', 'NV', 'AO', 'CP', 'ST']);
+    expect(result.dimensions.map((d) => d.key)).toEqual([
+      'SE',
+      'NV',
+      'CONVERSATION',
+      'ACTIVITY',
+      'CP',
+      'PLANNING',
+      'SPONTANEITY',
+    ]);
   });
 
   it('joins opposite pulls with «ولی»', () => {
@@ -353,10 +361,11 @@ describe('the result card', () => {
     expect(buildResult(profile).role?.label).toBeTruthy();
   });
 
-  it('shows ST inverted on the planned-to-spontaneous bar', () => {
-    const st = buildResult(computeProfile(withAnswer({ Q10: { option: 'DETAILED' } }))).dimensions.find(
-      (d) => d.key === 'ST'
-    );
-    expect(st).toMatchObject({ value: 2, minLabel: 'برنامه‌ریزی', maxLabel: 'بداهه' });
+  it('splits each two-ended scale into one axis per end, the second mirrored', () => {
+    // BASE: AO 4. DETAILED: ST 9.
+    const { dimensions } = buildResult(computeProfile(withAnswer({ Q10: { option: 'DETAILED' } })));
+    const value = (key: string) => dimensions.find((d) => d.key === key)?.value;
+    expect([value('CONVERSATION'), value('ACTIVITY')]).toEqual([7, 4]);
+    expect([value('PLANNING'), value('SPONTANEITY')]).toEqual([9, 2]);
   });
 });

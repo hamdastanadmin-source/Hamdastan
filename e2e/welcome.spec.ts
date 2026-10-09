@@ -98,6 +98,6 @@ test('the verify screen shows the number it is waiting on', async ({ page }) => 
   await page.goto('/auth/verify?phone=09123456789');
 
   await expect(page.getByRole('heading', { name: 'کد تأیید رو وارد کن' })).toBeVisible();
-  await expect(page.getByText('09123456789')).toBeVisible();
+  await expect(page.getByText('۰۹۱۲۳۴۵۶۷۸۹')).toBeVisible();
   await expect(page.getByRole('link', { name: 'ویرایش شماره' })).toBeVisible();
 });

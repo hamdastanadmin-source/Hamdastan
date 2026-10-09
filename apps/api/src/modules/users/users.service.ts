@@ -92,7 +92,7 @@ export function toOnboardingInterests(record: OnboardingInterestsRecord): Onboar
 /** A suspended account stops working on its next request. */
 function requireActive(user: UserRecord): UserRecord {
   if (user.status !== 'ACTIVE') {
-    throw new ForbiddenError('حساب کاربری شما غیرفعال شده است');
+    throw new ForbiddenError('حسابت غیرفعال شده');
   }
   return user;
 }
@@ -106,7 +106,7 @@ export const usersService = {
   /** Throws rather than returning null: every caller here has a session. */
   async getById(id: string): Promise<UserRecord> {
     const user = await usersRepository().findById(id);
-    if (!user) throw new NotFoundError('کاربر یافت نشد');
+    if (!user) throw new NotFoundError('حساب کاربری پیدا نشد');
     return requireActive(user);
   },
 

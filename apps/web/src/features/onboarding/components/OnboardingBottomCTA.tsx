@@ -24,7 +24,7 @@ export function OnboardingBottomCTA({
   onContinue: () => void;
 }) {
   const status = canContinue
-    ? 'عالیه! آماده‌ای بریم مرحله بعد'
+    ? 'عالیه! حالا می‌تونی بری مرحله‌ی بعد'
     : `${toPersianDigits(selectedCategoryCount)} از ${toPersianDigits(MIN_INTEREST_CATEGORIES)} دسته انتخاب شده`;
 
   return (
@@ -34,7 +34,7 @@ export function OnboardingBottomCTA({
         aria-live="polite"
         className={
           canContinue
-            ? 'text-center text-sm font-medium text-primary'
+            ? 'text-center text-sm font-medium text-success'
             : 'text-center text-sm text-muted-foreground'
         }
       >

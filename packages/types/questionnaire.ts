@@ -20,14 +20,11 @@ export type QuestionnaireAnswer =
 
 export type QuestionnaireAnswers = Partial<Record<QuestionId, QuestionnaireAnswer>>;
 
-/** One bar on the result card, 1–10. */
+/** One axis of «DNA اجتماعی تو», 1–10. */
 export type ResultDimension = {
   key: string;
   label: string;
   value: number;
-  /** For a two-ended scale («گفتگو ↔ فعالیت»): the labels at 1 and at 10. */
-  minLabel?: string;
-  maxLabel?: string;
 };
 
 /** One plain-language reading of the profile: «توی گروه ترجیح می‌دی» → «ساختار منعطف». */

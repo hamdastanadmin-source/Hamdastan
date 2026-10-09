@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
@@ -10,6 +11,10 @@ import { AuthProvider } from "@/features/auth";
 import { getSession } from "@/features/auth/server";
 
 import "@/styles/globals.css";
+
+/** The toast's gap to the column's edge — the page gutter. */
+const TOAST_GUTTER = "1rem";
+const TOAST_MOBILE_INSET = `max(${TOAST_GUTTER}, calc((100vw - var(--shell-max-width)) / 2 + ${TOAST_GUTTER}))`;
 
 const yekanBakh = localFont({
   src: "../../public/fonts/YekanBakh-VF.woff2",
@@ -84,11 +89,17 @@ export default async function RootLayout({
             </a>
             <MobileShell>{children}</MobileShell>
           </AuthProvider>
-          {/* Constrained to the column so a toast does not span a laptop. */}
+          {/* Constrained to the column so a toast does not span a laptop:
+              as wide as the column less its gutters, and — below Sonner's
+              600px mobile breakpoint, where it spans the viewport instead —
+              inset by the column's margin plus the same gutter. */}
           <Toaster
             position="top-center"
-            className="!mx-auto !w-full !max-w-shell"
-            dir={APP_DIR}
+            style={{ "--width": `calc(var(--shell-max-width) - ${TOAST_GUTTER} * 2)` } as CSSProperties}
+            mobileOffset={{
+              left: TOAST_MOBILE_INSET,
+              right: TOAST_MOBILE_INSET,
+            }}
           />
         </DirectionProvider>
       </body>

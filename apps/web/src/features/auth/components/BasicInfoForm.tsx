@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { PROFILE } from '@hamdastan/config';
@@ -287,10 +288,15 @@ export function BasicInfoForm() {
                           // shadcn's `on` state is `bg-accent`, which on this
                           // dark surface is a shade away from the unselected
                           // one. A segmented control has to answer "which did
-                          // I pick?" at a glance, so the chosen segment takes
-                          // the primary fill.
-                          className="h-12 text-base data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          // I pick?" at a glance — so the chosen segment gets
+                          // the product's selection: a foreground border and
+                          // a check. Violet stays on «ادامه».
+                          className="group/gender h-12 text-base data-[state=on]:border-foreground data-[state=on]:text-foreground"
                         >
+                          <Check
+                            aria-hidden="true"
+                            className="hidden group-data-[state=on]/gender:block"
+                          />
                           {label}
                         </ToggleGroupItem>
                       ))}

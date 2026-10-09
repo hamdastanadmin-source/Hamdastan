@@ -29,12 +29,12 @@ export function registerErrorHandler(app: FastifyInstance): void {
     const { statusCode, message } = (caught ?? {}) as Partial<FastifyError>;
 
     if (typeof statusCode === 'number' && statusCode < 500) {
-      reply.status(statusCode).send(fail('BAD_REQUEST', message ?? 'درخواست نامعتبر است'));
+      reply.status(statusCode).send(fail('BAD_REQUEST', message ?? 'درخواست معتبر نیست'));
       return;
     }
 
     request.log.error({ err: caught }, 'unhandled error');
-    reply.status(500).send(fail('INTERNAL_ERROR', 'خطای غیرمنتظره‌ای رخ داد'));
+    reply.status(500).send(fail('INTERNAL_ERROR', 'یه مشکل غیرمنتظره پیش اومد، دوباره امتحان کن'));
   });
 
   app.setNotFoundHandler((request, reply) => {
