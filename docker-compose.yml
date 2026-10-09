@@ -47,8 +47,9 @@ services:
       retries: 3
       start_period: 10s
 
-  # The admin panel is not part of the default stack yet — it is still an
-  # empty shell. Bring it up with:  docker compose --profile admin up
+  # The admin panel is not part of the default stack, and nginx does not
+  # route to it in production yet. Bring it up with:
+  #   docker compose --profile admin up
   admin:
     container_name: hamdastan-admin
     profiles: ["admin"]

@@ -42,9 +42,13 @@ export function sha256(value: string): string {
 /**
  * Hash of a one-time code, bound to the number it was issued for. The binding
  * is what stops a code observed for one number being presented for another.
+ *
+ * `scope` binds it to a flow as well: a code issued for the admin panel
+ * cannot open a product session, nor the other way round. The product's own
+ * codes are unscoped, which keeps their hash what it has always been.
  */
-export function hashOtp(phone: string, code: string): string {
-  return sha256(`${phone}:${code}`);
+export function hashOtp(phone: string, code: string, scope?: string): string {
+  return sha256(scope ? `${scope}:${phone}:${code}` : `${phone}:${code}`);
 }
 
 /** Constant-time comparison of two hex digests. */

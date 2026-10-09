@@ -140,6 +140,20 @@ server-only code into its bundle. `apps/web/src/features/auth` shows the shape:
 the provider and hooks in `index.ts`, the session lookup and route guards in
 `server.ts`.
 
+### `apps/admin`
+
+Same tree, minus `proxy.ts`: the `(panel)` route group's layout calls
+`requireAdminSession()` (`@/features/auth/server`), which forwards the cookies
+to `GET /admin/me` and redirects to `/login` without a live session. That is a
+convenience — every panel call is checked again by `authenticateAdmin` in
+`apps/api`. `AdminShell` (`src/components`) is the header and section menu;
+a new section is an entry in its `NAV` list and a route under `(panel)/`.
+
+The admin panel is **not** a mobile column. It is an ordinary responsive app,
+so `sm:`/`md:`/`lg:` are allowed in it — the rules under *Desktop is mobile*
+below are `apps/web`'s. Everything else here holds: shadcn components from
+`@hamdastan/ui`, token colours only, violet for the one primary action.
+
 ### Desktop is mobile
 
 The product is a mobile app wherever it is opened. On a laptop it does not
@@ -267,7 +281,7 @@ src/
 
 `auth`, `users`, `onboarding`, `account`, `worlds`, `content`, `missions`,
 `trivia`, `community`, `progress`, `events`, `commerce`, `notifications`,
-`search` — each with the same seven files:
+`search`, `admin` — each with the same seven files:
 
 ```
 module/
@@ -363,6 +377,14 @@ Refreshing is deliberately not done here: an expired access token is a 401,
 and the caller presents its refresh token at `POST /auth/refresh`. Rotating
 silently inside an arbitrary request would mean any handler could be the one
 that issues cookies.
+
+`middleware/authenticate-admin.ts` is the same idea for the admin panel: it
+turns the `hd_admin` cookie into `request.admin`, re-reading the admin's status
+on every call. The `admin` module owns `v2_admin_users` and
+`v2_admin_sessions`, and borrows the one-time codes from `auth`
+(`authService.requestOtp(…, 'admin')` and `authService.consumeOtp`), which
+hash them under an `admin` scope so neither flow's code opens the other —
+`admin → auth → users`, still one-way.
 
 ### Integrations
 

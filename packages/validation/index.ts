@@ -9,3 +9,4 @@ export * from './auth';
 export * from './onboarding';
 export * from './questionnaire';
 export * from './account';
+export * from './admin';

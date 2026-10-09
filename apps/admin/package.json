@@ -14,11 +14,14 @@
     "@hamdastan/types": "*",
     "@hamdastan/ui": "*",
     "@hamdastan/validation": "*",
+    "@hookform/resolvers": "^5.9.1",
     "@next/env": "16.1.6",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.1",
+    "sonner": "^2.0.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

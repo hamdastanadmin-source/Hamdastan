@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 import { accountRoutes } from './account';
+import { adminRoutes } from './admin';
 import { authRoutes } from './auth';
 import { commerceRoutes } from './commerce';
 import { communityRoutes } from './community';
@@ -42,4 +43,6 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/commerce', routes: commerceRoutes },
   { prefix: '/notifications', routes: notificationsRoutes },
   { prefix: '/search', routes: searchRoutes },
+  // The admin panel: its own sign-in and the admin allow-list.
+  { prefix: '/admin', routes: adminRoutes },
 ];

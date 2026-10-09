@@ -6,7 +6,7 @@
  */
 
 export { authRoutes } from './auth.routes';
-export { authService, setSmsSender } from './auth.service';
+export { authService, setSmsSender, type OtpPurpose } from './auth.service';
 export {
   setAuthRepository,
   sqlAuthRepository,

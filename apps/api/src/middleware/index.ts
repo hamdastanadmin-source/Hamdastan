@@ -5,3 +5,4 @@
 
 export { registerErrorHandler } from './error-handler';
 export { authenticate, currentUser } from './authenticate';
+export { authenticateAdmin, currentAdmin } from './authenticate-admin';

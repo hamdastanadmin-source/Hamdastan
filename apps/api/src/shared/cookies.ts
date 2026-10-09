@@ -1,6 +1,6 @@
 import type { FastifyReply } from 'fastify';
 
-import { SESSION } from '@hamdastan/config';
+import { ADMIN_SESSION, SESSION } from '@hamdastan/config';
 
 import { env } from '../config';
 
@@ -54,4 +54,13 @@ export function setSessionCookies(
 export function clearSessionCookies(reply: FastifyReply): void {
   reply.clearCookie(SESSION.ACCESS_COOKIE, baseOptions());
   reply.clearCookie(SESSION.REFRESH_COOKIE, baseOptions());
+}
+
+/** The admin panel's session: one token, under a name of its own. */
+export function setAdminSessionCookie(reply: FastifyReply, token: string, expiresAt: Date): void {
+  reply.setCookie(ADMIN_SESSION.COOKIE, token, { ...baseOptions(), expires: expiresAt });
+}
+
+export function clearAdminSessionCookie(reply: FastifyReply): void {
+  reply.clearCookie(ADMIN_SESSION.COOKIE, baseOptions());
 }

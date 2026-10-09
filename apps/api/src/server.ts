@@ -15,6 +15,7 @@ import {
   createKavenegarSmsSender,
   type SmsSender,
 } from './integrations';
+import { setAdminRepository, sqlAdminRepository } from './modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
@@ -65,8 +66,9 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setAuthRepository(sqlAuthRepository);
   setOnboardingRepository(sqlOnboardingRepository);
   setProgressRepository(sqlProgressRepository);
+  setAdminRepository(sqlAdminRepository);
 
-  log('database connected — users, auth, onboarding and progress repositories bound');
+  log('database connected — users, auth, onboarding, progress and admin repositories bound');
 }
 
 /**

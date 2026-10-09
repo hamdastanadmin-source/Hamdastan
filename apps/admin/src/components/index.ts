@@ -3,4 +3,5 @@
  * Anything general enough for both apps belongs in `@hamdastan/ui`.
  */
 
-export {};
+export { AdminShell } from './AdminShell';
+export { ThemeToggle } from './ThemeToggle';

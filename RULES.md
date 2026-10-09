@@ -45,7 +45,10 @@ writing a migration, not after.
     and tokens are rows in `v2_users`, `v2_otp_challenges`, `v2_sessions` and
     the two token tables. `apps/web` holds no session store of its own:
     `features/auth/services/session.service.ts` forwards the request's cookies
-    to `GET /me` and returns the answer.
+    to `GET /me` and returns the answer. The admin panel's allow-list and
+    sessions are `v2_admin_users` and `v2_admin_sessions`, also in `apps/api`;
+    an admin's access is decided there on every request, never only in
+    `apps/admin`.
 
 5.  **The code echo is a development switch.** `OTP_DEBUG_DISPLAY=true`
     returns the freshly issued one-time code in the API response and puts it

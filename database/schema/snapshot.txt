@@ -2,6 +2,19 @@ column v2_access_tokens.expires_at timestamp with time zone nullable=NO default=
 column v2_access_tokens.session_id uuid nullable=NO default=
 column v2_access_tokens.token_hash character nullable=NO default=
 column v2_access_tokens.user_id uuid nullable=NO default=
+column v2_admin_sessions.admin_id uuid nullable=NO default=
+column v2_admin_sessions.created_at timestamp with time zone nullable=NO default=now()
+column v2_admin_sessions.expires_at timestamp with time zone nullable=NO default=
+column v2_admin_sessions.revoked_at timestamp with time zone nullable=YES default=
+column v2_admin_sessions.token_hash character nullable=NO default=
+column v2_admin_users.created_at timestamp with time zone nullable=NO default=now()
+column v2_admin_users.first_name character varying nullable=NO default=
+column v2_admin_users.id uuid nullable=NO default=gen_random_uuid()
+column v2_admin_users.last_login_at timestamp with time zone nullable=YES default=
+column v2_admin_users.last_name character varying nullable=NO default=
+column v2_admin_users.phone character varying nullable=NO default=
+column v2_admin_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_admin_status
+column v2_admin_users.updated_at timestamp with time zone nullable=NO default=now()
 column v2_onboarding_events.event character varying nullable=NO default=
 column v2_onboarding_events.id bigint nullable=NO default=nextval('v2_onboarding_events_id_seq'::regclass)
 column v2_onboarding_events.occurred_at timestamp with time zone nullable=NO default=now()
@@ -109,6 +122,10 @@ column v2_xp_transactions.xp_amount integer nullable=NO default=
 constraint v2_access_tokens v2_access_tokens_pkey PRIMARY KEY (token_hash)
 constraint v2_access_tokens v2_access_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES v2_sessions(id) ON DELETE CASCADE
 constraint v2_access_tokens v2_access_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_admin_sessions v2_admin_sessions_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE CASCADE
+constraint v2_admin_sessions v2_admin_sessions_pkey PRIMARY KEY (token_hash)
+constraint v2_admin_users v2_admin_users_phone_key UNIQUE (phone)
+constraint v2_admin_users v2_admin_users_pkey PRIMARY KEY (id)
 constraint v2_onboarding_events v2_onboarding_events_event CHECK (((event)::text = ANY ((ARRAY['quiz_started'::character varying, 'quiz_question_viewed'::character varying, 'quiz_question_answered'::character varying, 'quiz_back_clicked'::character varying, 'quiz_section_completed'::character varying, 'quiz_abandoned'::character varying, 'quiz_resumed'::character varying, 'quiz_completed'::character varying, 'quiz_result_viewed'::character varying, 'quiz_result_continue_clicked'::character varying])::text[])))
 constraint v2_onboarding_events v2_onboarding_events_pkey PRIMARY KEY (id)
 constraint v2_onboarding_events v2_onboarding_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
@@ -141,6 +158,7 @@ constraint v2_xp_transactions v2_xp_transactions_pkey PRIMARY KEY (id)
 constraint v2_xp_transactions v2_xp_transactions_source_type CHECK (((source_type)::text = ANY ((ARRAY['personality_test'::character varying, 'avatar_created'::character varying, 'profile_completed'::character varying, 'mission'::character varying])::text[])))
 constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK ((xp_amount > 0))
+enum v2_admin_status ACTIVE,INACTIVE
 enum v2_gender MALE,FEMALE
 enum v2_onboarding_step basic_info,onboarding,done
 enum v2_user_role USER,ADMIN
@@ -148,6 +166,11 @@ enum v2_user_status ACTIVE,SUSPENDED
 index v2_access_tokens_expires_at CREATE INDEX v2_access_tokens_expires_at ON public.v2_access_tokens USING btree (expires_at)
 index v2_access_tokens_pkey CREATE UNIQUE INDEX v2_access_tokens_pkey ON public.v2_access_tokens USING btree (token_hash)
 index v2_access_tokens_session CREATE INDEX v2_access_tokens_session ON public.v2_access_tokens USING btree (session_id)
+index v2_admin_sessions_admin CREATE INDEX v2_admin_sessions_admin ON public.v2_admin_sessions USING btree (admin_id)
+index v2_admin_sessions_expires_at CREATE INDEX v2_admin_sessions_expires_at ON public.v2_admin_sessions USING btree (expires_at)
+index v2_admin_sessions_pkey CREATE UNIQUE INDEX v2_admin_sessions_pkey ON public.v2_admin_sessions USING btree (token_hash)
+index v2_admin_users_phone_key CREATE UNIQUE INDEX v2_admin_users_phone_key ON public.v2_admin_users USING btree (phone)
+index v2_admin_users_pkey CREATE UNIQUE INDEX v2_admin_users_pkey ON public.v2_admin_users USING btree (id)
 index v2_onboarding_events_funnel CREATE INDEX v2_onboarding_events_funnel ON public.v2_onboarding_events USING btree (event, occurred_at)
 index v2_onboarding_events_pkey CREATE UNIQUE INDEX v2_onboarding_events_pkey ON public.v2_onboarding_events USING btree (id)
 index v2_onboarding_events_user CREATE INDEX v2_onboarding_events_user ON public.v2_onboarding_events USING btree (user_id, occurred_at)

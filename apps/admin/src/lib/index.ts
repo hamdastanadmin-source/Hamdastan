@@ -3,4 +3,4 @@
  * Reusable helpers belong in `@hamdastan/shared`.
  */
 
-export {};
+export { errorCode, errorMessage, fieldErrors } from './error-message';

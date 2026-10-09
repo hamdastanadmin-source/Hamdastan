@@ -96,9 +96,16 @@ Three things are easy to get wrong here:
   turn the echo off; no code changes.
 
 `apps/web/src/features/auth/services/session.service.ts` no longer stores
-anything — it forwards the request's cookies to `GET /me`. `apps/admin` still
-has its own username/password story; moving that into `apps/api` is a separate
-task.
+anything — it forwards the request's cookies to `GET /me`.
+
+**The admin panel signs in the same way, but only for numbers on its
+allow-list** (`v2_admin_users`, the `admin` module; `docs/PRD.md` §4.6). The
+list is checked after the code verifies, codes are hashed under an `admin`
+scope, the session is the `hd_admin` cookie, and `authenticateAdmin` in
+`apps/api` is the access control — never add an admin check that lives only
+in `apps/admin`. Deactivating or deleting an admin ends their sessions; an
+admin can never deactivate or delete themselves, which is what keeps the
+panel from losing its last admin.
 
 ### Screens
 

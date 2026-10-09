@@ -15,7 +15,7 @@ const yekanBakh = localFont({
 });
 
 export const metadata: Metadata = {
-  title: `پنل مدیریت ${APP_NAME}`,
+  title: { default: `پنل مدیریت ${APP_NAME}`, template: `%s · پنل مدیریت ${APP_NAME}` },
   description: `پنل مدیریت ${APP_NAME}`,
   robots: { index: false, follow: false },
 };
@@ -37,7 +37,7 @@ export default function AdminRootLayout({
       <body
         className={`${yekanBakh.className} font-sans antialiased bg-background text-foreground`}
       >
-        <main id="main-content">{children}</main>
+        {children}
         <Toaster />
       </body>
     </html>

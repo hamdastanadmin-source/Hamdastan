@@ -2,7 +2,7 @@
 
 **Product:** هم‌داستان (Hamdastan)
 **Version:** 1.0
-**Last Updated:** 2026-10-03
+**Last Updated:** 2026-10-09
 **Status:** Active Development
 
 ---
@@ -23,7 +23,8 @@ decision, and it is enforced by `MobileShell` and by a Playwright test.
   well and wants to prove it. Signs in with a mobile number; there is no
   password anywhere in the product.
 - **The operator** — runs content and moderation from `apps/admin`, a separate
-  app with its own sign-in.
+  app. Signs in with a mobile number and a one-time code like the fan, but only
+  if another admin has already added that number (§4.6).
 
 ### 1.2 Core Value Proposition
 
@@ -108,7 +109,7 @@ password and no separate registration.
   screen, so there is nothing to leave to before the profile is complete.
 
 **Not in this module:** the onboarding steps themselves, and the admin panel's
-username/password sign-in.
+sign-in (§4.6), which reuses these codes but opens no product account.
 
 ### 4.2 Onboarding — ساخت دنیای من
 
@@ -515,6 +516,63 @@ Skeletons. Each has a directory under `apps/web/src/features` and a module
 under `apps/api/src/modules`, and each returns 501 until its repository is
 bound.
 
+### 4.6 Admin panel — پنل مدیریت
+
+**Purpose:** let the people who run the product sign in to `apps/admin`
+(`localhost:3001` in development), and let them decide who else may.
+Code in `apps/admin` and `apps/api/src/modules/admin`.
+
+Unlike the product, the admin panel is a responsive desktop-and-phone app,
+not a 430px column: `MobileShell`'s breakpoint rule is `apps/web`'s alone.
+
+**Who may sign in.** Only a number in `v2_admin_users` whose status is
+active. There is no public registration.
+
+- Sign-in is the product's flow — mobile number, six-digit code, the same
+  limits — at `/login`. The code is hashed under an `admin` scope, so a code
+  issued by the product cannot open the panel and the other way round.
+- The allow-list is checked **after** the code verifies, so asking for a code
+  reveals nothing about which numbers are admins. A proven number that is not
+  an active admin gets `403 ADMIN_ACCESS_DENIED`, no session, and no product
+  account; the login screen shows «دسترسی نداری».
+- The session is one `httpOnly` cookie, `hd_admin`, valid for 12 hours, not
+  rolling. Every admin route re-reads the admin's status with the session,
+  in `apps/api` (`middleware/authenticate-admin.ts`) — the panel's redirects
+  are a convenience, not the access control.
+- **Deactivating an admin** revokes every session they hold, in the same
+  transaction; their next request is a 401 and the panel sends them to
+  `/login`.
+- **Deleting an admin** removes their row for good, and their sessions with
+  it; their next request is a 401. The number is free to be added again later.
+- **Nobody locks themselves out.** An admin cannot deactivate or delete their
+  own account (`400 ADMIN_SELF_DEACTIVATION` / `ADMIN_SELF_DELETION`; the
+  switch, the status field and the delete button are disabled on their own
+  row). Every acting admin is active, so the panel always
+  keeps at least one admin who can get in.
+- The first admin — امید بهشتی, `09059466960` — is seeded by migration
+  `0009`, together with anyone `v2_users` already marks `role = 'ADMIN'`.
+
+**مدیریت کاربران — `/users`.** The panel's one section so far, in the header
+menu.
+
+- A table of admin users, newest first, 20 per page: name (with «شما» on
+  your own row), mobile number, status, last sign-in and date added (the last
+  two drop out on narrow screens; on a phone the number moves under the name).
+- Search matches the full name or any part of the number; Persian digits and
+  Arabic letters are normalised first.
+- «کاربر جدید» opens a dialog: first name, last name, mobile number (all
+  required, same rules as §8) and status — active by default. A number another
+  admin already has is refused under the field (`409 ADMIN_PHONE_TAKEN`).
+- The pencil on a row opens the same dialog to edit it.
+- The status switch activates at once; deactivating asks first, in a dialog
+  that says the person will be signed out everywhere.
+- The bin on a row deletes the user, after a dialog that says it cannot be
+  undone. Deactivating is the reversible choice; deleting is for someone who
+  should never have been on the list.
+- Every write ends in a toast; the list shows skeleton rows while it first
+  loads, an error with «تلاش دوباره» if it fails, and an empty state.
+- Light and dark, through the same theme store as the product.
+
 ---
 
 ## 5. User Flows
@@ -622,6 +680,12 @@ decides nothing and keeps the cookies rather than signing the visitor out.
 +-------------------+       +-------------------+
 | v2_otp_challenges |       |    v2_otp_sends   |
 +-------------------+       +-------------------+
+
+Admin panel — no link to v2_users; joined to the codes above by phone only:
+
++-------------------+       +---------------------+
+|  v2_admin_users   |--1:N--|  v2_admin_sessions  |
++-------------------+       +---------------------+
 ```
 
 ### 6.2 Key relationships and why they are shaped that way
@@ -683,6 +747,16 @@ decides nothing and keeps the cookies rather than signing the visitor out.
   "profile completed" are all derived (from this table, `avatar_config`, and
   `username` + `city`), so none of them is stored to drift.
 
+- **`v2_admin_users`** — the admin panel's allow-list: `phone` (unique,
+  normalised like `v2_users.phone`), `first_name`, `last_name`, `status`
+  (`ACTIVE` / `INACTIVE`), `last_login_at`. Deliberately separate from
+  `v2_users`: verifying a product code creates a product account for any
+  number, which must never grant admin access, and deactivating an admin must
+  not touch their product account.
+- **`v2_admin_sessions`** — one row per admin sign-in: the SHA-256 of the
+  `hd_admin` token, `admin_id`, `expires_at`, `revoked_at`. Deactivating an
+  admin revokes all of theirs.
+
 The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 `0002_user_interests.sql`, `0004_social_questionnaire.sql` and
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
@@ -720,6 +794,23 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 `birthDate` is sent as Jalali parts (`{ year, month, day }`) and stored as a
 Gregorian date.
 
+The admin panel's routes, all under `/api/v1/admin`. Every one except the
+three `/auth` routes needs the `hd_admin` cookie of an active admin, and
+answers 401 otherwise.
+
+| Method | Endpoint | Body / query | Returns |
+|--------|----------|--------------|---------|
+| POST | `/admin/auth/otp/request` | `{ phone }` | `{ resendIn, debugCode? }` |
+| POST | `/admin/auth/otp/verify` | `{ phone, code }` | `{ admin }` + `hd_admin` cookie; 403 `ADMIN_ACCESS_DENIED` for a number that is not an active admin |
+| POST | `/admin/auth/logout` | — | `{ loggedOut }`, cookie cleared |
+| GET | `/admin/me` | — | `{ admin }` |
+| GET | `/admin/users` | `?search=&page=&pageSize=` | `Paginated<AdminUser>` |
+| POST | `/admin/users` | `{ firstName, lastName, phone, status? }` | `AdminUser` (201); 409 `ADMIN_PHONE_TAKEN` |
+| PATCH | `/admin/users/:id` | any of `{ firstName, lastName, phone, status }` | `AdminUser`; 409 `ADMIN_PHONE_TAKEN`, 400 `ADMIN_SELF_DEACTIVATION`, 404 |
+| DELETE | `/admin/users/:id` | — | `{ deleted: true }`, sessions removed with the row; 400 `ADMIN_SELF_DELETION`, 404 |
+
+`AdminUser` is `{ id, firstName, lastName, phone, status: 'active' | 'inactive', lastLoginAt, createdAt }`.
+
 Error codes the UI switches on: `OTP_RATE_LIMITED`, `OTP_NOT_FOUND`,
 `OTP_EXPIRED`, `OTP_INVALID`, `OTP_LOCKED`, `VALIDATION_ERROR`,
 `UNAUTHORIZED`.
@@ -734,7 +825,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`); the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -751,6 +842,7 @@ against the same objects, including the Persian messages.
 | City | Empty (clears it) or 2–40 letters | «اسم شهر رو درست وارد کن» |
 | Bio | Optional, at most 160 characters; empty clears it | «حداکثر ۱۶۰ کاراکتر» |
 | Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
+| Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
 | Questionnaire answer | Shape by question: one option code, a list of codes (≥ 1, no repeats, within the cap), a ranked list, or an integer 1–10 (`packages/validation/questionnaire.ts`) | «یک گزینه رو انتخاب کن» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 
 The mobile field itself accepts digits only, eleven at most: letters and
@@ -892,4 +984,6 @@ app background; re-export them all when the master changes.
 | «ساخت آواتار» mission | Low | No longer reachable — there is no avatar screen. Earned XP and «خوش‌استایل» badges stay; missions are not listed on the profile |
 | More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
-| Move admin sign-in into `apps/api` | Medium | `apps/admin` still has its own story |
+| Admin sign-in and user management | Done | OTP sign-in limited to active admins; create, edit, (de)activate and delete at `/users` in `apps/admin` — see §4.6 |
+| Serve `apps/admin` in production | Medium | The container builds, but nginx does not route to it yet; it runs at `localhost:3001` |
+| Admin roles and permissions | Low | Every active admin can do everything; add roles when there is a second kind of operator |

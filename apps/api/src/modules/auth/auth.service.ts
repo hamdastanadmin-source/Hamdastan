@@ -88,6 +88,54 @@ function issueTokens(now: Date): { tokens: SessionTokens; hashes: TokenHashes } 
   };
 }
 
+/**
+ * Which flow a code belongs to. `user` is the product's sign-in; `admin` is
+ * the admin panel's, which shares the challenge row and the rate limits but
+ * hashes the code under its own scope (see `hashOtp`).
+ */
+export type OtpPurpose = 'user' | 'admin';
+
+const otpScope = (purpose: OtpPurpose) => (purpose === 'user' ? undefined : purpose);
+
+/**
+ * Checks a code and consumes it. Throws for a missing, expired, locked or
+ * wrong code; returns only when the number is proven.
+ *
+ * A correct code is consumed whatever happens next, and five wrong ones burn
+ * it. Either way the next attempt needs a new code, which is what makes a
+ * six-digit secret safe to send over SMS.
+ */
+async function consumeOtp(phone: string, code: string, purpose: OtpPurpose): Promise<void> {
+  const now = new Date();
+  const repository = authRepository();
+  const challenge = await repository.findChallenge(phone);
+
+  if (!challenge) {
+    throw new AppError(400, 'OTP_NOT_FOUND', 'برای این شماره کدی فرستاده نشده، کد جدید بگیر');
+  }
+  if (challenge.expiresAt <= now) {
+    await repository.deleteChallenge(phone);
+    throw new AppError(400, 'OTP_EXPIRED', 'کد منقضی شده، کد جدید بگیر');
+  }
+  if (challenge.attempts >= OTP.MAX_ATTEMPTS) {
+    await repository.deleteChallenge(phone);
+    throw new AppError(429, 'OTP_LOCKED', 'تعداد تلاش‌ها زیاد بود، کد جدید بگیر');
+  }
+
+  if (!hashesMatch(challenge.codeHash, hashOtp(phone, code, otpScope(purpose)))) {
+    const attempts = await repository.recordFailedAttempt(phone);
+    if (attempts >= OTP.MAX_ATTEMPTS) {
+      await repository.deleteChallenge(phone);
+      throw new AppError(429, 'OTP_LOCKED', 'تعداد تلاش‌ها زیاد بود، کد جدید بگیر');
+    }
+    throw new AppError(400, 'OTP_INVALID', 'کد اشتباهه، دوباره امتحان کن', {
+      attemptsLeft: OTP.MAX_ATTEMPTS - attempts,
+    });
+  }
+
+  await repository.deleteChallenge(phone);
+}
+
 export const authService = {
   /**
    * Issues a one-time code for a number.
@@ -101,7 +149,11 @@ export const authService = {
    * after accepting the message would otherwise leave the limit uncounted,
    * which is the side to be wrong on.
    */
-  async requestOtp(phone: string, ip: string | null): Promise<OtpRequestResponse> {
+  async requestOtp(
+    phone: string,
+    ip: string | null,
+    purpose: OtpPurpose = 'user'
+  ): Promise<OtpRequestResponse> {
     const now = new Date();
     const windowStart = new Date(now.getTime() - seconds(OTP.RATE_WINDOW_SECONDS));
     const repository = authRepository();
@@ -130,7 +182,7 @@ export const authService = {
       phone,
       // The hash is bound to the number, so a code seen for one number
       // cannot be presented for another.
-      codeHash: hashOtp(phone, code),
+      codeHash: hashOtp(phone, code, otpScope(purpose)),
       expiresAt: new Date(now.getTime() + seconds(OTP.TTL_SECONDS)),
       resendAvailableAt,
       attempts: 0,
@@ -147,49 +199,25 @@ export const authService = {
   },
 
   /**
+   * Checks and consumes a code without opening a session. For a flow with a
+   * session of its own — the admin panel — which decides what a proven
+   * number is entitled to.
+   */
+  consumeOtp,
+
+  /**
    * Checks a code and, if it holds, signs the person in — creating the
    * account first when the number is new.
-   *
-   * A correct code is consumed whatever happens next, and five wrong ones
-   * burn it. Either way the next attempt needs a new code, which is what
-   * makes a six-digit secret safe to send over SMS.
    */
   async verifyOtp(
     phone: string,
     code: string
   ): Promise<{ session: OtpVerifyResponse; tokens: SessionTokens }> {
-    const now = new Date();
-    const repository = authRepository();
-    const challenge = await repository.findChallenge(phone);
-
-    if (!challenge) {
-      throw new AppError(400, 'OTP_NOT_FOUND', 'برای این شماره کدی فرستاده نشده، کد جدید بگیر');
-    }
-    if (challenge.expiresAt <= now) {
-      await repository.deleteChallenge(phone);
-      throw new AppError(400, 'OTP_EXPIRED', 'کد منقضی شده، کد جدید بگیر');
-    }
-    if (challenge.attempts >= OTP.MAX_ATTEMPTS) {
-      await repository.deleteChallenge(phone);
-      throw new AppError(429, 'OTP_LOCKED', 'تعداد تلاش‌ها زیاد بود، کد جدید بگیر');
-    }
-
-    if (!hashesMatch(challenge.codeHash, hashOtp(phone, code))) {
-      const attempts = await repository.recordFailedAttempt(phone);
-      if (attempts >= OTP.MAX_ATTEMPTS) {
-        await repository.deleteChallenge(phone);
-        throw new AppError(429, 'OTP_LOCKED', 'تعداد تلاش‌ها زیاد بود، کد جدید بگیر');
-      }
-      throw new AppError(400, 'OTP_INVALID', 'کد اشتباهه، دوباره امتحان کن', {
-        attemptsLeft: OTP.MAX_ATTEMPTS - attempts,
-      });
-    }
-
-    await repository.deleteChallenge(phone);
+    await consumeOtp(phone, code, 'user');
 
     const { user, isNew } = await usersService.ensureByPhone(phone);
-    const { tokens, hashes } = issueTokens(now);
-    await repository.createSession(user.id, hashes);
+    const { tokens, hashes } = issueTokens(new Date());
+    await authRepository().createSession(user.id, hashes);
 
     return { session: { ...toSession(user), isNew }, tokens };
   },

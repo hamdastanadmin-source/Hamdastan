@@ -33,6 +33,12 @@ export type {
   RoleAvatarId,
   SocialRole,
 } from './questionnaire';
+export {
+  ADMIN_ERROR_CODES,
+  type AdminSessionResponse,
+  type AdminUser,
+  type AdminUserStatus,
+} from './admin';
 export type {
   AccountOverview,
   AccountProfile,
