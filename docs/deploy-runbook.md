@@ -120,7 +120,9 @@ from the code switch, so each can be watched on its own.
 rsync -az --delete --exclude .git --exclude node_modules --exclude .next \
   --exclude '.env' --exclude '.env.*' ./ root@$DEPLOY_HOST:/srv/hamdastan/
 scp deploy/.env.production root@$DEPLOY_HOST:/srv/hamdastan/.env
-ssh root@$DEPLOY_HOST 'chmod 600 /srv/hamdastan/.env && cd /srv/hamdastan && dc build'
+# One image at a time — building all three at once exhausted the host's RAM
+# and froze it (2026-10-10). deploy.sh does the same.
+ssh root@$DEPLOY_HOST 'chmod 600 /srv/hamdastan/.env && cd /srv/hamdastan && for s in api web admin; do dc build $s || exit 1; done'
 
 # 3.2 — on the server: 0011–0014, additive, under the runner's advisory lock.
 cd /srv/hamdastan && dc run --rm --no-deps api node_modules/.bin/tsx apps/api/src/data/migrate.ts

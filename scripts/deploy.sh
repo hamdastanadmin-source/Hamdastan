@@ -94,10 +94,18 @@ scp "${SSH_OPTS[@]}" -q "$ENV_FILE" "${TARGET}:${DEPLOY_PATH}/.env"
 ssh "${SSH_OPTS[@]}" "$TARGET" "chmod 600 '$DEPLOY_PATH/.env'"
 
 # ── Build and start ───────────────────────────────────────────
-echo "▸ building and starting containers"
+# One image at a time: each Next build needs a few GB of memory, and building
+# them side by side once exhausted the host's RAM and froze it mid-deploy.
+echo "▸ building images"
+ssh "${SSH_OPTS[@]}" "$TARGET" "cd '$DEPLOY_PATH' && \
+  for service in api web admin; do \
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml build \"\$service\" || exit 1; \
+  done"
+
+echo "▸ starting containers"
 ssh "${SSH_OPTS[@]}" "$TARGET" "cd '$DEPLOY_PATH' && \
   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-    up -d --build --remove-orphans && \
+    up -d --remove-orphans && \
   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
     restart nginx && \
   docker image prune -f >/dev/null"
