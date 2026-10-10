@@ -6,6 +6,7 @@ import { authRoutes } from './auth';
 import { commerceRoutes } from './commerce';
 import { communityRoutes } from './community';
 import { contentRoutes } from './content';
+import { engagementAdminRoutes, engagementRoutes } from './engagement';
 import { eventsRoutes } from './events';
 import { missionsRoutes } from './missions';
 import { notificationsRoutes } from './notifications';
@@ -33,6 +34,8 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/me/onboarding', routes: onboardingRoutes },
   // The account area — profile, avatar, settings and the hub that reads them.
   { prefix: '/me', routes: accountRoutes },
+  // Engagement Studio activities, as the current user plays them.
+  { prefix: '/me/activities', routes: engagementRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
   { prefix: '/content', routes: contentRoutes },
   { prefix: '/missions', routes: missionsRoutes },
@@ -45,4 +48,6 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/search', routes: searchRoutes },
   // The admin panel: its own sign-in and the admin allow-list.
   { prefix: '/admin', routes: adminRoutes },
+  // Engagement Studio: designing, publishing and reviewing activities.
+  { prefix: '/admin/engagement', routes: engagementAdminRoutes },
 ];

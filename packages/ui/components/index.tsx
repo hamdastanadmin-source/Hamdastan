@@ -142,6 +142,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '../primitives/sheet';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
+} from '../primitives/sidebar';
 import { Skeleton } from '../primitives/skeleton';
 import { Toaster } from '../primitives/sonner';
 import { Slider } from '../primitives/slider';
@@ -282,6 +300,24 @@ export {
   SheetFooter,
   SheetTitle,
   SheetDescription,
+};
+export {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
 };
 export { Skeleton };
 export { Toaster };

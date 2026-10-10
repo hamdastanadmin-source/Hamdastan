@@ -21,7 +21,9 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
-    "sonner": "^2.0.8"
+    "read-excel-file": "^9.3.12",
+    "sonner": "^2.0.8",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

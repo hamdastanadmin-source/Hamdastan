@@ -130,6 +130,7 @@ until they agree.
 | `0007` | Drops `OTHER` from `v2_gender`; anyone who had chosen «سایر» has gender cleared and is sent back to the basic-info form |
 | `0008` | Social handles on the profile: `v2_users.instagram`, `telegram`, `linkedin` (nullable, handle only) |
 | `0009` | The admin panel: `v2_admin_users` (the allow-list, unique phone, `ACTIVE`/`INACTIVE`) and `v2_admin_sessions`; seeds the main admin (`09059466960`) and copies in anyone `v2_users` marks `role = 'ADMIN'` |
+| `0010` | Engagement Studio: `v2_engagement_activities`, `v2_engagement_versions`, `v2_engagement_participations`, `v2_engagement_responses` (anonymous ones without `user_id`), `v2_engagement_audit_log`; the XP ledger gains `activity_id`, `activity_version_id`, `reason`, `reverses_id`, `created_by_admin_id`, the source types `engagement` and `reversal`, and a negative amount for a reversal. Additive apart from two CHECKs replaced by wider ones that every existing row satisfies |
 
 `docs/PRD.md` §6 explains why each table is shaped the way it is.
 

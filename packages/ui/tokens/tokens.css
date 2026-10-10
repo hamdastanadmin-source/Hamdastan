@@ -76,6 +76,19 @@
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
 
+    /* ─── Sidebar (shadcn Sidebar, the admin panel's menu) ──────── */
+    /* Aliases of the neutral surfaces, not colours of their own, so they
+       follow the theme. Its "primary" is the foreground: the active item
+       is not the screen's primary action, and violet is that action's alone. */
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--foreground);
+    --sidebar-primary-foreground: var(--background);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+
     /* ─── Semantic Colors (auto-derived from hues) ──────────────── */
     --destructive: var(--destructive-hue) 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -335,6 +348,15 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --color-brand-50: hsl(var(--brand-50));
   --color-brand-100: hsl(var(--brand-100));

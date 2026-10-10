@@ -4,3 +4,4 @@
  */
 
 export { errorCode, errorMessage, fieldErrors } from './error-message';
+export { formatCount, formatDate, formatDateTime, formatPercent } from './format';

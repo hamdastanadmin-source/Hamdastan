@@ -17,6 +17,7 @@ import {
 } from './integrations';
 import { setAdminRepository, sqlAdminRepository } from './modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
+import { setEngagementRepository, sqlEngagementRepository } from './modules/engagement';
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
@@ -67,8 +68,9 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setOnboardingRepository(sqlOnboardingRepository);
   setProgressRepository(sqlProgressRepository);
   setAdminRepository(sqlAdminRepository);
+  setEngagementRepository(sqlEngagementRepository);
 
-  log('database connected — users, auth, onboarding, progress and admin repositories bound');
+  log('database connected — users, auth, onboarding, progress, admin and engagement repositories bound');
 }
 
 /**

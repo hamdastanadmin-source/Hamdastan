@@ -119,8 +119,12 @@ user object, because then the browser would be deciding.
 ```
 features/
 ├── auth/  onboarding/  home/  worlds/  play/  community/
-└── profile/  events/  commerce/  notifications/  search/
+└── profile/  activities/  events/  commerce/  notifications/  search/
 ```
+
+`activities` is Engagement Studio's product side: the cards on home and
+`/activities`, and the player at `/activities/:id`. It collects answers and
+shows what the API answered — it decides nothing about access or XP.
 
 A feature grows the directories it needs and no others:
 
@@ -146,8 +150,28 @@ Same tree, minus `proxy.ts`: the `(panel)` route group's layout calls
 `requireAdminSession()` (`@/features/auth/server`), which forwards the cookies
 to `GET /admin/me` and redirects to `/login` without a live session. That is a
 convenience — every panel call is checked again by `authenticateAdmin` in
-`apps/api`. `AdminShell` (`src/components`) is the header and section menu;
-a new section is an entry in its `NAV` list and a route under `(panel)/`.
+`apps/api`. `AdminShell` (`src/components`) is a dashboard: the section menu is
+shadcn's `Sidebar` on the reading-start side (`side="right"` — the right, in
+RTL), with the admin, the theme switch and sign-out at its foot, and a top bar
+with the `SidebarTrigger` (Ctrl/⌘+B folds it away). On a phone the same menu
+opens as a sheet from the right. A new section is an entry in its `NAV` list
+and a route under `(panel)/`.
+
+Like `apps/web`, the admin root layout wraps everything in
+`DirectionProvider`. Radix writes `dir` on its own roots — `ToggleGroup`,
+`Tabs` — and on portalled overlays, and without the provider it writes
+`ltr`: a toggle group of cards then lays out and punctuates left-to-right
+inside an RTL page.
+There are two: `users` (the admin allow-list) and `engagement` (Engagement
+Studio — the builder, the list and the results dashboard). The builder reads
+and writes the question spreadsheet in the browser with `read-excel-file` and
+`write-excel-file` (dependencies of `apps/admin` alone, loaded on demand); the
+row → question mapping is `packages/validation/engagement-import.ts`, so it
+is checked by the same schema as the builder and tested with the API's
+suite. Reading a local file is not a network call — nothing leaves the
+browser until the activity is saved through `apps/api`. Formatting shared
+by both features — Jalali dates, Persian counts and percentages — is
+`src/lib/format.ts`.
 
 The admin panel is **not** a mobile column. It is an ordinary responsive app,
 so `sm:`/`md:`/`lg:` are allowed in it — the rules under *Desktop is mobile*
@@ -281,7 +305,7 @@ src/
 
 `auth`, `users`, `onboarding`, `account`, `worlds`, `content`, `missions`,
 `trivia`, `community`, `progress`, `events`, `commerce`, `notifications`,
-`search`, `admin` — each with the same seven files:
+`search`, `admin`, `engagement` — each with the same seven files:
 
 ```
 module/
@@ -316,8 +340,28 @@ mission's reward once (`complete`).
 
 A module may add files beside the seven when a service delegates a pure
 computation: `onboarding` keeps its questionnaire scoring in
-`onboarding.scoring.ts` and the result card in `onboarding.result.ts`. They
-import no repository and no HTTP, so they are tested as plain functions.
+`onboarding.scoring.ts` and the result card in `onboarding.result.ts`;
+`engagement` keeps assessment scoring and the XP rule in
+`engagement.scoring.ts`, and the dashboard figures and the CSV in
+`engagement.results.ts`. They import no repository and no HTTP, so they are
+tested as plain functions.
+
+**`engagement`** is Engagement Studio: one engine for surveys, missions and
+assessments. It mounts two route plugins — `/admin/engagement` behind
+`authenticateAdmin`, `/me/activities` behind `authenticate` — and depends on
+`progress` (`engagement → progress`, one way). Its service decides
+everything: visibility, completion, scoring, whether a submission earns XP.
+
+**The XP ledger has two writers and one owner.** `progress` owns
+`v2_xp_transactions`: the port (`grant`, `total`, `revoke`), the level
+arithmetic and the reversal rule. Missions grant through
+`progressService.grant`. Engagement grants through `grantWithin(client, …)`,
+exported by `progress`, which runs on the caller's transaction — because a
+response, its participation and its reward must land together or not at
+all, and a port call would commit on a connection of its own. That is the
+one sanctioned case of a repository using another module's repository code;
+it never updates or deletes a ledger row. A revocation is
+`progressService.revoke`: a new negative row, never an edit.
 
 A module's `*.repository.ts` holds both its port (the interface) and the
 PostgreSQL adapter that satisfies it. They live together because that file is
@@ -377,6 +421,10 @@ Refreshing is deliberately not done here: an expired access token is a 401,
 and the caller presents its refresh token at `POST /auth/refresh`. Rotating
 silently inside an arbitrary request would mean any handler could be the one
 that issues cookies.
+
+The data layer exports `DbClient` (the `pg` client a `withTransaction`
+callback receives) so a helper such as `grantWithin` can be typed without a
+repository importing `pg` itself.
 
 `middleware/authenticate-admin.ts` is the same idea for the admin panel: it
 turns the `hd_admin` cookie into `request.admin`, re-reading the admin's status
@@ -510,6 +558,23 @@ a product that gets wider and this one never does:
   once the *viewport* passes 768px, inside a column that is 430px on a phone
   and 430px on a monitor — so a field would change size while nothing around
   it did. `e2e/welcome.spec.ts` asserts the size is stable across widths.
+- **`Table` and `ToggleGroup` are logical.** shadcn's `TableHead` is
+  `text-left`, which in RTL put every header at the far side of its column
+  from its cells; it is `text-start` (and `pe-0`). `ToggleGroup`'s attached
+  mode rounds and borders with `rounded-s`/`rounded-e`/`border-s`. The RTL
+  lint only catches `left-`/`right-` with a dash, so check `text-left`,
+  `rounded-l` and `border-l` by eye when adding a component.
+- **`Card` is shadcn's earlier `Card`.** Its padding lives on `CardHeader`
+  (`p-6`) and `CardContent` (`p-6 pt-0`), not on `Card` — so a card with
+  only a `CardContent` must give it its own top padding (`p-4 sm:p-6`), and
+  `gap-*`/`py-*` on `Card` itself do nothing.
+- **`Sidebar`** is shadcn's stock component, used by the admin panel. Its
+  `side` names a physical edge, like `Sheet`'s, so its side-keyed position
+  classes carry `rtl-ok`; everything else in it was made logical (`end-*`,
+  `pe-*`, `border-s`, `text-start`). Its `--sidebar-*` tokens alias the
+  neutral surfaces in `tokens.css` and its "primary" is the foreground, so
+  the active item is never violet. Its `use-mobile` hook is
+  `packages/ui/hooks/use-mobile.ts`, read through `useSyncExternalStore`.
 - **`Dialog` and `Sheet` are capped at `--shell-max-width`** and positioned
   against the column rather than the browser. They are portalled to `<body>`,
   outside `MobileShell`, so without it a panel would slide in from the edge of

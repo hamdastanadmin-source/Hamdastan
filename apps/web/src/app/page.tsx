@@ -5,6 +5,8 @@ import { ChevronLeft } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@hamdastan/config';
 
 import { BottomNav, RoleCharacter, Screen, ScreenBody, ScreenHeader } from '@/components';
+import { ActivitiesSection } from '@/features/activities';
+import { getMyActivities } from '@/features/activities/server';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
 import { getAccountOverview } from '@/features/profile/server';
 
@@ -22,7 +24,8 @@ const WORLD_BANNERS = [
  * Home.
  *
  * Reached only by an account the API reports as complete. It carries the
- * person's next step, then the story-world picker. Until the questionnaire is
+ * person's next step, then their open activities from Engagement Studio,
+ * then the story-world picker. Until the questionnaire is
  * done, the first thing on the screen is the offer to do it
  * — the screen's one primary action. Once it is done that card is gone, and a
  * quiet line points to the result instead.
@@ -30,7 +33,7 @@ const WORLD_BANNERS = [
  * Signing out is not here; it lives in the profile's settings.
  */
 export default async function HomePage() {
-  const { profile, socialProfile } = await getAccountOverview();
+  const [{ profile, socialProfile }, activities] = await Promise.all([getAccountOverview(), getMyActivities()]);
   const name = profile.displayName ?? 'دوست من';
 
   return (
@@ -75,6 +78,8 @@ export default async function HomePage() {
             className="animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none"
           />
         )}
+
+        <ActivitiesSection cards={activities} />
 
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold leading-tight">دنیای داستانی‌ات رو انتخاب کن</h2>

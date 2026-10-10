@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 
 import { APP_DIR, APP_LANG, APP_NAME } from "@hamdastan/config";
-import { Toaster } from "@hamdastan/ui";
+import { DirectionProvider, Toaster } from "@hamdastan/ui";
 import { THEME_INIT_SCRIPT } from "@hamdastan/ui/tokens";
 
 import "@/styles/globals.css";
@@ -37,8 +37,12 @@ export default function AdminRootLayout({
       <body
         className={`${yekanBakh.className} font-sans antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        {/* Radix writes `dir` on its own roots (ToggleGroup, Tabs, …) and on
+            portalled overlays; without the provider they default to LTR. */}
+        <DirectionProvider dir={APP_DIR}>
+          {children}
+          <Toaster />
+        </DirectionProvider>
       </body>
     </html>
   );

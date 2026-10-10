@@ -24,7 +24,8 @@ decision, and it is enforced by `MobileShell` and by a Playwright test.
   password anywhere in the product.
 - **The operator** — runs content and moderation from `apps/admin`, a separate
   app. Signs in with a mobile number and a one-time code like the fan, but only
-  if another admin has already added that number (§4.6).
+  if another admin has already added that number (§4.6). Designs and publishes
+  surveys, missions and assessments in Engagement Studio (§4.7).
 
 ### 1.2 Core Value Proposition
 
@@ -72,10 +73,13 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **Social profile (پروفایل اجتماعی)** | What stage 2 derives from the questionnaire's raw answers: fourteen 1–10 dimensions, categorical outputs and role scores, under a `scoring_version`. Used for matching; the person sees only a simplified result card. |
 | **Interest (علاقه‌مندی)** | One pickable interest, inside one of six categories. Identified by a stable English slug; the Persian label is display only. |
 | **nextStep** | Where the server says this account goes: `basic_info`, `onboarding` or `home`. The client never computes it. |
-| **XP** | Experience points, earned only by finishing missions. The total is the sum of the person's XP ledger; nothing else stores it. |
+| **XP** | Experience points, earned by finishing missions and Engagement Studio activities. The total is the sum of the person's XP ledger (a revocation is a negative row); nothing else stores it. |
 | **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
 | **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
 | **Badge (نشان)** | A mark of achievement, earned once every mission it requires is finished. Derived, never stored. |
+| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت) or assessment (آزمون) designed in Engagement Studio (§4.7). |
+| **Activity version** | An activity's questions and scoring/XP settings, frozen. Editing a published or answered activity makes a new version; responses and rewards point at the one they belong to. |
+| **Participation** | One person's progress on one activity: saved draft, how many times they submitted and were rewarded. |
 | **MobileShell** | The 430px column every screen renders inside. |
 
 ---
@@ -387,6 +391,11 @@ name, linking to the profile; the bottom nav holds خانه and پروفایل. 
   «شروع آزمون», the screen's one primary action.
 - **Done:** the card is gone; a quiet row «پروفایل اجتماعی‌ات آماده‌ست» with
   the result's title and «مشاهده نتیجه» leads to `/profile/social`.
+- Then «فعالیت‌ها» (§4.7): up to three activities the person can do now or is
+  waiting on, open ones first, each a whole-card link (no button inside, so the
+  screen keeps one primary action), and «همه» → `/activities`. The section is
+  absent when there is nothing to do, and home never fails because of it — if
+  the activities cannot be read, there are none.
 - Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). Neither links anywhere yet.
 
 ### 4.4 Account — حساب من
@@ -552,8 +561,15 @@ active. There is no public registration.
 - The first admin — امید بهشتی, `09059466960` — is seeded by migration
   `0009`, together with anyone `v2_users` already marks `role = 'ADMIN'`.
 
-**مدیریت کاربران — `/users`.** The panel's one section so far, in the header
-menu.
+**Layout.** A dashboard: the menu is a sidebar on the right (the reading
+start), with the panel's name at the top, the sections — مدیریت کاربران and
+استودیو (Engagement Studio, §4.7) — and the signed-in admin, the theme switch and
+«خروج» at its foot. A top bar carries the menu button and the current
+section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
+and opens it as a sheet from the right on a phone. The current section is a
+neutral highlight, never the brand colour.
+
+**مدیریت کاربران — `/users`.** The first of the panel's two sections.
 
 - A table of admin users, newest first, 20 per page: name (with «شما» on
   your own row), mobile number, status, last sign-in and date added (the last
@@ -572,6 +588,190 @@ menu.
 - Every write ends in a toast; the list shows skeleton rows while it first
   loads, an error with «تلاش دوباره» if it fails, and an empty state.
 - Light and dark, through the same theme store as the product.
+
+
+### 4.7 Engagement Studio — فعالیت‌ها و XP
+
+**Purpose:** let an operator design a survey, a mission or an assessment
+without code, publish it to everybody or to a chosen audience, collect the
+answers, read the results — and pay the XP it promises, once, on the server.
+Code in `apps/admin/src/features/engagement`, `apps/web/src/features/activities`
+and `apps/api/src/modules/engagement`. Schema: migration `0010`.
+
+**One engine.** Every activity is the same thing: a title, a short description
+(«توضیح کوتاه», on the card), instructions, an audience, a window, and a
+*version* holding the questions and every scoring and XP setting. A survey and
+an assessment are one list of questions; a mission is up to ten titled steps,
+each with its own questions. The question kinds are the ones the product
+already draws: تک‌گزینه‌ای and چندگزینه‌ای (toggle rows, optional cap), متنی
+(one line or many), امتیازی (1–5 or 1–10 as a row of numbers) and طیفی (a slider
+between two labels, bounds 0–10). Any question may be required or optional.
+Limits are `ENGAGEMENT_LIMITS` in `@hamdastan/config` (50 questions, 2–12
+options, …).
+
+| Type | Specific settings | Completes | XP is paid |
+|------|-------------------|-----------|------------|
+| Survey | anonymous on/off | on a valid submission | then |
+| Mission | review: by an admin (default) or automatic; the end date is the deadline; a text question is how a step asks for proof | automatic: on submission; reviewed: on approval | on completion — for a reviewed mission only after approval |
+| Assessment | mode (knowledge / personality), dimensions, pass mark, show result | on a valid submission | on completion, whatever the result — unless a knowledge assessment has a pass mark and «فقط با قبولی» |
+
+Every type: estimated minutes, how many times one person may submit (1 by
+default), and XP — on/off, a whole non-negative amount, whether the card shows
+it, and how many submissions may be rewarded (1 by default, never more than
+the submissions allowed).
+
+**Scoring** (`engagement.scoring.ts`, pure). *Knowledge:* a choice question is
+right when the picks are exactly its correct options; the score is the share
+right, 0–100; passed when ≥ the pass mark. *Personality:* each answered item
+is put on 0–1 — a rating or scale by its position on its range, a choice by
+its option's points relative to the question's lowest and highest — turned
+round when the item is reverse-keyed, and averaged per dimension (0–100). The
+dimension on top is the outcome (ties to the first listed); the person sees
+its title and description and every dimension's share, if «نمایش نتیجه» is on.
+The answer key and the points never leave the API.
+
+**The admin panel — «استودیو», `/engagement`.** The list shows, per activity: title and
+type, version, status, audience and how many active people it covers today,
+responses / completions, participation rate (completions ÷ eligible), the XP
+set and the XP actually paid (the ledger's net sum), and the publish and end
+dates. Filters: search, status, type. Row actions: results, edit, preview,
+duplicate (a new draft, «(کپی)», no dates), and the status moves.
+
+- **Status.** `draft` → publish → `published` (or `scheduled`, when its start
+  is ahead — derived, not stored) ⇄ `paused`; published or paused → `closed`
+  (final); anything → `archived` (no more edits). An activity past its end
+  reads `closed`. Pause, close and archive ask first. A published activity's
+  type cannot change.
+- **The builder — `/engagement/new`, `/engagement/:id/edit`.** Seven tabs,
+  walked with «بعدی»/«قبلی» or opened directly: ۱ نوع, ۲ اطلاعات (title,
+  short description, instructions, minutes, submissions allowed, anonymous for
+  a survey, review for a mission), ۳ سؤال‌ها (laid out like Porsline: the
+  numbered question list, each with its kind's icon and a dot when it needs
+  fixing, on the reading-start side; the selected question's editor and its
+  in-app preview beside it — on a phone, the list above the editor; «افزودن
+  سؤال» inserts a single-choice question after the selected one and opens it
+  — its kind is changed in the editor's «نوع سؤال»; «⋯» on a
+  row moves, duplicates or deletes it; a mission's steps group the list and
+  open their own title and description; an assessment's «روش محاسبه‌ی نتیجه» —
+  mode, dimensions, pass mark, show-result — opens from the top of it), ۴ مخاطبان (with a live count
+  from the API), ۵ XP (the pay rule spelled out), ۶ زمان‌بندی (start and end;
+  an empty start is «on publish»), ۷ پیش‌نمایش و انتشار — the card and every
+  question in the product's 430px column, a summary, and the one primary
+  action: «انتشار», «زمان‌بندی انتشار» when the start is ahead, or «ذخیره‌ی
+  تغییرات» once live. «ذخیره» saves at any step. A save is checked with the
+  same schema the API parses with; a problem lands under its field and opens
+  its tab.
+- **Questions from Excel.** «ورود از اکسل» in the question list: download the
+  template (`.xlsx`, right-to-left, bold headers, one example row per kind),
+  fill it, choose it. Columns are recognised by their header, in any order:
+  نوع، متن سؤال (required)، توضیح، الزامی (بله/خیر, default بله)، گزینه‌ها
+  (separated by `|`)، حداکثر انتخاب، پاسخ درست (knowledge: an option's text
+  or number)، امتیاز گزینه‌ها (personality, `|`-separated)، بازه (rating 5 or
+  10; scale `1-5`)، برچسب ابتدا/انتها، بُعد (personality: matched by title,
+  or created)، معکوس، مرحله (mission: matched by title, or created). Every
+  row is checked with the same rules as the builder and listed — its
+  question, or its errors by row number; only valid rows are added, after
+  the questions already there (a new activity's untouched starter question
+  is replaced). The file is read in the browser and never uploaded; the
+  questions reach the API on save, like typed ones. `.xlsx` only, 2 MB, 50
+  questions per activity.
+- **Versioning.** Saving a draft nobody has answered rewrites it. Saving one
+  that is published, or that somebody has started, writes version n+1; the
+  old version stays with the responses and rewards that point at it. A
+  submission made against an older version is refused
+  (`409 ACTIVITY_VERSION_CHANGED`) and the player reloads.
+- **Audience.** همه‌ی کاربران; گروه‌ها — the interest categories from
+  onboarding stage 1, the product's only groups today (a person is in if any
+  of their picks is in one of the chosen categories); کاربران منتخب — a list
+  of mobile numbers. Only `ACTIVE` accounts count. «شرکت‌کنندگان رویداد» is
+  shown disabled until the events module exists.
+- **Results — `/engagement/:id`.** Eight figures (کاربران هدف, شروع‌کننده,
+  تکمیل‌کننده, نرخ تکمیل, پاسخ معتبر, در انتظار تأیید, مجموع XP اعطاشده,
+  دریافت‌کنندگان XP), then tabs: per-question statistics (option counts,
+  rating/scale average and distribution, the latest twenty text answers) and
+  the assessment outcome (mean score and pass rate, or how many people each
+  dimension came out on top for); the mission review queue — each submission
+  with its answers, «تأیید» (completes it and pays) or «رد» with an optional
+  note (does not pay, and frees the submission so the person can try again);
+  the XP transactions — id, person, amount, the version that paid, time,
+  «اعطاشده» / «باطل‌شده» with the reason — with «ابطال»; and the history.
+  Filters: date range and group (interest category); the figures at the top
+  are the whole activity's, the per-question statistics are filtered. Per-
+  question figures use the current version's questions. «خروجی CSV» exports
+  one row per valid response (UTF-8 with BOM, opens in Excel), built by the
+  API.
+- **History.** Created, edited, new version (with the XP amount), published,
+  paused, resumed, closed, archived, duplicated, a submission approved or
+  rejected, an XP revoked — with the admin and the time
+  (`v2_engagement_audit_log`).
+- **Who may.** Every active admin can do everything, as elsewhere in the
+  panel (§4.6); every route checks the admin session in `apps/api`.
+
+**The product — `/activities`, `/activities/:id`.** An activity appears to the
+people in its audience while it is published and inside its window, and
+stays visible (read-only once closed) to anyone who took part. Anyone else
+gets a 404 — an activity meant for somebody else is not admitted to exist.
+The card: type, status (جدید, نیمه‌کاره, در انتظار تأیید, انجام شده, نیاز به
+انجام دوباره), title, short description, «حدود n دقیقه», and «+n XP» when the
+admin chose to show it.
+
+- **Intro.** Title, description, time, reward, question count, instructions;
+  «پاسخ‌هات ناشناس ثبت می‌شه…» for an anonymous survey; for a reviewed
+  mission, that XP follows approval; the last result if the assessment shows
+  one. The one action is «شروع», «ادامه» (a saved draft — it resumes at the
+  first unanswered question) or «انجام دوباره»; otherwise a disabled «در
+  انتظار تأیید» / «انجامش دادی» / «این فعالیت الان باز نیست».
+- **Playing.** One question per screen, with «n از m» and a thin neutral
+  progress line; a mission shows the step's title and description above its
+  first question. «بعدی» checks the answer with the same rule the API applies
+  (`validateAnswers` / `answerError` in `@hamdastan/validation`) and saves the
+  draft (`PUT …/draft`; a lost draft is not reported); «قبلی» keeps the
+  answer; the last question's action is «ثبت نهایی». Selection is a
+  foreground border and a check — the violet is the footer button's alone.
+- **Done.** «آفرین، ثبت شد!» — or, for a reviewed mission, «ثبت شد؛ در انتظار
+  تأیید». «+n XP» and the new balance appear **only** when the response's
+  `xpAwarded` is above zero, i.e. the ledger row was written in the same
+  transaction; a repeat, a failed pass mark or a pending review shows no XP.
+  Then the result card, if allowed, and «بازگشت به خانه».
+
+**XP — the ledger.** Activity rewards are rows in the same
+`v2_xp_transactions` as the missions (§4.4): user, `activity_id`,
+`activity_version_id`, amount, time, reason, transaction id (`id`).
+
+- Worked out and written only by `apps/api`, from the stored version — the
+  client sends answers, never an amount.
+- Once by default: the key is `<activity>:<n>` for the person's n-th paid
+  submission, n ≤ the cap. The participation row is locked during a submit
+  and an approval, and the ledger's unique key refuses a duplicate, so two
+  concurrent submissions or two admins approving at once cannot pay twice.
+- The response, the participation update and the reward are one transaction.
+- Changing an activity's XP later changes nothing already paid: the amount is
+  on the row, and the version that paid it is named.
+- **Revocation.** «ابطال» with a required reason appends a `reversal` row —
+  the negated amount, `reverses_id`, the admin, the reason. Nothing is
+  updated or deleted; a grant can be revoked once; a revoked reward is not
+  paid again for that submission slot. The balance and the dashboard are
+  net of reversals.
+- Built so that levels, badges and a leaderboard can read the ledger later;
+  none of them is built for activities.
+
+**Privacy.** An anonymous survey's response row has no `user_id`, and its
+time is cut to the (UTC) day, so it cannot be matched to the participation
+row that records — for the submission limit and the reward — that the person
+took part. Its results carry no names, the group filter is disabled, and its
+CSV has only the date and the answers, in no particular order. XP is still
+paid, from the participation, never from the response. (With very few
+respondents in a day, who answered can still be guessed from who was paid;
+that is inherent to rewarding an anonymous survey.) For other activities,
+names and numbers appear only in the review queue, the XP list and the CSV,
+all behind the admin session.
+
+**Not built yet:** images on an activity and image/file upload as mission
+proof (no file-storage integration exists; proof is text today), notifying
+people of a new activity (no notifications module), an event's participants
+as an audience (no events module), conditional questions, ready-made
+templates, advanced reports, Jalali date pickers in the builder (the browser's
+own date-time input is used, and dates are shown in Jalali), and admin roles.
 
 ---
 
@@ -592,7 +792,7 @@ that `GET /me` returns.
 An unfinished account is pinned to its step: it can be on that step's page,
 or a page beneath it (the onboarding stages live under `/onboarding/`), and
 nowhere else.
-A finished one may go anywhere except back through `/welcome`, `/auth/*` —
+A finished one may go anywhere — `/activities` included — except back through `/welcome`, `/auth/*` —
 or into `/onboarding/*`, which it has been through, apart from
 `/onboarding/questionnaire`, which can be put off until later.
 
@@ -686,6 +886,23 @@ Admin panel — no link to v2_users; joined to the codes above by phone only:
 +-------------------+       +---------------------+
 |  v2_admin_users   |--1:N--|  v2_admin_sessions  |
 +-------------------+       +---------------------+
+
+Engagement Studio (0010):
+
++---------------------------+       +---------------------------+
+| v2_engagement_activities  |--1:N--|  v2_engagement_versions   |
++---------------------------+       +---------------------------+
+   |  current_version_id ──────────────────┘        |
+   |--1:N--+------------------------------+          |
+   |       | v2_engagement_participations |  (activity, user)
+   |       +------------------------------+
+   |--1:N--+------------------------------+          |
+   |       |   v2_engagement_responses    |--N:1-----┘  user_id NULL when anonymous
+   |       +------------------------------+
+   |--1:N--+------------------------------+
+   |       |   v2_engagement_audit_log    |
+   |       +------------------------------+
+   └--1:N--  v2_xp_transactions (activity_id, activity_version_id, reverses_id)
 ```
 
 ### 6.2 Key relationships and why they are shaped that way
@@ -747,6 +964,29 @@ Admin panel — no link to v2_users; joined to the codes above by phone only:
   "profile completed" are all derived (from this table, `avatar_config`, and
   `username` + `city`), so none of them is stored to drift.
 
+- **`v2_engagement_activities`** — one row per activity: `type`, `status`
+  (`draft`/`published`/`paused`/`closed`/`archived`; `scheduled` is derived),
+  title, summary, instructions, `audience` (`jsonb`), `starts_at`/`ends_at`,
+  `published_at`, `current_version_id`, who created and last changed it.
+- **`v2_engagement_versions`** — `(activity_id, version)` unique; the whole
+  `ActivityDefinition` as `jsonb` (steps, questions, the answer key, scoring,
+  XP settings). Never rewritten once published or answered.
+- **`v2_engagement_participations`** — keyed `(activity_id, user_id)`:
+  status, `submissions`, `xp_awards`, the saved `draft`, `completed_at`.
+  Locked `FOR UPDATE` on submit and on approval — what makes the limits hold
+  under concurrency.
+- **`v2_engagement_responses`** — one row per submission: the version it
+  answered, `answers` (`jsonb`, option ids), an assessment's `result`,
+  `score` and `passed`, `review_status` (`none`/`pending`/`approved`/
+  `rejected`) with note, reviewer and time. `user_id` is NULL and
+  `submitted_at` cut to the day for an anonymous survey.
+- **`v2_engagement_audit_log`** — append-only admin history per activity.
+- **`v2_xp_transactions` (0010 additions)** — `activity_id`,
+  `activity_version_id`, `reason`, `reverses_id` (unique) and
+  `created_by_admin_id`; `source_type` gains `engagement` and `reversal`; a
+  reversal's amount is negative, every other row's positive. A grant's
+  status (granted / revoked) is whether a reversal points at it.
+
 - **`v2_admin_users`** — the admin panel's allow-list: `phone` (unique,
   normalised like `v2_users.phone`), `first_name`, `last_name`, `status`
   (`ACTIVE` / `INACTIVE`), `last_login_at`. Deliberately separate from
@@ -758,9 +998,10 @@ Admin panel — no link to v2_users; joined to the codes above by phone only:
   admin revokes all of theirs.
 
 The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
-`0002_user_interests.sql`, `0004_social_questionnaire.sql` and
+`0002_user_interests.sql`, `0004_social_questionnaire.sql`,
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
-everyone who finished it before XP existed).
+everyone who finished it before XP existed), `0009_admin_users.sql` and
+`0010_engagement_studio.sql`.
 
 ---
 
@@ -811,6 +1052,31 @@ answers 401 otherwise.
 
 `AdminUser` is `{ id, firstName, lastName, phone, status: 'active' | 'inactive', lastLoginAt, createdAt }`.
 
+Engagement Studio, under `/api/v1/admin/engagement` (admin session) and
+`/api/v1/me/activities` (product session). Types are in
+`@hamdastan/types/engagement`.
+
+| Method | Endpoint | Body / query | Returns |
+|--------|----------|--------------|---------|
+| GET | `/admin/engagement/activities` | `?status=&type=&search=&page=&pageSize=` | `Paginated<AdminActivitySummary>` (with `stats`) |
+| POST | `/admin/engagement/activities` | `ActivityInput` | `AdminActivityDetail` (201), a draft at version 1 |
+| GET | `/admin/engagement/activities/:id` | — | `AdminActivityDetail` |
+| PUT | `/admin/engagement/activities/:id` | `ActivityInput` | `AdminActivityDetail` — a new version once published or answered; 409 `ACTIVITY_ARCHIVED` |
+| POST | `/admin/engagement/activities/:id/status` | `{ action: publish \| pause \| resume \| close \| archive }` | `AdminActivityDetail`; 409 `ACTIVITY_INVALID_TRANSITION` |
+| POST | `/admin/engagement/activities/:id/duplicate` | — | `AdminActivityDetail` (201) |
+| GET | `/admin/engagement/activities/:id/results` | `?from=&to=&categoryId=` | `ActivityResults` |
+| GET | `/admin/engagement/activities/:id/export` | same | `{ filename, csv }` |
+| GET | `/admin/engagement/activities/:id/submissions` | `?status=pending\|approved\|rejected&page=` | `Paginated<AdminSubmission>` |
+| GET | `/admin/engagement/activities/:id/grants` | `?page=` | `Paginated<AdminXpGrant>` |
+| GET | `/admin/engagement/activities/:id/history` | — | `AdminActivityEvent[]` (latest 100) |
+| POST | `/admin/engagement/audience/preview` | `{ audience }` | `{ eligible }` |
+| POST | `/admin/engagement/submissions/:id/review` | `{ decision: approve \| reject, note? }` | `{ xpAwarded }`; 409 `SUBMISSION_ALREADY_REVIEWED` |
+| POST | `/admin/engagement/xp/:transactionId/revoke` | `{ reason }` | `{ revoked: true }`; 409 `XP_ALREADY_REVOKED` |
+| GET | `/me/activities` | — | `ActivityCard[]` |
+| GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
+| PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
+| POST | `/me/activities/:id/submit` | `{ versionId, answers }` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`; 404 outside the audience |
+
 Error codes the UI switches on: `OTP_RATE_LIMITED`, `OTP_NOT_FOUND`,
 `OTP_EXPIRED`, `OTP_INVALID`, `OTP_LOCKED`, `VALIDATION_ERROR`,
 `UNAUTHORIZED`.
@@ -825,7 +1091,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`); the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`, `engagement.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -843,6 +1109,10 @@ against the same objects, including the Persian messages.
 | Bio | Optional, at most 160 characters; empty clears it | «حداکثر ۱۶۰ کاراکتر» |
 | Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
 | Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
+| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options; scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); personality: ≥ 1 dimension and every non-text question tied to one; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
+| Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
+| Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
+| XP revocation reason | Required, ≤ 300 | «دلیل ابطال رو بنویس» |
 | Questionnaire answer | Shape by question: one option code, a list of codes (≥ 1, no repeats, within the cap), a ranked list, or an integer 1–10 (`packages/validation/questionnaire.ts`) | «یک گزینه رو انتخاب کن» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 
 The mobile field itself accepts digits only, eleven at most: letters and
@@ -987,3 +1257,9 @@ app background; re-export them all when the master changes.
 | Admin sign-in and user management | Done | OTP sign-in limited to active admins; create, edit, (de)activate and delete at `/users` in `apps/admin` — see §4.6 |
 | Serve `apps/admin` in production | Medium | The container builds, but nginx does not route to it yet; it runs at `localhost:3001` |
 | Admin roles and permissions | Low | Every active admin can do everything; add roles when there is a second kind of operator |
+| Engagement Studio (phases 1–3) | Done — apply `0010` | Surveys, missions with review, knowledge and personality assessments, audience, versioning, XP ledger with revocation, results and CSV — §4.7. Needs migration `0010` applied to each database |
+| Image / file proof for missions, activity images | Medium | Needs a file-storage integration in `apps/api/src/integrations`; proof is text today |
+| Notify people of a new activity | Medium | Needs the notifications module |
+| Event participants as an audience | Medium | Needs the events module |
+| Conditional questions, templates, advanced reports | Low | Phase 4 of Engagement Studio |
+| Levels, badges, leaderboard from activity XP | Low | The ledger already carries what they need; not built on request |

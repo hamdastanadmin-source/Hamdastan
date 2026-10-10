@@ -40,8 +40,8 @@ const COLUMNS = 6;
 /** The two columns that drop out on narrow screens, by index. */
 const HIDDEN_BELOW: Record<number, string> = {
   1: 'hidden sm:table-cell',
-  3: 'hidden md:table-cell',
-  4: 'hidden lg:table-cell',
+  3: 'hidden lg:table-cell',
+  4: 'hidden xl:table-cell',
 };
 
 /**
@@ -163,8 +163,8 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
                 <TableHead className="ps-3 sm:ps-4">نام و نام خانوادگی</TableHead>
                 <TableHead className="hidden sm:table-cell">شماره موبایل</TableHead>
                 <TableHead>وضعیت</TableHead>
-                <TableHead className="hidden md:table-cell">آخرین ورود</TableHead>
-                <TableHead className="hidden lg:table-cell">تاریخ ثبت</TableHead>
+                <TableHead className="hidden lg:table-cell">آخرین ورود</TableHead>
+                <TableHead className="hidden xl:table-cell">تاریخ ثبت</TableHead>
                 <TableHead className="pe-2 text-end sm:pe-4">
                   <span className="sr-only">عملیات</span>
                 </TableHead>
@@ -231,10 +231,10 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
                         </Badge>
                       </label>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {formatDateTime(user.lastLoginAt)}
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground lg:table-cell">
+                    <TableCell className="hidden text-muted-foreground xl:table-cell">
                       {formatDateTime(user.createdAt)}
                     </TableCell>
                     <TableCell className="pe-2 text-end sm:pe-4">

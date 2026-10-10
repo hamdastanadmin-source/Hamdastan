@@ -17,3 +17,4 @@ export { SocialProfileScreen } from './components/SocialProfileScreen';
 export { SocialProfileLoader, SocialProfilePending } from './components/SocialProfileLoader';
 export { AvatarFigure } from './components/AvatarFigure';
 export { PersonalityTestCard } from './components/PersonalityTestCard';
+export { RewardChip } from './components/RewardChip';
