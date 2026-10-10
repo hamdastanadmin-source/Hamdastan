@@ -57,6 +57,7 @@ decision, and it is enforced by `MobileShell` and by a Playwright test.
 | Auth          | Phone + OTP, httpOnly cookie sessions in `apps/api` |
 | SMS           | Kaveh-Negar (not yet connected) behind `SmsSender` |
 | Deployment    | Docker Compose behind nginx, one host — see deploy/ |
+| Gateway       | nginx: TLS, edge rate limits, request ids, body and time limits (§10) |
 
 The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 
@@ -101,13 +102,31 @@ password and no separate registration.
   returns to the same account.
 - Six-digit code, valid two minutes, five attempts, resend after two minutes.
   Three sends per number and ten per IP in a ten-minute window.
+- **Five wrong codes per number in fifteen minutes, across codes**, lock the
+  number (`429 OTP_LOCKED` with `retryAfter`): asking for a fresh code does
+  not reset the count, and no code is sent while it is locked. A correct
+  code clears it. The address is also capped at 30 verifications in fifteen
+  minutes (`OTP_MAX_FAILURES`, `OTP_FAILURE_WINDOW_SECONDS`,
+  `RATE_LIMIT_OTP_VERIFY_PER_15_MINUTES`).
 - Only a hash of the code is stored, bound to the phone number it was issued
   for.
-- Sessions are two `httpOnly` cookies: a 15-minute access token and a 30-day
-  rolling refresh token that rotates on every use. Nothing in `localStorage`.
-- Until Kaveh-Negar is connected, `OTP_DEBUG_DISPLAY=true` returns the code in
-  the API response and shows it on the verification screen. Turning it off is
-  the whole deployment step; no code changes with it.
+- Sessions are two `httpOnly` cookies: a 15-minute access token and a
+  refresh token that rotates on every use. The refresh token lives **seven
+  days from its last use** (the idle timeout) and never past **thirty days
+  from sign-in** (the absolute timeout). Nothing in `localStorage`. Sessions
+  that predate the absolute rule get their thirty days from their first
+  refresh after it shipped, so nobody was signed out by it.
+- Logging out revokes the session; its access token stops working on the
+  next request, not when it expires.
+- **The code is never shown on screen**, in the product or the admin panel.
+  In development `OTP_DEBUG_DISPLAY=true` returns it in the API response
+  (`debugCode`, which the end-to-end tests read) and the console sender writes
+  it to the API's log. **Production fails
+  closed:** the echo is ignored, the console sender is never bound, and
+  without `SMS_PROVIDER=kavenegar` asking for a code — product or admin —
+  answers `503 SMS_UNAVAILABLE` before anything is stored. No code is ever
+  returned or logged in production. Connecting Kaveh-Negar is
+  `SMS_PROVIDER=kavenegar`; no code changes with it.
 - The basic-info screen has no back and no sign-out control: the account
   already exists, and the routing table returns an unfinished one to this
   screen, so there is nothing to leave to before the profile is complete.
@@ -528,7 +547,9 @@ bound.
 ### 4.6 Admin panel — پنل مدیریت
 
 **Purpose:** let the people who run the product sign in to `apps/admin`
-(`localhost:3001` in development), and let them decide who else may.
+at `https://hamdaastaan.ir/admin` (`localhost:3001/admin` in development),
+and let them decide who else may. The product has no link or button to the
+panel; it is reached only by its address.
 Code in `apps/admin` and `apps/api/src/modules/admin`.
 
 Unlike the product, the admin panel is a responsive desktop-and-phone app,
@@ -545,7 +566,8 @@ active. There is no public registration.
   an active admin gets `403 ADMIN_ACCESS_DENIED`, no session, and no product
   account; the login screen shows «دسترسی نداری».
 - The session is one `httpOnly` cookie, `hd_admin`, valid for 12 hours, not
-  rolling. Every admin route re-reads the admin's status with the session,
+  rolling, and ended earlier by **two hours without use** (the idle timeout).
+  Every admin route re-reads the admin's status with the session,
   in `apps/api` (`middleware/authenticate-admin.ts`) — the panel's redirects
   are a convenience, not the access control.
 - **Deactivating an admin** revokes every session they hold, in the same
@@ -561,10 +583,39 @@ active. There is no public registration.
 - The first admin — امید بهشتی, `09059466960` — is seeded by migration
   `0009`, together with anyone `v2_users` already marks `role = 'ADMIN'`.
 
+**Roles and permissions.** Every admin has one role; what a route allows is
+decided by a *permission*, and the table `ADMIN_ROLE_PERMISSIONS` in
+`@hamdastan/types` maps roles to permissions. `apps/api` enforces it on every
+route (`requireAdminPermission` → `403 ADMIN_PERMISSION_DENIED`); `apps/admin`
+reads the same table only to hide what would be refused.
+
+| Permission | مدیر سیستم (`system_admin`) | مدیر محتوا (`content_manager`) | بازبین مأموریت (`mission_reviewer`) |
+|---|:-:|:-:|:-:|
+| `admins.manage` — the allow-list and roles | ✓ | | |
+| `sessions.manage` — a person's sessions | ✓ | | |
+| `activities.read` | ✓ | ✓ | ✓ |
+| `activities.write` — create, edit, duplicate | ✓ | ✓ | |
+| `activities.publish` — publish, pause, close, archive | ✓ | ✓ | |
+| `results.read` — the aggregate dashboard | ✓ | ✓ | ✓ |
+| `results.individual` — one person's answers (the review queue) | ✓ | | ✓ |
+| `xp.read` — the per-person XP grants list | ✓ | | |
+| `results.export` — the CSV | ✓ | | |
+| `submissions.review` | ✓ | | ✓ |
+| `xp.revoke` | ✓ | | |
+
+- Every admin who existed before roles became `system_admin` (migration
+  `0014`), so no one lost access.
+- A new admin's role must be chosen; there is no default.
+- **An admin cannot change their own role** (`400 ADMIN_SELF_ROLE_CHANGE`).
+  Only a system admin can manage admins, and none can demote, deactivate or
+  delete themselves, so the panel always keeps a system admin.
+- A section the role does not open is missing from the menu, and opening its
+  URL goes to the first section the role does open.
+
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
-start), with the panel's name at the top, the sections — مدیریت کاربران and
-استودیو (Engagement Studio, §4.7) — and the signed-in admin, the theme switch and
-«خروج» at its foot. A top bar carries the menu button and the current
+start), with the panel's name at the top, the sections the admin's role opens
+— مدیریت کاربران, استودیو (Engagement Studio, §4.7) and نشست‌های کاربران — and
+the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
 neutral highlight, never the brand colour.
@@ -576,8 +627,10 @@ neutral highlight, never the brand colour.
   two drop out on narrow screens; on a phone the number moves under the name).
 - Search matches the full name or any part of the number; Persian digits and
   Arabic letters are normalised first.
+- A role column shows each admin's role.
 - «کاربر جدید» opens a dialog: first name, last name, mobile number (all
-  required, same rules as §8) and status — active by default. A number another
+  required, same rules as §8), status — active by default — and role, with a
+  line under it saying what that role opens. A number another
   admin already has is refused under the field (`409 ADMIN_PHONE_TAKEN`).
 - The pencil on a row opens the same dialog to edit it.
 - The status switch activates at once; deactivating asks first, in a dialog
@@ -588,6 +641,18 @@ neutral highlight, never the brand colour.
 - Every write ends in a toast; the list shows skeleton rows while it first
   loads, an error with «تلاش دوباره» if it fails, and an empty state.
 - Light and dark, through the same theme store as the product.
+
+**نشست‌های کاربران — `/sessions`** (`sessions.manage`). A product account's
+live sign-ins.
+
+- Search by mobile number (sent in the request body, so it stays out of
+  access logs). The account's name and number, «معلق» if suspended, then a
+  table of its live sessions: device (from the user agent recorded at
+  sign-in), IP, signed in, last activity (the last refresh), absolute end.
+- «بستن» ends one session after a confirmation; «بستن همه‌ی نشست‌ها» ends
+  them all. Either takes effect on that device's very next request. The
+  session row records that an admin ended it (`revoked_reason = 'admin'`) and
+  the API log records which admin.
 
 
 ### 4.7 Engagement Studio — فعالیت‌ها و XP
@@ -837,6 +902,12 @@ navigation → proxy.ts → GET /me ──ok──→ render
 Refreshing is done in `proxy.ts` because it is the only place in a Next app
 that can set a cookie on the way to a page.
 
+**Only a 401 ends the session.** If `GET /me` answers 429 or 503, `proxy.ts`
+does not refresh (a refresh token is single-use, and the API is only busy);
+if the refresh itself answers anything but 401, the cookies are kept and the
+page renders without a session handoff. A busy or rate-limited API never
+signs anyone out.
+
 A screen that stays open — the questionnaire is one page of many steps —
 outlives the fifteen-minute access token without navigating. Its calls go
 from the browser, so `apps/web/src/services/api-client.ts` answers a 401 by
@@ -877,9 +948,15 @@ decides nothing and keeps the cookies rather than signing the visitor out.
          |
    (by phone, not FK)
          |
-+-------------------+       +-------------------+
-| v2_otp_challenges |       |    v2_otp_sends   |
-+-------------------+       +-------------------+
++-------------------+       +-------------------+       +-------------------+
+| v2_otp_challenges |       |    v2_otp_sends   |       |  v2_otp_failures  |  (0011)
++-------------------+       +-------------------+       +-------------------+
+
+Infrastructure — keyed by owner id, no foreign key (owners are users or admins):
+
++-----------------------+
+|  v2_idempotency_keys  |  (0012) a retryable write's key, request hash, outcome
++-----------------------+
 
 Admin panel — no link to v2_users; joined to the codes above by phone only:
 
@@ -928,6 +1005,22 @@ Engagement Studio (0010):
   phone number.
 - **`v2_sessions`** — a sign-in as one long-lived thing. Tokens come and go
   inside it; revoking the session kills every token at once.
+- **`v2_sessions`** also carries `absolute_expires_at` (thirty days after
+  sign-in; NULL on sessions from before the rule until their next refresh),
+  `last_seen_at` (the last refresh), the `user_agent` and `ip` recorded at
+  sign-in — not at refresh, which mostly arrives from `apps/web`'s server —
+  and `revoked_reason` (`logout`, `reuse_detected`, `admin`).
+- **`v2_otp_failures`** — wrong codes per number, across codes, in a window
+  that starts at the first failure. `v2_otp_challenges` counts per code and is
+  replaced by the next code, so on its own it would let an attacker ask for a
+  fresh code after every five guesses.
+- **`v2_idempotency_keys`** — `(scope, owner_id, idem_key)` → the request's
+  hash and its recorded outcome, kept 30 days. Claimed inside the
+  transaction that does the work, so a write and its record commit together;
+  see §7 for how a retry is answered.
+- **`v2_admin_users.role`** and **`v2_admin_sessions.last_seen_at`** — the
+  admin's role (§4.6), and the last use the idle timeout counts from
+  (recorded at most once a minute).
 - **`v2_refresh_tokens`** — each is spent once. A spent token presented
   again more than `REFRESH_REUSE_GRACE_SECONDS` (30s) later is a replay, and
   the service revokes the whole session on it. Within that window it is one
@@ -1037,7 +1130,8 @@ Gregorian date.
 
 The admin panel's routes, all under `/api/v1/admin`. Every one except the
 three `/auth` routes needs the `hd_admin` cookie of an active admin, and
-answers 401 otherwise.
+answers 401 otherwise; every one except `/me` also needs the permission in
+its row (§4.6), and answers `403 ADMIN_PERMISSION_DENIED` without it.
 
 | Method | Endpoint | Body / query | Returns |
 |--------|----------|--------------|---------|
@@ -1045,16 +1139,29 @@ answers 401 otherwise.
 | POST | `/admin/auth/otp/verify` | `{ phone, code }` | `{ admin }` + `hd_admin` cookie; 403 `ADMIN_ACCESS_DENIED` for a number that is not an active admin |
 | POST | `/admin/auth/logout` | — | `{ loggedOut }`, cookie cleared |
 | GET | `/admin/me` | — | `{ admin }` |
-| GET | `/admin/users` | `?search=&page=&pageSize=` | `Paginated<AdminUser>` |
-| POST | `/admin/users` | `{ firstName, lastName, phone, status? }` | `AdminUser` (201); 409 `ADMIN_PHONE_TAKEN` |
-| PATCH | `/admin/users/:id` | any of `{ firstName, lastName, phone, status }` | `AdminUser`; 409 `ADMIN_PHONE_TAKEN`, 400 `ADMIN_SELF_DEACTIVATION`, 404 |
-| DELETE | `/admin/users/:id` | — | `{ deleted: true }`, sessions removed with the row; 400 `ADMIN_SELF_DELETION`, 404 |
+| GET | `/admin/users` · `admins.manage` | `?search=&page=&pageSize=` | `Paginated<AdminUser>` |
+| POST | `/admin/users` · `admins.manage` | `{ firstName, lastName, phone, role, status? }` | `AdminUser` (201); 409 `ADMIN_PHONE_TAKEN` |
+| PATCH | `/admin/users/:id` · `admins.manage` | any of `{ firstName, lastName, phone, status, role }` | `AdminUser`; 409 `ADMIN_PHONE_TAKEN`, 400 `ADMIN_SELF_DEACTIVATION` / `ADMIN_SELF_ROLE_CHANGE`, 404 |
+| DELETE | `/admin/users/:id` · `admins.manage` | — | `{ deleted: true }`, sessions removed with the row; 400 `ADMIN_SELF_DELETION`, 404 |
+| POST | `/admin/app-users/sessions/lookup` · `sessions.manage` | `{ phone }` | `AppUserSessions`: `{ user, sessions }`; 404 for an unknown number |
+| GET | `/admin/app-users/:userId/sessions` · `sessions.manage` | — | `AppUserSessions` |
+| DELETE | `/admin/app-users/:userId/sessions/:sessionId` · `sessions.manage` | — | `{ revoked: 1 }`; 404 if not this person's or already ended |
+| DELETE | `/admin/app-users/:userId/sessions` · `sessions.manage` | — | `{ revoked: n }` |
 
-`AdminUser` is `{ id, firstName, lastName, phone, status: 'active' | 'inactive', lastLoginAt, createdAt }`.
+`AdminUser` is `{ id, firstName, lastName, phone, status: 'active' | 'inactive', role, lastLoginAt, createdAt }`.
+`AppUserSessions` is `{ user: { id, phone, firstName, lastName, suspended }, sessions: { id, createdAt, lastSeenAt, expiresAt, absoluteExpiresAt, userAgent, ip }[] }`.
 
 Engagement Studio, under `/api/v1/admin/engagement` (admin session) and
 `/api/v1/me/activities` (product session). Types are in
 `@hamdastan/types/engagement`.
+
+| Method | Endpoint | Body / query | Returns |
+|--------|----------|--------------|---------|
+The permission each studio route needs: reading activities, their history
+and an audience preview — `activities.read`; create, edit, duplicate —
+`activities.write`; status — `activities.publish`; results — `results.read`;
+submissions — `results.individual`; grants — `xp.read`; export — `results.export`;
+review — `submissions.review`; revoke — `xp.revoke`.
 
 | Method | Endpoint | Body / query | Returns |
 |--------|----------|--------------|---------|
@@ -1075,11 +1182,26 @@ Engagement Studio, under `/api/v1/admin/engagement` (admin session) and
 | GET | `/me/activities` | — | `ActivityCard[]` |
 | GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
 | PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
-| POST | `/me/activities/:id/submit` | `{ versionId, answers }` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`; 404 outside the audience |
+| POST | `/me/activities/:id/submit` | `{ versionId, answers }`, header `Idempotency-Key` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`; 404 outside the audience |
+
+**Retrying a submission.** The player sends an `Idempotency-Key` (16–100
+characters of `[A-Za-z0-9_-]`) generated once per submission and reused if
+the person taps again after a failure. The key is claimed in the same
+transaction as the response and its XP, so the request is acted on once
+however many times it arrives: a repeat — concurrent or days later, of the
+latest submission or an older one — is answered with the original outcome
+(the XP total read fresh). The same key with different answers is `422
+IDEMPOTENCY_KEY_REUSED`; a malformed key is 400. Without a key a submission
+behaves as before, and the client never retries it.
+
+**Rate limits.** Any route may answer `429 RATE_LIMITED` with a `Retry-After`
+header and `details.retryAfter` in seconds (§10). Every response carries
+`X-Request-ID`.
 
 Error codes the UI switches on: `OTP_RATE_LIMITED`, `OTP_NOT_FOUND`,
 `OTP_EXPIRED`, `OTP_INVALID`, `OTP_LOCKED`, `VALIDATION_ERROR`,
-`UNAUTHORIZED`.
+`UNAUTHORIZED`, `RATE_LIMITED`, `IDEMPOTENCY_KEY_REUSED`,
+`ADMIN_PERMISSION_DENIED`.
 
 ### 7.1 Server Actions (RPC)
 
@@ -1226,8 +1348,64 @@ app background; re-export them all when the master changes.
 
 - **Security:** no password anywhere in the product; codes and tokens stored
   only as SHA-256; session cookies `httpOnly`, `SameSite=Lax`, `Secure` in
-  production; rate limits per number and per address; a replayed refresh token
-  revokes its session.
+  production; a replayed refresh token revokes its session; admin access by
+  permission, checked in `apps/api` on every route (§4.6). OAuth 2.0 / OIDC
+  is deliberately not used: there is no third-party client, native app or
+  SSO, and the first-party cookie session already gives short-lived access,
+  rotation, reuse detection and server-side revocation. Revisit if any of
+  those arrive.
+- **CSRF:** three layers. Cookies are `SameSite=Lax` (not sent on a
+  cross-site POST); every state-changing request whose `Origin` is not in
+  `CORS_ORIGINS`, is `null`, or is labelled `Sec-Fetch-Site: cross-site` is
+  refused (`403 CSRF_REJECTED`) before any handler; and bodies are JSON only
+  (`text/plain`, urlencoded and multipart — what a form can send without a
+  preflight — are 415). Calls from `apps/web`'s server send no `Origin` and
+  pass.
+- **HSTS** is sent by nginx alone, without `includeSubDomains` or
+  `preload`; the API's helmet does not add a second header.
+- **Client address:** the API believes `X-Forwarded-For` only from the
+  addresses in `TRUST_PROXY` — in production nginx's fixed address on the
+  `edge` network — and nginx replaces that header rather than appending to
+  it. `apps/web`'s server-side calls carry no client address; they are
+  counted by the session they carry.
+- **Rate limits** (all in `apps/api/src/config/env.ts`, tune after load
+  tests):
+
+  | Scope | Default | Key |
+  |---|---|---|
+  | Signed-in user, writes | 100 / min | user |
+  | Signed-in user, reads | 300 / min | user — every navigation reads the session; the questionnaire exceeded 100 / min in the e2e run |
+  | No session | 60 / min | address |
+  | `POST /auth/refresh` | 10 / min | refresh token |
+  | Activity submit | 5 / min | user + activity |
+  | Code verification | 30 / 15 min | address, plus the per-number lock (§4.1) |
+  | Admin reads / writes | 120 / 30 per min | admin |
+  | nginx, any API route | 20 / s, burst 40 | address |
+  | nginx, sign-in routes | 30 / min, burst 10 | address |
+
+  A sliding-window count, in memory: correct for the one API instance there
+  is. More instances would need the plugin's Redis store. Refusals are
+  logged at `warn` with a hash of the key, never the address or id.
+- **Retries:** the front-end clients retry only reads and writes sent with an
+  idempotency key; only network failures, timeouts, 502, 503, 504 and 429;
+  at most 5 attempts in all (2 from the Next server), exponential backoff
+  with full jitter, `Retry-After` honoured up to 10 s. Never a 4xx, never a
+  refresh, never an SMS send.
+- **Timeouts:** 15 s per browser attempt, 5 s from the Next server;
+  PostgreSQL statements 15 s (`DATABASE_STATEMENT_TIMEOUT_MS`, lifted for
+  migrations); SMS 5 s; nginx 30 s to the API; a request body 1 MB.
+- **Retention:** an hourly cleanup deletes expired tokens, codes and
+  idempotency keys, failure windows over a day old, sessions 90 days after
+  they ended (`SESSION_RETENTION_DAYS`) and the log of sent codes after 30
+  (`OTP_SEND_RETENTION_DAYS`) — in batches, under an advisory lock, logging
+  what it deleted per table. It never touches the XP ledger, responses or
+  live sessions.
+- **Observability:** one request id per request — nginx's `$request_id`, the
+  API's `reqId`, and the `X-Request-ID` response header; nginx logs status,
+  `rt` and `urt` (latency) without query strings; the API log redacts cookies
+  and authorization headers and never logs a token, a code (masked in
+  production) or a raw rate-limit key; admin session ends and permission
+  denials are logged with an `audit` field. `/_up` reports the database.
 - **Accessibility:** every colour pair clears 4.5:1; errors are announced as
   well as coloured; touch targets are at least 44px; zoom is not disabled.
 - **Performance:** one `GET /me` per navigation, not per component; the
@@ -1242,7 +1420,12 @@ app background; re-export them all when the master changes.
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Connect Kaveh-Negar | High | Adapter written; set `SMS_PROVIDER=kavenegar` and turn `OTP_DEBUG_DISPLAY` off |
+| Connect Kaveh-Negar | **Blocking** | Adapter written (5 s timeout, never retried); set `SMS_PROVIDER=kavenegar`. Until then production sign-in is refused (503) — by design |
+| Security and reliability layer | Done — apply `0011`–`0014` | Trusted proxy, rate limits, per-number OTP lock, retries and timeouts, idempotent submissions, session lifetimes and management, admin roles, nginx gateway hardening, cleanup job — §4.1, §4.6, §7, §10 |
+| Admin MFA | High | TOTP second factor for the admin panel, then step-up and passkeys — design in `docs/admin-mfa-design.md` |
+| Shared rate-limit store | Low | Redis for `@fastify/rate-limit` — only when there is more than one API instance |
+| Metrics and alerting | Medium | Latency and error rate are in the logs; ship them to a dashboard with alerts, and watch CPU, memory and the database at the host |
+| Load test the limits | Medium | Tune the §10 numbers against real traffic |
 | Final logo and app icons | Done | Owl mark from `assets/brand/hamdastan-logo.svg`; see §9.3 |
 | Final Welcome artwork | Done | Animated WebP at `apps/web/public/images/brand/welcome-hero.webp` (source in `assets/illustrations/`), with a still first frame for reduced motion |
 | Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
@@ -1255,8 +1438,8 @@ app background; re-export them all when the master changes.
 | More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
 | Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
 | Admin sign-in and user management | Done | OTP sign-in limited to active admins; create, edit, (de)activate and delete at `/users` in `apps/admin` — see §4.6 |
-| Serve `apps/admin` in production | Medium | The container builds, but nginx does not route to it yet; it runs at `localhost:3001` |
-| Admin roles and permissions | Low | Every active admin can do everything; add roles when there is a second kind of operator |
+| Serve `apps/admin` in production | Done | nginx routes `/admin` to the `admin` container; the app is built with `basePath: '/admin'` |
+| Admin roles and permissions | Done — apply `0014` | System admin, content manager, mission reviewer; permission per route — §4.6 |
 | Engagement Studio (phases 1–3) | Done — apply `0010` | Surveys, missions with review, knowledge and personality assessments, audience, versioning, XP ledger with revocation, results and CSV — §4.7. Needs migration `0010` applied to each database |
 | Image / file proof for missions, activity images | Medium | Needs a file-storage integration in `apps/api/src/integrations`; proof is text today |
 | Notify people of a new activity | Medium | Needs the notifications module |

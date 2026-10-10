@@ -131,6 +131,35 @@ const ledgerFor = async (phone: string) =>
 const submit = (cookies: Cookies, id: string, versionId: string, answers: Record<string, unknown>) =>
   call('POST', `/me/activities/${id}/submit`, cookies, { versionId, answers });
 
+/** A submission sent with an idempotency key — what the player always sends. */
+const submitWithKey = (
+  cookies: Cookies,
+  id: string,
+  versionId: string,
+  answers: Record<string, unknown>,
+  key: string
+) =>
+  app.inject({
+    method: 'POST',
+    url: `${API_PREFIX}/me/activities/${id}/submit`,
+    payload: { versionId, answers },
+    cookies,
+    headers: { 'idempotency-key': key },
+  });
+
+const responsesFor = async (activityId: string) =>
+  Number(
+    (
+      await getPool().query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM v2_engagement_responses WHERE activity_id = $1`,
+        [activityId]
+      )
+    ).rows[0].n
+  );
+
+let keyCounter = 0;
+const newKey = () => `test-key-${Date.now()}-${(keyCounter += 1)}`.padEnd(24, '0');
+
 describe.skipIf(!hasDatabase)('Engagement Studio against a migrated database', () => {
   beforeAll(async () => {
     await getPool().query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
@@ -194,6 +223,112 @@ describe.skipIf(!hasDatabase)('Engagement Studio against a migrated database', (
     // 10. The dashboard reports what the ledger holds.
     const detail = (await call('GET', `/admin/engagement/activities/${survey.id}`, admin)).json().data;
     expect(detail.stats).toMatchObject({ xpAwarded: 20, xpRecipients: 1, completed: 1, responses: 3 });
+  });
+
+  describe('retrying a submission with an idempotency key', () => {
+    // Repeatable and paid every time, so only the key stands between a
+    // retry and a second response and a second reward.
+    const repeatable = () =>
+      activity({ definition: definition({ maxSubmissions: 5, xp: { ...XP, maxAwards: 5 } }) });
+
+    it('answers a retry from the record: one response, one reward', async () => {
+      const survey = await publish(repeatable());
+      const user = await newUser();
+      const key = newKey();
+
+      const first = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      expect(first.statusCode, first.body).toBe(200);
+      expect(first.json().data).toMatchObject({ status: 'completed', xpAwarded: 20, xpTotal: 20 });
+
+      // The connection dropped after the commit; the client sends it again.
+      const retry = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      expect(retry.statusCode).toBe(200);
+      expect(retry.json().data).toEqual(first.json().data);
+
+      expect(await responsesFor(survey.id)).toBe(1);
+      expect(await ledgerFor(user.phone)).toHaveLength(1);
+    });
+
+    it('lets concurrent copies of one request through exactly once', async () => {
+      const survey = await publish(repeatable());
+      const user = await newUser();
+      const key = newKey();
+
+      const copies = await Promise.all(
+        Array.from({ length: 6 }, () => submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'b' }, key))
+      );
+      for (const copy of copies) expect(copy.statusCode, copy.body).toBe(200);
+      expect(new Set(copies.map((c) => c.json().data.xpAwarded))).toEqual(new Set([20]));
+
+      expect(await responsesFor(survey.id)).toBe(1);
+      expect(await ledgerFor(user.phone)).toHaveLength(1);
+    });
+
+    it('recognises a late retry of an older request, not only the latest', async () => {
+      const survey = await publish(repeatable());
+      const user = await newUser();
+      const [older, newer] = [newKey(), newKey()];
+
+      await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, older);
+      const second = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'b' }, newer);
+      expect(second.json().data).toMatchObject({ xpAwarded: 20, xpTotal: 40 });
+
+      const late = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, older);
+      expect(late.statusCode).toBe(200);
+      expect(late.json().data).toMatchObject({ xpAwarded: 20, xpTotal: 40 });
+
+      expect(await responsesFor(survey.id)).toBe(2);
+      expect(await ledgerFor(user.phone)).toHaveLength(2);
+    });
+
+    it('refuses a key reused for different answers', async () => {
+      const survey = await publish(repeatable());
+      const user = await newUser();
+      const key = newKey();
+
+      await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      const reused = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'b' }, key);
+      expect(reused.statusCode).toBe(422);
+      expect(reused.json().error.code).toBe('IDEMPOTENCY_KEY_REUSED');
+      expect(await responsesFor(survey.id)).toBe(1);
+    });
+
+    it('still answers a retry after the activity has closed', async () => {
+      const survey = await publish(repeatable());
+      const user = await newUser();
+      const key = newKey();
+
+      const first = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      const closed = await call('POST', `/admin/engagement/activities/${survey.id}/status`, admin, { action: 'close' });
+      expect(closed.statusCode, closed.body).toBe(200);
+
+      const retry = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      expect(retry.statusCode).toBe(200);
+      expect(retry.json().data).toEqual(first.json().data);
+      // A new submission, though, is refused.
+      const fresh = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, newKey());
+      expect(fresh.statusCode).toBe(409);
+    });
+
+    it('keeps one person\'s key from answering another\'s request', async () => {
+      const survey = await publish(repeatable());
+      const [a, b] = [await newUser(), await newUser()];
+      const key = newKey();
+
+      await submitWithKey(a.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      const other = await submitWithKey(b.cookies, survey.id, survey.versionId, { q1: 'a' }, key);
+      expect(other.statusCode).toBe(200);
+      expect(await ledgerFor(b.phone)).toHaveLength(1);
+      expect(await responsesFor(survey.id)).toBe(2);
+    });
+
+    it('rejects a malformed key rather than ignoring it', async () => {
+      const survey = await publish(repeatable());
+      const user = await newUser();
+      const bad = await submitWithKey(user.cookies, survey.id, survey.versionId, { q1: 'a' }, 'short');
+      expect(bad.statusCode).toBe(400);
+      expect(await responsesFor(survey.id)).toBe(0);
+    });
   });
 
   it('refuses an invalid answer, and two people racing a first submission are each paid once (9)', async () => {

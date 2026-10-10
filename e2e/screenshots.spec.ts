@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
 
-import { requireApi, testPhone } from './helpers/api';
+import { requestCodeFromScreen, requireApi, testPhone } from './helpers/api';
 
 /**
  * Captures each screen at both sizes, into `e2e/screenshots/<project>/`.
@@ -61,14 +61,10 @@ test('the screens behind a session', async ({ page }, testInfo) => {
 
   await page.goto('/auth/phone');
   await page.getByLabel('شماره موبایل').fill(testPhone());
-  await page.getByRole('button', { name: 'دریافت کد' }).click();
+  const code = await requestCodeFromScreen(page);
   await expect(page).toHaveURL(/\/auth\/verify/);
+  await capture(page, 'verify', testInfo.project.name);
 
-  const alert = page.getByRole('alert').filter({ hasText: 'کد تست' });
-  await expect(alert).toBeVisible({ timeout: 10_000 });
-  await capture(page, 'verify-with-code', testInfo.project.name);
-
-  const code = (await alert.innerText()).match(/\d{6}/)![0];
   await page.getByLabel('کد تأیید').fill(code);
 
   await expect(page).toHaveURL(/\/auth\/basic-info$/);

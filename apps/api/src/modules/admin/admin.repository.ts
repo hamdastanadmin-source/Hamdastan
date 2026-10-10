@@ -1,6 +1,6 @@
-import type { AdminUserStatus } from '@hamdastan/types';
+import type { AdminRole, AdminUserStatus } from '@hamdastan/types';
 
-import { query, queryOne, withTransaction } from '../../data';
+import { deleteInBatches, query, queryOne, withTransaction } from '../../data';
 import { AppError } from '../../shared/errors';
 import { createRepositorySlot } from '../../shared/repository';
 
@@ -16,7 +16,12 @@ export interface AdminRepository {
   findByPhone(phone: string): Promise<AdminRecord | null>;
   findById(id: string): Promise<AdminRecord | null>;
   /** The admin behind a live, unrevoked session token. Status is the caller's call. */
-  findBySessionToken(tokenHash: string, now: Date): Promise<AdminRecord | null>;
+  /**
+   * The admin a live session belongs to. Live means not revoked, inside its
+   * twelve hours, and used within the last `idleSeconds`; reading it counts
+   * as use (recorded at most once a minute, to spare a write per request).
+   */
+  findBySessionToken(tokenHash: string, now: Date, idleSeconds: number): Promise<AdminRecord | null>;
   list(query: AdminListQuery): Promise<{ items: AdminRecord[]; total: number }>;
   /** A phone number another admin holds is `ADMIN_PHONE_TAKEN`. */
   create(fields: AdminFields): Promise<AdminRecord>;
@@ -33,6 +38,8 @@ export interface AdminRepository {
   /** Opens a session and stamps `last_login_at`, in one transaction. */
   createSession(adminId: string, tokenHash: string, expiresAt: Date): Promise<void>;
   revokeSession(tokenHash: string): Promise<void>;
+  /** Deletes sessions that ended more than `retentionDays` ago. Answers how many. */
+  purgeEnded(now: Date, retentionDays: number): Promise<number>;
 }
 
 const slot = createRepositorySlot<AdminRepository>('admin');
@@ -54,12 +61,23 @@ const STATUS_TO_DB: Record<AdminUserStatus, string> = {
   inactive: 'INACTIVE',
 };
 
+/** `v2_admin_role` is upper-case too. */
+const ROLE_TO_DB: Record<AdminRole, string> = {
+  system_admin: 'SYSTEM_ADMIN',
+  content_manager: 'CONTENT_MANAGER',
+  mission_reviewer: 'MISSION_REVIEWER',
+};
+const ROLE_FROM_DB = Object.fromEntries(
+  Object.entries(ROLE_TO_DB).map(([role, db]) => [db, role])
+) as Record<string, AdminRole>;
+
 /** The editable fields and their columns — the only names `update` writes. */
 const FIELD_COLUMNS: Record<keyof AdminFields, string> = {
   firstName: 'first_name',
   lastName: 'last_name',
   phone: 'phone',
   status: 'status',
+  role: 'role',
 };
 
 type AdminRow = {
@@ -68,11 +86,12 @@ type AdminRow = {
   first_name: string;
   last_name: string;
   status: 'ACTIVE' | 'INACTIVE';
+  role: string;
   last_login_at: Date | null;
   created_at: Date;
 };
 
-const SELECT_COLUMNS = `id, phone, first_name, last_name, status, last_login_at, created_at`;
+const SELECT_COLUMNS = `id, phone, first_name, last_name, status, role, last_login_at, created_at`;
 
 function toRecord(row: AdminRow): AdminRecord {
   return {
@@ -81,13 +100,16 @@ function toRecord(row: AdminRow): AdminRecord {
     firstName: row.first_name,
     lastName: row.last_name,
     status: row.status === 'ACTIVE' ? 'active' : 'inactive',
+    role: ROLE_FROM_DB[row.role],
     lastLoginAt: row.last_login_at,
     createdAt: row.created_at,
   };
 }
 
 function toDbValue(key: keyof AdminFields, value: string): string {
-  return key === 'status' ? STATUS_TO_DB[value as AdminUserStatus] : value;
+  if (key === 'status') return STATUS_TO_DB[value as AdminUserStatus];
+  if (key === 'role') return ROLE_TO_DB[value as AdminRole];
+  return value;
 }
 
 /** The unique index decides, not a prior read: two admins adding one number at once cannot both pass. */
@@ -118,16 +140,23 @@ export const sqlAdminRepository: AdminRepository = {
     return row ? toRecord(row) : null;
   },
 
-  async findBySessionToken(tokenHash, now) {
+  async findBySessionToken(tokenHash, now, idleSeconds) {
     const row = await queryOne<AdminRow>(
       `SELECT ${SELECT_COLUMNS} FROM v2_admin_users
         WHERE id = (SELECT admin_id FROM v2_admin_sessions
                      WHERE token_hash = $1
                        AND revoked_at IS NULL
-                       AND expires_at > $2)`,
+                       AND expires_at > $2
+                       AND last_seen_at > $2::timestamptz - make_interval(secs => $3))`,
+      [tokenHash, now, idleSeconds]
+    );
+    if (!row) return null;
+    await query(
+      `UPDATE v2_admin_sessions SET last_seen_at = $2
+        WHERE token_hash = $1 AND last_seen_at < $2::timestamptz - interval '1 minute'`,
       [tokenHash, now]
     );
-    return row ? toRecord(row) : null;
+    return toRecord(row);
   },
 
   async list({ search, page, pageSize }) {
@@ -154,10 +183,10 @@ export const sqlAdminRepository: AdminRepository = {
   async create(fields) {
     try {
       const rows = await query<AdminRow>(
-        `INSERT INTO v2_admin_users (first_name, last_name, phone, status)
-         VALUES ($1, $2, $3, $4::v2_admin_status)
+        `INSERT INTO v2_admin_users (first_name, last_name, phone, status, role)
+         VALUES ($1, $2, $3, $4::v2_admin_status, $5::v2_admin_role)
          RETURNING ${SELECT_COLUMNS}`,
-        [fields.firstName, fields.lastName, fields.phone, STATUS_TO_DB[fields.status]]
+        [fields.firstName, fields.lastName, fields.phone, STATUS_TO_DB[fields.status], ROLE_TO_DB[fields.role]]
       );
       return toRecord(rows[0]);
     } catch (error) {
@@ -172,7 +201,9 @@ export const sqlAdminRepository: AdminRepository = {
     const assignments = keys.map((key, i) =>
       key === 'status'
         ? `status = $${i + 2}::v2_admin_status`
-        : `${FIELD_COLUMNS[key]} = $${i + 2}`
+        : key === 'role'
+          ? `role = $${i + 2}::v2_admin_role`
+          : `${FIELD_COLUMNS[key]} = $${i + 2}`
     );
 
     try {
@@ -226,6 +257,16 @@ export const sqlAdminRepository: AdminRepository = {
       `UPDATE v2_admin_sessions SET revoked_at = now()
         WHERE token_hash = $1 AND revoked_at IS NULL`,
       [tokenHash]
+    );
+  },
+
+  async purgeEnded(now, retentionDays) {
+    // Ended: revoked, past its twelve hours — or idle, which is only ever
+    // decided at read time, so a session idle that long is ended too.
+    return deleteInBatches(
+      'v2_admin_sessions',
+      `COALESCE(revoked_at, LEAST(expires_at, last_seen_at)) < $1::timestamptz - make_interval(secs => $2)`,
+      [now, retentionDays * 24 * 60 * 60]
     );
   },
 };

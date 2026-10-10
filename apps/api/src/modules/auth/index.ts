@@ -6,6 +6,8 @@
  */
 
 export { authRoutes } from './auth.routes';
+export { clientInfoOf } from './auth.controller';
+export type { PurgeCounts, RetentionPolicy, SessionRecord } from './auth.types';
 export { authService, setSmsSender, type OtpPurpose } from './auth.service';
 export {
   setAuthRepository,

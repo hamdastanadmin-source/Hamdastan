@@ -33,6 +33,7 @@ import {
   TabsTrigger,
 } from '@hamdastan/ui';
 
+import { useAdminCan } from '@/features/auth';
 import { errorMessage, formatCount, formatDateTime, formatPercent } from '@/lib';
 
 import { useActivityResults } from '../hooks/use-activity-results';
@@ -69,7 +70,10 @@ const dayAfter = (value: string) =>
  * a date and group filter, and the CSV export of what may be exported.
  */
 export function ActivityResultsScreen({ id }: { id: string }) {
-  const view = useActivityResults(id);
+  const can = useAdminCan();
+  const individual = can('results.individual');
+  const seesXp = can('xp.read');
+  const view = useActivityResults(id, { individual, xp: seesXp });
   const { results } = view;
   const [days, setDays] = useState({ from: '', to: '' });
   const [confirming, setConfirming] = useState<ActivityStatusAction | null>(null);
@@ -151,7 +155,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {activity.status !== 'archived' && (
+              {activity.status !== 'archived' && can('activities.write') && (
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/engagement/${id}/edit`}>
                     <Pencil aria-hidden="true" />
@@ -159,11 +163,13 @@ export function ActivityResultsScreen({ id }: { id: string }) {
                   </Link>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={exportCsv} loading={exporting}>
-                <Download aria-hidden="true" />
-                خروجی CSV
-              </Button>
-              {ACTIONS_FOR[activity.status].map((action) => (
+              {can('results.export') && (
+                <Button variant="outline" size="sm" onClick={exportCsv} loading={exporting}>
+                  <Download aria-hidden="true" />
+                  خروجی CSV
+                </Button>
+              )}
+              {(can('activities.publish') ? ACTIONS_FOR[activity.status] : []).map((action) => (
                 <Button
                   key={action}
                   size="sm"
@@ -242,7 +248,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
           <TabsTrigger value="questions" className={TAB_TRIGGER}>
             آمار سؤال‌ها
           </TabsTrigger>
-          {activity?.type === 'mission' && (
+          {activity?.type === 'mission' && individual && (
             <TabsTrigger value="reviews" className={TAB_TRIGGER}>
               بررسی مأموریت‌ها
               {activity.stats.pendingReviews > 0 && (
@@ -252,9 +258,11 @@ export function ActivityResultsScreen({ id }: { id: string }) {
               )}
             </TabsTrigger>
           )}
-          <TabsTrigger value="xp" className={TAB_TRIGGER}>
-            تراکنش‌های XP
-          </TabsTrigger>
+          {seesXp && (
+            <TabsTrigger value="xp" className={TAB_TRIGGER}>
+              تراکنش‌های XP
+            </TabsTrigger>
+          )}
           <TabsTrigger value="history" className={TAB_TRIGGER}>
             تاریخچه
           </TabsTrigger>
@@ -274,7 +282,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
             onStatus={view.setReviewStatus}
             page={view.reviewPage}
             onPage={view.setReviewPage}
-            onReview={view.review}
+            onReview={can('submissions.review') ? view.review : undefined}
           />
         </TabsContent>
 
@@ -284,7 +292,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
             loading={view.grants.loading}
             page={view.grantPage}
             onPage={view.setGrantPage}
-            onRevoke={view.revoke}
+            onRevoke={can('xp.revoke') ? view.revoke : undefined}
           />
         </TabsContent>
 

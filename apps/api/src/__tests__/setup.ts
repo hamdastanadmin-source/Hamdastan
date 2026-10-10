@@ -23,10 +23,14 @@ if (testDatabaseUrl) {
 
 process.env.DATABASE_URL = testDatabaseUrl;
 process.env.NODE_ENV = 'test';
-process.env.LOG_LEVEL = 'silent';
+process.env.LOG_LEVEL = process.env.DEBUG_LOG ?? 'silent';
 process.env.OTP_DEBUG_DISPLAY = 'true';
 process.env.SMS_PROVIDER = 'console';
 process.env.DATABASE_MIGRATE_ON_BOOT = 'false';
 // The suite signs in many times from one address.
 process.env.OTP_MAX_SENDS_PER_PHONE = '100';
 process.env.OTP_MAX_SENDS_PER_IP = '1000';
+// Rate limiting has a suite of its own (rate-limit.test.ts), which turns it
+// back on; everywhere else one address signing in dozens of times is the test.
+process.env.RATE_LIMIT_ENABLED = 'false';
+process.env.MAINTENANCE_ENABLED = 'false';

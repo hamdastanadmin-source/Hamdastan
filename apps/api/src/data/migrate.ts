@@ -120,8 +120,20 @@ export async function runMigrations(
   const client = await getPool().connect();
   const outcome: MigrationOutcome = { applied: [], alreadyApplied: [], drift: null };
 
+  // The pool bounds every statement (DATABASE_STATEMENT_TIMEOUT_MS). A
+  // migration — an index build, a backfill — and the wait for another
+  // instance's lock may legitimately take longer, so this session lifts the
+  // server-side limit and these statements carry a generous client-side one.
+  // `RESET` in `finally`: the client goes back to the pool afterwards.
+  const unbounded = { query_timeout: 60 * 60_000 };
+
   try {
-    await client.query('SELECT pg_advisory_lock($1)', [ADVISORY_LOCK_KEY.toString()]);
+    await client.query('SET statement_timeout = 0');
+    await client.query({
+      text: 'SELECT pg_advisory_lock($1)',
+      values: [ADVISORY_LOCK_KEY.toString()],
+      ...unbounded,
+    });
     await client.query(LEDGER);
 
     const { rows } = await client.query<{ name: string; checksum: string }>(
@@ -148,7 +160,7 @@ export async function runMigrations(
 
       await client.query('BEGIN');
       try {
-        await client.query(file.sql);
+        await client.query({ text: file.sql, ...unbounded });
         await client.query(
           'INSERT INTO v2_migrations (name, checksum) VALUES ($1, $2)',
           [file.name, digest]
@@ -170,6 +182,7 @@ export async function runMigrations(
     await client
       .query('SELECT pg_advisory_unlock($1)', [ADVISORY_LOCK_KEY.toString()])
       .catch(() => undefined);
+    await client.query('RESET statement_timeout').catch(() => undefined);
     client.release();
   }
 }

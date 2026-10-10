@@ -49,6 +49,11 @@ export function getPool(): Pool {
     // kept connection is still usable when the next request reaches for it.
     keepAlive: true,
     application_name: 'hamdastan-api',
+    // Server-side: PostgreSQL cancels a statement that runs longer. Client-
+    // side, a little later: a query whose answer never arrives — a dropped
+    // connection — gives its pooled client back instead of hanging forever.
+    statement_timeout: env.DATABASE_STATEMENT_TIMEOUT_MS,
+    query_timeout: env.DATABASE_STATEMENT_TIMEOUT_MS + 5_000,
   });
 
   // A backend can die between checkouts — a restart on the provider's side,
@@ -123,4 +128,33 @@ export async function closePool(): Promise<void> {
   const closing = pool;
   pool = null;
   await closing.end();
+}
+
+/**
+ * Deletes the rows of `table` matching `where`, a batch at a time, and
+ * answers how many went. For the cleanup job: one unbounded DELETE over a
+ * large backlog holds its locks, and the WAL it writes, for as long as it
+ * takes; batches keep each statement short and let other writes through.
+ *
+ * `table` and `where` are SQL, written in a repository — never anything a
+ * request supplied. Values go in `params`, as everywhere.
+ */
+export async function deleteInBatches(
+  table: string,
+  where: string,
+  params: unknown[],
+  batchSize = 5_000
+): Promise<number> {
+  if (!/^[a-z0-9_]+$/.test(table)) throw new Error(`deleteInBatches: not a table name: ${table}`);
+
+  let total = 0;
+  for (;;) {
+    const result = await getPool().query(
+      `DELETE FROM ${table} WHERE ctid IN (SELECT ctid FROM ${table} WHERE ${where} LIMIT ${Math.trunc(batchSize)})`,
+      params
+    );
+    const deleted = result.rowCount ?? 0;
+    total += deleted;
+    if (deleted < batchSize) return total;
+  }
 }

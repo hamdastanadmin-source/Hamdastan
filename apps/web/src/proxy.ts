@@ -116,6 +116,10 @@ export async function proxy(request: NextRequest) {
     // and let the page render what it can. Treating it as an expired session
     // would sign every visitor out each time the API restarts.
     if (!(error instanceof HttpError)) return proceed();
+    // Only a 401 means the access token is spent. A 429 or a 503 is the API
+    // being busy, and refreshing then would burn a single-use token for
+    // nothing — so, again, decide nothing.
+    if (error.status !== 401) return proceed();
 
     const refreshed = await refreshSession(cookie).catch(() => undefined);
     if (refreshed === undefined) return proceed();

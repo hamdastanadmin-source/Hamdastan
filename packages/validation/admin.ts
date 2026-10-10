@@ -8,6 +8,7 @@
  */
 
 import { ADMIN_USERS_PAGE_SIZE } from '@hamdastan/config';
+import { ADMIN_ROLES } from '@hamdastan/types';
 import { normalizePersianText } from '@hamdastan/shared/format/persian';
 
 import { z } from 'zod';
@@ -18,14 +19,20 @@ export const adminUserStatusSchema = z.enum(['active', 'inactive'], {
   error: 'وضعیت رو انتخاب کن',
 });
 
+export const adminRoleSchema = z.enum(ADMIN_ROLES, { error: 'نقش رو انتخاب کن' });
+
 const adminUserFields = {
   firstName: firstNameSchema,
   lastName: lastNameSchema,
   phone: phoneSchema,
   status: adminUserStatusSchema,
+  role: adminRoleSchema,
 };
 
-/** `POST /admin/users`. A new admin is active unless the form says otherwise. */
+/**
+ * `POST /admin/users`. A new admin is active unless the form says otherwise;
+ * the role has no default — what someone may do is chosen, never assumed.
+ */
 export const adminUserCreateSchema = z.object({
   ...adminUserFields,
   status: adminUserStatusSchema.default('active'),
@@ -59,3 +66,7 @@ export type AdminUserUpdateInput = z.input<typeof adminUserUpdateSchema>;
 export type AdminUserUpdateOutput = z.output<typeof adminUserUpdateSchema>;
 export type AdminUsersQueryInput = z.input<typeof adminUsersQuerySchema>;
 export type AdminUsersQueryOutput = z.output<typeof adminUsersQuerySchema>;
+
+/** The session manager's search: one product account, by its number. */
+export const appUserLookupSchema = z.object({ phone: phoneSchema });
+export type AppUserLookupInput = z.infer<typeof appUserLookupSchema>;

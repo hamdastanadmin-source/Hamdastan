@@ -6,3 +6,4 @@ export * from './questionnaire.config';
 export * from './account.config';
 export * from './admin.config';
 export * from './engagement.config';
+export * from './http.config';

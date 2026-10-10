@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { OTP } from '@hamdastan/config';
 
-import { requireApi, testPhone } from './helpers/api';
+import { requestCodeFromScreen, requireApi, testPhone } from './helpers/api';
 
 /**
  * The sign-in flow, end to end.
@@ -12,28 +12,21 @@ import { requireApi, testPhone } from './helpers/api';
  * testing the mock. They skip with a reason when the API is not up, rather
  * than passing while nothing works.
  *
- * They also need `OTP_DEBUG_DISPLAY=true`, which is what puts the code on the
- * screen in place of an SMS.
+ * They also need `OTP_DEBUG_DISPLAY=true`: the code is never shown on screen,
+ * so the tests read it from the API's development response instead.
  */
 
 test.beforeEach(async () => {
   await requireApi();
 });
 
-/** Walks the phone screen and returns the code the debug Alert is showing. */
+/** Walks the phone screen and returns the code the API issued for it. */
 async function requestCode(page: Page, phone: string): Promise<string> {
   await page.goto('/auth/phone');
   await page.getByLabel('شماره موبایل').fill(phone);
-  await page.getByRole('button', { name: 'دریافت کد' }).click();
-
+  const code = await requestCodeFromScreen(page);
   await expect(page).toHaveURL(/\/auth\/verify/);
-
-  const alert = page.getByRole('alert').filter({ hasText: 'کد تست' });
-  await expect(alert).toBeVisible({ timeout: 10_000 });
-
-  const code = (await alert.innerText()).match(/\d{6}/)?.[0];
-  expect(code, 'OTP_DEBUG_DISPLAY must be on for the e2e run').toBeTruthy();
-  return code!;
+  return code;
 }
 
 async function fillCode(page: Page, code: string): Promise<void> {

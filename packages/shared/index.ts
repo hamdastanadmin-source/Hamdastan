@@ -22,8 +22,10 @@ export {
 } from './format/jalali';
 export {
   createHttpClient,
+  createIdempotencyKey,
   HttpError,
   type HttpClient,
   type HttpClientOptions,
   type RequestOptions,
+  type RetryPolicy,
 } from './http';

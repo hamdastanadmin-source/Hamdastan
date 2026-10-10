@@ -1,8 +1,13 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+import { BASE_PATH } from "./src/lib/base-path";
+
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  // Served under the product's own origin at /admin — see deploy/nginx.conf.
+  basePath: BASE_PATH,
 
   transpilePackages: [
     "@hamdastan/config",

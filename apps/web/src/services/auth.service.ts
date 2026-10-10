@@ -1,4 +1,5 @@
-import { API_BASE_URL, API_PREFIX } from '@hamdastan/config';
+import { API_BASE_URL, API_PREFIX, HTTP_TIMEOUT } from '@hamdastan/config';
+import { HttpError } from '@hamdastan/shared';
 import type {
   OtpRequestResponse,
   OtpVerifyResponse,
@@ -68,6 +69,11 @@ export const authService = {
  * point here. The Next.js middleware copies them onto the redirect or the
  * page it is about to serve, which is how a 15-minute access token is renewed
  * without the visitor noticing.
+ *
+ * Resolves `null` only when the API says the session is over (401). Any
+ * other failure — rate limited, unavailable, timed out — throws, because it
+ * says nothing about the session and must not sign the visitor out. It is
+ * never retried: a refresh token is single-use.
  */
 export async function refreshSession(
   cookie: string
@@ -76,14 +82,20 @@ export async function refreshSession(
     method: 'POST',
     headers: { cookie, Accept: 'application/json' },
     cache: 'no-store',
+    signal: AbortSignal.timeout(HTTP_TIMEOUT.SERVER_MS),
   });
 
-  if (!response.ok) return null;
+  if (response.status === 401) return null;
 
   const payload = (await response.json().catch(() => null)) as
     | { ok: true; data: SessionResponse }
     | null;
-  if (!payload?.ok) return null;
+  if (!response.ok || !payload?.ok) {
+    throw new HttpError(response.status, {
+      code: 'REFRESH_FAILED',
+      message: response.statusText || 'Refresh failed',
+    });
+  }
 
   return { session: payload.data, setCookie: response.headers.getSetCookie() };
 }

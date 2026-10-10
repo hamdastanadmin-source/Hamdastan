@@ -15,6 +15,8 @@ export const ADMIN_SESSION = {
   COOKIE: 'hd_admin',
   /** Fixed, not rolling: an operator signs in again every working day. */
   TTL_SECONDS: 12 * 60 * 60,
+  /** Unused for this long, a session ends — whatever is left of the twelve hours. */
+  IDLE_TIMEOUT_SECONDS: 2 * 60 * 60,
 } as const;
 
 export const ADMIN_USERS_PAGE_SIZE = 20;

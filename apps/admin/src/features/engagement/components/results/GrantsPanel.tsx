@@ -38,7 +38,8 @@ export function GrantsPanel({
   loading: boolean;
   page: number;
   onPage: (page: number) => void;
-  onRevoke: (transactionId: string, reason: string) => Promise<void>;
+  /** Absent when the admin may not revoke XP: the list is then read-only. */
+  onRevoke?: (transactionId: string, reason: string) => Promise<void>;
 }) {
   const [revoking, setRevoking] = useState<AdminXpGrant | null>(null);
 
@@ -97,7 +98,7 @@ export function GrantsPanel({
                   )}
                 </TableCell>
                 <TableCell className="text-end">
-                  {!grant.revokedAt && (
+                  {!grant.revokedAt && onRevoke && (
                     <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setRevoking(grant)}>
                       ابطال
                     </Button>
@@ -127,7 +128,7 @@ export function GrantsPanel({
         onConfirm={async (reason) => {
           if (!revoking) return;
           try {
-            await onRevoke(revoking.transactionId, reason);
+            await onRevoke?.(revoking.transactionId, reason);
             toast.success('XP باطل شد');
             setRevoking(null);
           } catch (error) {

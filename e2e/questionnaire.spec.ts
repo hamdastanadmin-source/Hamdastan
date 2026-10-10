@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { API_BASE_URL, API_PREFIX } from '@hamdastan/config';
 
-import { requireApi, testPhone } from './helpers/api';
+import { requestCodeFromScreen, requireApi, testPhone } from './helpers/api';
 
 /**
  * Onboarding stage 2 — the social questionnaire, walked end to end: auto
@@ -24,10 +24,7 @@ test.beforeEach(async () => {
 async function signUp(page: Page) {
   await page.goto('/auth/phone');
   await page.getByLabel('شماره موبایل').fill(testPhone());
-  await page.getByRole('button', { name: 'دریافت کد' }).click();
-  const alert = page.getByRole('alert').filter({ hasText: 'کد تست' });
-  await expect(alert).toBeVisible({ timeout: 10_000 });
-  const code = (await alert.innerText()).match(/\d{6}/)![0];
+  const code = await requestCodeFromScreen(page);
   await page.getByLabel('کد تأیید').fill(code);
 
   await expect(page).toHaveURL(/\/auth\/basic-info$/);

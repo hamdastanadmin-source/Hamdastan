@@ -167,7 +167,10 @@ export const sqlUsersRepository: UsersRepository = {
                      WHERE t.token_hash = $1
                        AND t.expires_at > $2
                        AND s.revoked_at IS NULL
-                       AND s.expires_at > $2)`,
+                       AND s.expires_at > $2
+                       -- Access tokens are already capped at the session's
+                       -- absolute end; this holds even if one were not.
+                       AND (s.absolute_expires_at IS NULL OR s.absolute_expires_at > $2))`,
       [tokenHash, now]
     );
     return row ? toRecord(row) : null;

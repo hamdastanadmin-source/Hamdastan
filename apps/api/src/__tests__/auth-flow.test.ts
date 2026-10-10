@@ -533,10 +533,53 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       expect(last.statusCode).toBe(429);
       expect(last.json().error.code).toBe('OTP_LOCKED');
 
-      // The right code no longer works either.
+      // The right code no longer works either: the number is locked.
       const late = await post('/auth/otp/verify', { phone, code });
-      expect(late.statusCode).toBe(400);
-      expect(late.json().error.code).toBe('OTP_NOT_FOUND');
+      expect(late.statusCode).toBe(429);
+      expect(late.json().error.code).toBe('OTP_LOCKED');
+    });
+
+    it('lock the number across codes, with a Retry-After, until the window ends', async () => {
+      const phone = nextPhone();
+      const first = await post('/auth/otp/request', { phone });
+      const code = first.json().data.debugCode as string;
+      const wrong = code === '000000' ? '111111' : '000000';
+
+      // Three wrong on the first code…
+      for (let i = 0; i < 3; i += 1) {
+        expect((await post('/auth/otp/verify', { phone, code: wrong })).statusCode).toBe(400);
+      }
+      // …then a fresh code (past the resend cooldown) does not reset the count.
+      await getPool().query(
+        `UPDATE v2_otp_challenges SET resend_available_at = now() - interval '1 second' WHERE phone = $1`,
+        [phone]
+      );
+      const second = await post('/auth/otp/request', { phone });
+      expect(second.statusCode, second.body).toBe(200);
+      const secondCode = second.json().data.debugCode as string;
+      const secondWrong = secondCode === '000000' ? '111111' : '000000';
+
+      const fourth = await post('/auth/otp/verify', { phone, code: secondWrong });
+      expect(fourth.json().error.details.attemptsLeft).toBe(1);
+      const fifth = await post('/auth/otp/verify', { phone, code: secondWrong });
+      expect(fifth.statusCode).toBe(429);
+      expect(fifth.json().error.code).toBe('OTP_LOCKED');
+      expect(Number(fifth.headers['retry-after'])).toBeGreaterThan(0);
+
+      // Locked: no new code is sent, and none would be accepted.
+      const third = await post('/auth/otp/request', { phone });
+      expect(third.statusCode).toBe(429);
+      expect(third.json().error.code).toBe('OTP_LOCKED');
+
+      // Once the window has passed, the number may sign in again — and a
+      // correct code clears the count.
+      await getPool().query(
+        `UPDATE v2_otp_failures SET window_started_at = now() - interval '1 hour' WHERE phone = $1`,
+        [phone]
+      );
+      await signIn(phone);
+      const { rows } = await getPool().query(`SELECT 1 FROM v2_otp_failures WHERE phone = $1`, [phone]);
+      expect(rows).toHaveLength(0);
     });
 
     it('verify without a request is a 400, not a 500', async () => {
@@ -602,9 +645,141 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
     it('are required for /me', async () => {
       expect((await get('/me')).statusCode).toBe(401);
     });
+
+    it('end at logout for the access token too, at once', async () => {
+      const { cookies } = await signIn(nextPhone());
+      expect((await get('/me', cookies)).statusCode).toBe(200);
+      await post('/auth/logout', undefined, cookies);
+      expect((await get('/me', cookies)).statusCode).toBe(401);
+      const { rows } = await getPool().query(
+        `SELECT revoked_reason FROM v2_sessions s JOIN v2_users u ON u.id = s.user_id
+          WHERE s.id = (SELECT session_id FROM v2_refresh_tokens WHERE token_hash = encode(sha256($1::bytea), 'hex'))`,
+        [cookies[SESSION.REFRESH_COOKIE]]
+      );
+      expect(rows[0]?.revoked_reason).toBe('logout');
+    });
+  });
+
+  describe('session lifetimes', () => {
+    const sessionOf = async (cookies: Cookies) =>
+      (
+        await getPool().query<{ id: string; absolute_expires_at: Date | null; expires_at: Date; revoked_reason: string | null }>(
+          `SELECT s.id, s.absolute_expires_at, s.expires_at, s.revoked_reason
+             FROM v2_sessions s
+            WHERE s.id = (SELECT session_id FROM v2_refresh_tokens
+                           WHERE token_hash = encode(sha256($1::bytea), 'hex'))`,
+          [cookies[SESSION.REFRESH_COOKIE]]
+        )
+      ).rows[0];
+
+    const DAY = 24 * 60 * 60 * 1000;
+    const near = (actual: Date, expected: number) =>
+      expect(Math.abs(actual.getTime() - expected)).toBeLessThan(60_000);
+
+    it('give a new session seven idle days and thirty absolute, with cookies to match', async () => {
+      const { cookies } = await signIn(nextPhone());
+      const session = await sessionOf(cookies);
+      near(session.absolute_expires_at!, Date.now() + 30 * DAY);
+      near(session.expires_at, Date.now() + 7 * DAY);
+
+      const refreshed = await post('/auth/refresh', undefined, cookies);
+      const refreshCookie = refreshed.cookies.find(({ name }) => name === SESSION.REFRESH_COOKIE)!;
+      near(new Date(refreshCookie.expires!), Date.now() + 7 * DAY);
+    });
+
+    it('never renew past the absolute end, and refuse the session once it passes', async () => {
+      const { cookies } = await signIn(nextPhone());
+      const session = await sessionOf(cookies);
+      const soon = new Date(Date.now() + 60 * 60 * 1000);
+      await getPool().query(`UPDATE v2_sessions SET absolute_expires_at = $2 WHERE id = $1`, [session.id, soon]);
+
+      const refreshed = await post('/auth/refresh', undefined, cookies);
+      expect(refreshed.statusCode).toBe(200);
+      const next = cookiesFrom(refreshed);
+      const refreshCookie = refreshed.cookies.find(({ name }) => name === SESSION.REFRESH_COOKIE)!;
+      expect(new Date(refreshCookie.expires!).getTime()).toBeLessThanOrEqual(soon.getTime() + 1000);
+      near((await sessionOf(next)).expires_at, soon.getTime());
+
+      // Past it: refresh refused, and the access token with it.
+      await getPool().query(
+        `UPDATE v2_sessions SET absolute_expires_at = now() - interval '1 second' WHERE id = $1`,
+        [session.id]
+      );
+      expect((await post('/auth/refresh', undefined, next)).statusCode).toBe(401);
+      expect((await get('/me', next)).statusCode).toBe(401);
+    });
+
+    it('move a session from before the rule onto it at its next refresh, without signing it out', async () => {
+      const { cookies } = await signIn(nextPhone());
+      const session = await sessionOf(cookies);
+      // What 0013 leaves on a session that already existed.
+      await getPool().query(
+        `UPDATE v2_sessions SET absolute_expires_at = NULL, created_at = now() - interval '60 days' WHERE id = $1`,
+        [session.id]
+      );
+
+      const refreshed = await post('/auth/refresh', undefined, cookies);
+      expect(refreshed.statusCode, refreshed.body).toBe(200);
+      near((await sessionOf(cookiesFrom(refreshed))).absolute_expires_at!, Date.now() + 30 * DAY);
+    });
+  });
+
+  describe('refresh races', () => {
+    it('hand every concurrent copy of one token a working pair, inside the grace window', async () => {
+      const { cookies } = await signIn(nextPhone());
+      const results = await Promise.all(
+        Array.from({ length: 10 }, () => post('/auth/refresh', undefined, cookies))
+      );
+      for (const result of results) expect(result.statusCode, result.body).toBe(200);
+      const pairs = results.map(cookiesFrom);
+      expect(new Set(pairs.map((pair) => pair[SESSION.REFRESH_COOKIE])).size).toBe(10);
+      for (const pair of pairs) expect((await get('/me', pair)).statusCode).toBe(200);
+    });
+
+    it('end the whole session — every pair in it — on a replay after the grace window', async () => {
+      const { cookies } = await signIn(nextPhone());
+      const [a, b] = await Promise.all([
+        post('/auth/refresh', undefined, cookies),
+        post('/auth/refresh', undefined, cookies),
+      ]);
+      await getPool().query(
+        `UPDATE v2_refresh_tokens SET used_at = now() - make_interval(secs => $1 + 1)
+          WHERE token_hash = encode(sha256($2::bytea), 'hex')`,
+        [SESSION.REFRESH_REUSE_GRACE_SECONDS, cookies[SESSION.REFRESH_COOKIE]]
+      );
+
+      // The stolen copy, late: refused, and it takes the session down.
+      expect((await post('/auth/refresh', undefined, cookies)).statusCode).toBe(401);
+      for (const pair of [cookiesFrom(a), cookiesFrom(b)]) {
+        expect((await get('/me', pair)).statusCode).toBe(401);
+        expect((await post('/auth/refresh', undefined, pair)).statusCode).toBe(401);
+      }
+      const { rows } = await getPool().query(
+        `SELECT revoked_reason FROM v2_sessions
+          WHERE id = (SELECT session_id FROM v2_refresh_tokens WHERE token_hash = encode(sha256($1::bytea), 'hex'))`,
+        [cookies[SESSION.REFRESH_COOKIE]]
+      );
+      expect(rows[0].revoked_reason).toBe('reuse_detected');
+    });
+
+    it('cannot revive a session that a concurrent logout ended', async () => {
+      const { cookies } = await signIn(nextPhone());
+      const [, refreshed] = await Promise.all([
+        post('/auth/logout', undefined, cookies),
+        post('/auth/refresh', undefined, cookies),
+      ]);
+      // Whichever ran first, the session is over afterwards.
+      const after = refreshed.statusCode === 200 ? cookiesFrom(refreshed) : cookies;
+      expect((await get('/me', after)).statusCode).toBe(401);
+      expect((await post('/auth/refresh', undefined, after)).statusCode).toBe(401);
+    });
   });
 });
 
-describe.skipIf(hasDatabase)('sign-in against a migrated database', () => {
-  it.skip('needs TEST_DATABASE_URL — e.g. postgresql://localhost/hamdastan_test (createdb hamdastan_test)', () => {});
-});
+// Without a database the suite above is skipped; this says why. Registered
+// only then, so a run that has the database reports no skipped test.
+if (!hasDatabase) {
+  describe('sign-in against a migrated database', () => {
+    it.skip('needs TEST_DATABASE_URL — e.g. postgresql://localhost/hamdastan_test (createdb hamdastan_test)', () => {});
+  });
+}

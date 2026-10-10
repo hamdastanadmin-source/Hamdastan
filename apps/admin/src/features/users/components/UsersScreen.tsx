@@ -25,7 +25,7 @@ import {
   TableRow,
 } from '@hamdastan/ui';
 
-import { errorMessage } from '@/lib';
+import { errorMessage, ROLE_LABELS } from '@/lib';
 
 import { useAdminUsers } from '../hooks/use-admin-users';
 import { formatDateTime, fullName } from '../utils/format';
@@ -35,13 +35,14 @@ import { UserFormDialog } from './UserFormDialog';
 /** The dialog state: closed, creating, or editing one user. */
 type Editing = { mode: 'create' } | { mode: 'edit'; user: AdminUser } | null;
 
-const COLUMNS = 6;
+const COLUMNS = 7;
 
-/** The two columns that drop out on narrow screens, by index. */
+/** The columns that drop out on narrow screens, by index. */
 const HIDDEN_BELOW: Record<number, string> = {
   1: 'hidden sm:table-cell',
-  3: 'hidden lg:table-cell',
-  4: 'hidden xl:table-cell',
+  3: 'hidden md:table-cell',
+  4: 'hidden lg:table-cell',
+  5: 'hidden xl:table-cell',
 };
 
 /**
@@ -163,6 +164,7 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
                 <TableHead className="ps-3 sm:ps-4">نام و نام خانوادگی</TableHead>
                 <TableHead className="hidden sm:table-cell">شماره موبایل</TableHead>
                 <TableHead>وضعیت</TableHead>
+                <TableHead className="hidden md:table-cell">نقش</TableHead>
                 <TableHead className="hidden lg:table-cell">آخرین ورود</TableHead>
                 <TableHead className="hidden xl:table-cell">تاریخ ثبت</TableHead>
                 <TableHead className="pe-2 text-end sm:pe-4">
@@ -230,6 +232,9 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
                           {active ? 'فعال' : 'غیرفعال'}
                         </Badge>
                       </label>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant="outline">{ROLE_LABELS[user.role]}</Badge>
                     </TableCell>
                     <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {formatDateTime(user.lastLoginAt)}

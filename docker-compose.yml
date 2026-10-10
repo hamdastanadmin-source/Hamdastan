@@ -47,8 +47,8 @@ services:
       retries: 3
       start_period: 10s
 
-  # The admin panel is not part of the default stack, and nginx does not
-  # route to it in production yet. Bring it up with:
+  # The admin panel is not part of the default development stack (production
+  # always runs it — docker-compose.prod.yml). Bring it up with:
   #   docker compose --profile admin up
   admin:
     container_name: hamdastan-admin

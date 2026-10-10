@@ -18,6 +18,16 @@ export function registerErrorHandler(app: FastifyInstance): void {
       } else {
         request.log.info({ code: caught.code }, 'request rejected');
       }
+      // A wait the body states belongs in the standard header too, so a
+      // client's retry policy can honour it without reading the envelope.
+      const retryAfter = (caught.details as { retryAfter?: unknown } | undefined)?.retryAfter;
+      if (
+        (caught.status === 429 || caught.status === 503) &&
+        typeof retryAfter === 'number' &&
+        !reply.hasHeader('retry-after')
+      ) {
+        reply.header('retry-after', String(Math.max(1, Math.ceil(retryAfter))));
+      }
       reply
         .status(caught.status)
         .send(fail(caught.code, caught.message, caught.details));

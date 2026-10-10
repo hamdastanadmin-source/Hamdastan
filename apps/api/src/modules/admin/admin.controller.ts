@@ -53,6 +53,27 @@ export const adminController = {
     return reply.send(ok(await adminService.update(currentAdmin(request), id, fields)));
   },
 
+  async lookupAppUser(request: FastifyRequest, reply: FastifyReply) {
+    const { phone } = parseBody(adminSchemas.lookupAppUser.body, request.body);
+    return reply.send(ok(await adminService.findAppUserSessions(phone)));
+  },
+
+  async appUserSessions(request: FastifyRequest, reply: FastifyReply) {
+    const { userId } = parseBody(adminSchemas.appUserSessions.params, request.params);
+    return reply.send(ok(await adminService.appUserSessions(userId)));
+  },
+
+  async revokeAppUserSession(request: FastifyRequest, reply: FastifyReply) {
+    const { userId, sessionId } = parseBody(adminSchemas.revokeAppUserSession.params, request.params);
+    await adminService.revokeAppUserSession(currentAdmin(request), userId, sessionId, request.log);
+    return reply.send(ok({ revoked: 1 }));
+  },
+
+  async revokeAllAppUserSessions(request: FastifyRequest, reply: FastifyReply) {
+    const { userId } = parseBody(adminSchemas.appUserSessions.params, request.params);
+    return reply.send(ok(await adminService.revokeAllAppUserSessions(currentAdmin(request), userId, request.log)));
+  },
+
   async deleteUser(request: FastifyRequest, reply: FastifyReply) {
     const { id } = parseBody(adminSchemas.deleteUser.params, request.params);
     await adminService.delete(currentAdmin(request), id);

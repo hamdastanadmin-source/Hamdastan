@@ -124,6 +124,14 @@ export const usersService = {
   },
 
   /**
+   * The account, suspended or not. For the admin panel, which must be able
+   * to see — and end — the sessions of an account it has suspended.
+   */
+  async findAnyById(id: string): Promise<UserRecord | null> {
+    return usersRepository().findById(id);
+  },
+
+  /**
    * The account a verified code is entitled to. Called only by the auth
    * service, and only after the code has been checked — this is the moment
    * the spec calls "the account is created at verification", so a person who

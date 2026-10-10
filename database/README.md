@@ -131,6 +131,15 @@ until they agree.
 | `0008` | Social handles on the profile: `v2_users.instagram`, `telegram`, `linkedin` (nullable, handle only) |
 | `0009` | The admin panel: `v2_admin_users` (the allow-list, unique phone, `ACTIVE`/`INACTIVE`) and `v2_admin_sessions`; seeds the main admin (`09059466960`) and copies in anyone `v2_users` marks `role = 'ADMIN'` |
 | `0010` | Engagement Studio: `v2_engagement_activities`, `v2_engagement_versions`, `v2_engagement_participations`, `v2_engagement_responses` (anonymous ones without `user_id`), `v2_engagement_audit_log`; the XP ledger gains `activity_id`, `activity_version_id`, `reason`, `reverses_id`, `created_by_admin_id`, the source types `engagement` and `reversal`, and a negative amount for a reversal. Additive apart from two CHECKs replaced by wider ones that every existing row satisfies |
+| `0011` | `v2_otp_failures`: wrong codes per number across codes, for the fifteen-minute lock. Additive |
+| `0012` | `v2_idempotency_keys`: a retryable write's key, request hash and recorded outcome, kept 30 days. Additive |
+| `0013` | Session lifetimes and management: `v2_sessions.absolute_expires_at`, `last_seen_at`, `user_agent`, `ip`, `revoked_reason` (all nullable — an existing session gets its absolute end at its next refresh); `v2_admin_sessions.last_seen_at` for the idle timeout (default now, so no one is signed out). Additive |
+| `0014` | Admin roles: `v2_admin_role` (`SYSTEM_ADMIN`, `CONTENT_MANAGER`, `MISSION_REVIEWER`) and `v2_admin_users.role`, every existing admin `SYSTEM_ADMIN`. Additive |
+
+Rows that can never be used again — expired tokens, codes, idempotency keys,
+and sessions long ended — are deleted by the API's hourly cleanup
+(`apps/api/src/modules/maintenance`), not by a migration. Nothing else is
+ever deleted by it.
 
 `docs/PRD.md` §6 explains why each table is shaped the way it is.
 

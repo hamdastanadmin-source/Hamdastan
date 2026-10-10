@@ -35,9 +35,17 @@ export type {
 } from './questionnaire';
 export {
   ADMIN_ERROR_CODES,
+  ADMIN_PERMISSIONS,
+  ADMIN_ROLE_PERMISSIONS,
+  ADMIN_ROLES,
+  type AdminPermission,
+  type AdminRole,
   type AdminSessionResponse,
   type AdminUser,
   type AdminUserStatus,
+  type AppUserSession,
+  type AppUserSessions,
+  type AppUserSummary,
 } from './admin';
 export {
   ENGAGEMENT_ERROR_CODES,

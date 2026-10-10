@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 
-import { ADMIN_ERROR_CODES, type AdminUser } from '@hamdastan/types';
+import { ADMIN_ERROR_CODES, ADMIN_ROLES, type AdminUser } from '@hamdastan/types';
 import { toMobileInput } from '@hamdastan/shared/format/persian';
 import {
   Button,
@@ -35,7 +35,7 @@ import {
   type AdminUserCreateOutput,
 } from '@hamdastan/validation';
 
-import { errorCode, errorMessage, fieldErrors } from '@/lib';
+import { errorCode, errorMessage, fieldErrors, ROLE_LABELS } from '@/lib';
 
 type UserFormDialogProps = {
   open: boolean;
@@ -47,7 +47,14 @@ type UserFormDialogProps = {
   onSubmit: (fields: AdminUserCreateOutput) => Promise<unknown>;
 };
 
-const FIELDS = ['firstName', 'lastName', 'phone', 'status'] as const;
+const FIELDS = ['firstName', 'lastName', 'phone', 'status', 'role'] as const;
+
+/** One line on what each role opens, so the choice is an informed one. */
+const ROLE_HINTS: Record<(typeof ADMIN_ROLES)[number], string> = {
+  system_admin: 'همه‌ی بخش‌ها، از جمله مدیریت کاربران پنل، نشست‌ها، خروجی و لغو XP.',
+  content_manager: 'ساخت، ویرایش و انتشار فعالیت‌ها و دیدن آمار کلی.',
+  mission_reviewer: 'بررسی مأموریت‌ها و دیدن پاسخ‌های فردی؛ بدون ویرایش و انتشار.',
+};
 
 /**
  * Create or edit an admin user. The same schema as the API, so a value the
@@ -64,6 +71,8 @@ export function UserFormDialog({ open, onOpenChange, user, isSelf, onSubmit }: U
       lastName: user?.lastName ?? '',
       phone: user?.phone ?? '',
       status: user?.status ?? 'active',
+      // No default for a new admin: what someone may do is chosen, not assumed.
+      role: user?.role,
     },
   });
 
@@ -168,6 +177,33 @@ export function UserFormDialog({ open, onOpenChange, user, isSelf, onSubmit }: U
                     {isSelf
                       ? 'وضعیت حساب خودت رو نمی‌تونی تغییر بدی.'
                       : 'کاربر غیرفعال نمی‌تونه وارد بشه و نشست‌های بازش بسته می‌شه.'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>نقش</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={isSelf}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="انتخاب نقش" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ADMIN_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {isSelf ? 'نقش خودت رو نمی‌تونی تغییر بدی.' : field.value ? ROLE_HINTS[field.value] : 'هر نقش فقط به بخش‌های خودش دسترسی داره.'}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

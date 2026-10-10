@@ -24,6 +24,7 @@ import {
 import { validateAnswers, type ActivityInputOutput } from '@hamdastan/validation';
 
 import { AppError, NotFoundError, ValidationError } from '../../shared/errors';
+import { requestHash, type StoredIdempotency } from '../../shared/idempotency';
 import type { AdminRecord } from '../admin';
 import { progressService } from '../progress';
 import type { UserRecord } from '../users';
@@ -38,6 +39,7 @@ import type {
   AdminActivityRecord,
   ResponseFilter,
   StoredActivityStatus,
+  SubmissionOutcome,
   UserActivityRecord,
 } from './engagement.types';
 
@@ -184,6 +186,35 @@ async function requireActivity(id: string): Promise<AdminActivityRecord> {
 }
 
 /** The results filter: an anonymous survey cannot be narrowed by who answered. */
+/** A key reused for a different request: the client has a bug, not a retry. */
+const keyReused = () =>
+  new AppError(422, 'IDEMPOTENCY_KEY_REUSED', 'این درخواست قبلاً با محتوای دیگری فرستاده شده');
+
+function assertSameRequest(stored: StoredIdempotency<SubmissionOutcome>): SubmissionOutcome {
+  if (stored.state === 'mismatch') throw keyReused();
+  return stored.outcome;
+}
+
+/**
+ * The answer to a submission — the first time, and identically on every
+ * retry of it. The XP total is read fresh: it is the one figure that may
+ * rightly have moved since.
+ */
+async function answerSubmission(user: UserRecord, outcome: SubmissionOutcome): Promise<ActivitySubmission> {
+  if (outcome.status === 'pending_review') {
+    throw new AppError(409, CODES.ACTIVITY_PENDING_REVIEW, 'پاسخ قبلیت هنوز در انتظار تأییده');
+  }
+  if (outcome.status !== 'submitted') {
+    throw new AppError(409, CODES.ACTIVITY_LIMIT_REACHED, 'به سقف دفعات مجازِ این فعالیت رسیدی');
+  }
+  return {
+    status: outcome.completes ? 'completed' : 'pending_review',
+    xpAwarded: outcome.xpAwarded,
+    xpTotal: await progressService.total(user.id),
+    result: outcome.result,
+  };
+}
+
 function responseFilter(record: AdminActivityRecord, query: { from?: string; to?: string; categoryId?: string }): ResponseFilter {
   return {
     from: query.from ? new Date(query.from) : undefined,
@@ -432,8 +463,26 @@ export const engagementService = {
   async submit(
     user: UserRecord,
     id: string,
-    input: { versionId: string; answers: ActivityAnswers }
+    input: { versionId: string; answers: ActivityAnswers },
+    idempotencyKey?: string
   ): Promise<ActivitySubmission> {
+    const idempotency = idempotencyKey
+      ? {
+          scope: 'engagement.submit',
+          ownerId: user.id,
+          key: idempotencyKey,
+          requestHash: requestHash({ activityId: id, ...input }),
+        }
+      : null;
+
+    // A retry of a submission that already went through is answered from
+    // its record before anything else is checked — the activity may have
+    // closed since, and the person must still learn that it counted.
+    if (idempotency) {
+      const stored = await engagementRepository().findSubmission(idempotency);
+      if (stored) return answerSubmission(user, assertSameRequest(stored));
+    }
+
     const now = new Date();
     const entry = await engagementRepository().findForUser(id, user.id);
     if (!visibleTo(entry, now) || !entry.eligible) throw notFound();
@@ -462,6 +511,8 @@ export const engagementService = {
       anonymous: definition.anonymous,
       answers: checked.answers,
       result,
+      // What the person is shown — the response above keeps the full result.
+      visibleResult: definition.assessment?.showResult ? result : null,
       score: result?.score ?? null,
       passed: result?.passed ?? null,
       maxSubmissions: definition.maxSubmissions,
@@ -471,20 +522,10 @@ export const engagementService = {
         completes && earnsXp(definition, result)
           ? { xp: definition.xp.amount, maxAwards: definition.xp.maxAwards, reason: `«${activity.title}»` }
           : null,
+      idempotency,
     });
 
-    if (outcome.status === 'pending_review') {
-      throw new AppError(409, CODES.ACTIVITY_PENDING_REVIEW, 'پاسخ قبلیت هنوز در انتظار تأییده');
-    }
-    if (outcome.status !== 'submitted') {
-      throw new AppError(409, CODES.ACTIVITY_LIMIT_REACHED, 'به سقف دفعات مجازِ این فعالیت رسیدی');
-    }
-
-    return {
-      status: completes ? 'completed' : 'pending_review',
-      xpAwarded: outcome.xpAwarded,
-      xpTotal: await progressService.total(user.id),
-      result: definition.assessment?.showResult ? result : null,
-    };
+    if (outcome.status === 'key_mismatch') throw keyReused();
+    return answerSubmission(user, outcome);
   },
 };

@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_PREFIX } from '@hamdastan/config';
+import { API_BASE_URL, API_PREFIX, HTTP_RETRY, HTTP_TIMEOUT } from '@hamdastan/config';
 import { createHttpClient } from '@hamdastan/shared';
 
 /**
@@ -35,6 +35,7 @@ function refreshOnce(path: string): Promise<boolean> {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(HTTP_TIMEOUT.BROWSER_MS),
   })
     .then((response) => {
       // The API answered and refused: the session is over — expired,
@@ -54,11 +55,23 @@ function refreshOnce(path: string): Promise<boolean> {
   return refreshing;
 }
 
+const onServer = typeof window === 'undefined';
+
 export const apiClient = createHttpClient({
   baseUrl: `${API_BASE_URL}${API_PREFIX}`,
   // Carries the session cookie on browser-side calls.
   credentials: 'include',
+  // Which requests may be retried is the transport's rule (reads, and writes
+  // sent with an idempotency key); these are only how hard to try. The
+  // server render tries less and gives up sooner — a page is waiting on it.
+  timeoutMs: onServer ? HTTP_TIMEOUT.SERVER_MS : HTTP_TIMEOUT.BROWSER_MS,
+  retry: {
+    maxAttempts: onServer ? HTTP_TIMEOUT.SERVER_MAX_ATTEMPTS : HTTP_RETRY.MAX_ATTEMPTS,
+    baseDelayMs: HTTP_RETRY.BASE_DELAY_MS,
+    maxDelayMs: HTTP_RETRY.MAX_DELAY_MS,
+    maxRetryAfterMs: HTTP_RETRY.MAX_RETRY_AFTER_MS,
+  },
   // Only in the browser. On the server there is no cookie jar to put the
   // rotated cookies in; `proxy.ts` has already renewed them for this request.
-  onUnauthorized: typeof window === 'undefined' ? undefined : refreshOnce,
+  onUnauthorized: onServer ? undefined : refreshOnce,
 });

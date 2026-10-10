@@ -55,7 +55,7 @@ npx playwright install chromium || echo "  ⚠ Skipped — run 'npx playwright i
 echo -e "\n${BOLD}${GREEN}✅ Ready.${NC}\n"
 echo "Run one app at a time:"
 echo "  npm run dev          # apps/web    http://localhost:3000"
-echo "  npm run dev:admin    # apps/admin  http://localhost:3001"
+echo "  npm run dev:admin    # apps/admin  http://localhost:3001/admin"
 echo "  npm run dev:api      # apps/api    http://localhost:4000/health"
 echo ""
 echo "Or the whole stack:  docker compose up --build"

@@ -91,9 +91,10 @@ Three things are easy to get wrong here:
 - **The client never decides where a user goes.** Every session response
   carries `nextStep`; `apps/web/src/proxy.ts` obeys it. Do not add a "looks
   complete" check in a component.
-- **`OTP_DEBUG_DISPLAY` is the only thing standing between the flow and an SMS
-  provider.** When Kaveh-Negar is connected, set `SMS_PROVIDER=kavenegar` and
-  turn the echo off; no code changes.
+- **`OTP_DEBUG_DISPLAY` is a development switch.** Production fails closed:
+  the echo is ignored, the console sender is never bound, and without
+  `SMS_PROVIDER=kavenegar` code requests answer 503. No code changes when
+  Kaveh-Negar is connected.
 
 `apps/web/src/features/auth/services/session.service.ts` no longer stores
 anything — it forwards the request's cookies to `GET /me`.
@@ -101,9 +102,10 @@ anything — it forwards the request's cookies to `GET /me`.
 **The admin panel signs in the same way, but only for numbers on its
 allow-list** (`v2_admin_users`, the `admin` module; `docs/PRD.md` §4.6). The
 list is checked after the code verifies, codes are hashed under an `admin`
-scope, the session is the `hd_admin` cookie, and `authenticateAdmin` in
-`apps/api` is the access control — never add an admin check that lives only
-in `apps/admin`. Deactivating or deleting an admin ends their sessions; an
+scope, the session is the `hd_admin` cookie, and `authenticateAdmin` and
+`requireAdminPermission` in `apps/api` are the access control — a route names
+the permission it needs (`ADMIN_ROLE_PERMISSIONS` in `@hamdastan/types`),
+never a role, and never add an admin check that lives only in `apps/admin`. Deactivating or deleting an admin ends their sessions; an
 admin can never deactivate or delete themselves, which is what keeps the
 panel from losing its last admin.
 
@@ -154,10 +156,12 @@ constraints.
 
 ### Deployment
 
-The stack runs on one Ubuntu host as three containers behind nginx, which is
-the only published door: `https://hamdaastaan.ir` (`:443`, Let's Encrypt via
-certbot on the host) serves the product at `/` and the API at `/api/v1`; `:80`
-redirects there. `./scripts/deploy.sh` rsyncs the source, uploads
+The stack runs on one Ubuntu host as three app containers (web, admin, api)
+behind nginx, which is the only published door: `https://hamdaastaan.ir`
+(`:443`, Let's Encrypt via certbot on the host) serves the product at `/`, the
+admin panel at `/admin` (`basePath`, `apps/admin/src/lib/base-path.ts`) and
+the API at `/api/v1`; `:80` redirects there. Nothing in `apps/web` links to
+the panel. `./scripts/deploy.sh` rsyncs the source, uploads
 `deploy/.env.production` as the server's `.env`, and rebuilds there.
 
 `NEXT_PUBLIC_` variables are baked into the browser bundle at **build** time,

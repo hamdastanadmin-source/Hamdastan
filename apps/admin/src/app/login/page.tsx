@@ -7,6 +7,7 @@ import { APP_NAME } from '@hamdastan/config';
 import { ThemeToggle } from '@/components';
 import { LoginForm } from '@/features/auth';
 import { getAdminSession } from '@/features/auth/server';
+import { withBasePath } from '@/lib';
 
 export const metadata: Metadata = { title: 'ورود' };
 
@@ -21,7 +22,7 @@ export default async function LoginPage() {
         <ThemeToggle />
       </div>
       <div className="flex items-center gap-3">
-        <Image src="/images/brand/logo.svg" alt="" width={40} height={40} priority />
+        <Image src={withBasePath('/images/brand/logo.svg')} alt="" width={40} height={40} priority />
         <span className="text-lg font-bold">پنل مدیریت {APP_NAME}</span>
       </div>
       <LoginForm />

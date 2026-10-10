@@ -25,7 +25,22 @@ export const activitiesService = {
     return apiClient.put<{ saved: true }>(`/me/activities/${id}/draft`, { answers });
   },
 
-  submit(id: string, versionId: string, answers: ActivityAnswers): Promise<ActivitySubmission> {
-    return apiClient.post<ActivitySubmission>(`/me/activities/${id}/submit`, { versionId, answers });
+  /**
+   * `idempotencyKey` is what makes this safe to retry — the client does so
+   * on a dropped connection, and the API answers a repeat from its record
+   * instead of storing the answers, or paying the XP, twice. One key per
+   * submission the person makes, reused if they tap again after a failure.
+   */
+  submit(
+    id: string,
+    versionId: string,
+    answers: ActivityAnswers,
+    idempotencyKey: string
+  ): Promise<ActivitySubmission> {
+    return apiClient.post<ActivitySubmission>(
+      `/me/activities/${id}/submit`,
+      { versionId, answers },
+      { idempotencyKey }
+    );
   },
 };

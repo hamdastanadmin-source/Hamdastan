@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@hamdastan/ui';
 
+import { useAdminCan } from '@/features/auth';
 import { errorMessage, formatCount, formatDate, formatPercent } from '@/lib';
 
 import { useActivities } from '../hooks/use-activities';
@@ -50,6 +51,7 @@ const COLUMNS = 8;
  */
 export function ActivitiesScreen() {
   const router = useRouter();
+  const can = useAdminCan();
   const { filters, setFilters, page, setPage, data, loading, error, reload, changeStatus, duplicate } = useActivities();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ activity: AdminActivitySummary; action: ActivityStatusAction } | null>(
@@ -96,12 +98,14 @@ export function ActivitiesScreen() {
             نظرسنجی، مأموریت و آزمون بساز، برای کاربرها منتشر کن و نتیجه و XP رو دنبال کن.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/engagement/new">
-            <Plus aria-hidden="true" />
-            فعالیت جدید
-          </Link>
-        </Button>
+        {can('activities.write') && (
+          <Button asChild>
+            <Link href="/engagement/new">
+              <Plus aria-hidden="true" />
+              فعالیت جدید
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card className="gap-0 py-0">

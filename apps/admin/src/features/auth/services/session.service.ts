@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
 import { ADMIN_SESSION } from '@hamdastan/config';
-import type { AdminSessionResponse } from '@hamdastan/types';
+import type { AdminPermission, AdminSessionResponse } from '@hamdastan/types';
 
+import { can, homeFor } from '@/lib';
 import { adminAuthService } from '@/services';
 
 /**
@@ -32,5 +33,16 @@ export const getAdminSession = cache(async (): Promise<AdminSessionResponse | nu
 export async function requireAdminSession(): Promise<AdminSessionResponse> {
   const session = await getAdminSession();
   if (!session) redirect('/login');
+  return session;
+}
+
+/**
+ * A page only some roles may open. Without the permission, the admin is
+ * sent to the first section they do have, instead of a page whose every
+ * call would answer 403.
+ */
+export async function requireAdminPermission(permission: AdminPermission): Promise<AdminSessionResponse> {
+  const session = await requireAdminSession();
+  if (!can(session.admin.role, permission)) redirect(homeFor(session.admin.role));
   return session;
 }

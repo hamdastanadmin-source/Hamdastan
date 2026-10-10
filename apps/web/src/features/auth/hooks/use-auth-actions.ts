@@ -8,8 +8,6 @@ import type { BasicInfoInput } from '@hamdastan/validation';
 
 import { authService } from '@/services';
 
-import { forgetDebugCode, rememberDebugCode } from '../utils/otp-handoff';
-
 /**
  * The three calls the sign-in flow makes, plus the navigation each one ends
  * in.
@@ -35,8 +33,7 @@ export function useAuthActions() {
 
   const requestOtp = useCallback(
     async (phone: string): Promise<number> => {
-      const { resendIn, debugCode } = await authService.requestOtp(phone);
-      rememberDebugCode(debugCode);
+      const { resendIn } = await authService.requestOtp(phone);
       return resendIn;
     },
     []
@@ -45,7 +42,6 @@ export function useAuthActions() {
   const verifyOtp = useCallback(
     async (phone: string, code: string): Promise<void> => {
       const { nextStep } = await authService.verifyOtp(phone, code);
-      forgetDebugCode();
       // `replace`, not `push`: the code screen must not be reachable with the
       // back button once it has been spent.
       router.replace(PATH_FOR[nextStep]);
@@ -66,7 +62,6 @@ export function useAuthActions() {
 
   const logout = useCallback(async (): Promise<void> => {
     await authService.logout();
-    forgetDebugCode();
     router.replace('/welcome');
     router.refresh();
   }, [router]);

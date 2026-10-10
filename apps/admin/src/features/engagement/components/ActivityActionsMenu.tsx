@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from '@hamdastan/ui';
 
+import { useAdminCan } from '@/features/auth';
+
 import { ACTION_LABELS, ACTIONS_FOR } from '../utils/labels';
 
 /** A row's actions: open, edit, preview, the status moves its status allows, duplicate. */
@@ -27,8 +29,10 @@ export function ActivityActionsMenu({
   onStatus: (action: ActivityStatusAction) => void;
   onDuplicate: () => void;
 }) {
-  const editable = activity.status !== 'archived';
-  const actions = ACTIONS_FOR[activity.status];
+  const can = useAdminCan();
+  const writable = can('activities.write');
+  const editable = activity.status !== 'archived' && writable;
+  const actions = can('activities.publish') ? ACTIONS_FOR[activity.status] : [];
 
   return (
     <DropdownMenu>
@@ -58,10 +62,12 @@ export function ActivityActionsMenu({
             پیش‌نمایش
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onDuplicate}>
-          <Copy aria-hidden="true" />
-          تکثیر
-        </DropdownMenuItem>
+        {writable && (
+          <DropdownMenuItem onSelect={onDuplicate}>
+            <Copy aria-hidden="true" />
+            تکثیر
+          </DropdownMenuItem>
+        )}
         {actions.length > 0 && <DropdownMenuSeparator />}
         {actions.map((action) => (
           <DropdownMenuItem

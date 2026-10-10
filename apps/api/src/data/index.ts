@@ -6,6 +6,7 @@
  */
 export {
   closePool,
+  deleteInBatches,
   getPool,
   isDatabaseConfigured,
   pingDatabase,
@@ -15,5 +16,13 @@ export {
 } from './pool';
 /** The connection a `withTransaction` callback receives. */
 export type { PoolClient as DbClient } from 'pg';
+export {
+  claimIdempotency,
+  completeIdempotency,
+  findIdempotency,
+  purgeExpiredIdempotencyKeys,
+  type IdempotencyRef,
+  type StoredIdempotency,
+} from './idempotency';
 export { hasDrift, runMigrations, type MigrationOutcome } from './migrate';
 export { describeDrift, diffSchema, readSchema, readSnapshot } from './schema-check';

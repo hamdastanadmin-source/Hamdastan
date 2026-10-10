@@ -51,17 +51,36 @@ writing a migration, not after.
     `apps/admin`.
 
 5.  **The code echo is a development switch.** `OTP_DEBUG_DISPLAY=true`
-    returns the freshly issued one-time code in the API response and puts it
-    on the verification screen. With it on, anyone who can ask for a code for
-    a number can also read it. It exists so the flow is usable before
-    Kaveh-Negar is connected; turning it off is the whole deployment step on
-    the day it is, and the API warns loudly at boot if it is on in production.
+    returns the freshly issued one-time code in the API response (for the
+    end-to-end tests; no screen shows it). With it on, anyone who can ask for a code for
+    a number can also read it. **Production fails closed:** the echo is
+    ignored, the console sender is never bound, and without
+    `SMS_PROVIDER=kavenegar` asking for a code is a 503 — no code is issued,
+    stored or logged. There is no production exception, for test numbers or
+    anyone else.
 
 6.  **The client never decides where a user goes.** `nextStep` comes from the
     server on every response that carries a session, and `apps/web/src/
     proxy.ts` obeys it. Inferring "this profile looks complete" in the browser
     is what would let a half-finished account walk past its step by editing a
     URL.
+
+7a. **Admin access is a permission, checked in `apps/api`.** Every admin
+    route that does something registers `requireAdminPermission(...)`, and
+    the role → permission table is `ADMIN_ROLE_PERMISSIONS` in
+    `@hamdastan/types`. A route never compares role names, and hiding a
+    button in `apps/admin` is never the control.
+
+7b. **A write is retried only if it is idempotent.** Clients retry reads,
+    and writes that carry an `Idempotency-Key` the API claims on the write's
+    own transaction. Anything that pays XP, stores a response or sends an
+    SMS is never retried without one.
+
+7c. **The client address comes from nginx alone.** `TRUST_PROXY` names
+    nginx's address on the `edge` network and nothing wider — never `true`
+    or a hop count, which the API refuses — and nginx *replaces*
+    `X-Forwarded-For`. A `proxy_set_header` in an nginx location drops every
+    inherited header; set headers once, at the top of `nginx.conf`.
 
 ## Front-end network access
 

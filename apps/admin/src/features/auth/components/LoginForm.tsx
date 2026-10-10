@@ -33,7 +33,7 @@ import { errorCode, errorMessage } from '@/lib';
 import { useAdminAuth } from '../hooks/use-admin-auth';
 import { OtpStep } from './OtpStep';
 
-type CodeStep = { phone: string; resendIn: number; debugCode?: string; attempt: number };
+type CodeStep = { phone: string; resendIn: number; attempt: number };
 
 /**
  * Admin sign-in: a mobile number, then the code sent to it.
@@ -54,8 +54,8 @@ export function LoginForm() {
   });
 
   const sendCode = async (phone: string, attempt: number) => {
-    const { resendIn, debugCode } = await requestOtp(phone);
-    setCodeStep({ phone, resendIn, debugCode, attempt });
+    const { resendIn } = await requestOtp(phone);
+    setCodeStep({ phone, resendIn, attempt });
   };
 
   const onSubmit = form.handleSubmit(async ({ phone }) => {
@@ -103,7 +103,6 @@ export function LoginForm() {
           <OtpStep
             key={codeStep.attempt}
             phone={codeStep.phone}
-            debugCode={codeStep.debugCode}
             resendIn={codeStep.resendIn}
             onVerify={verify}
             onResend={resend}

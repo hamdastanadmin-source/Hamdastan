@@ -1,4 +1,4 @@
-import type { AdminUserStatus } from '@hamdastan/types';
+import type { AdminRole, AdminUserStatus } from '@hamdastan/types';
 
 /**
  * Types internal to the Admin module. `AdminUser` in `@hamdastan/types` is
@@ -11,6 +11,7 @@ export type AdminRecord = {
   lastName: string;
   phone: string;
   status: AdminUserStatus;
+  role: AdminRole;
   lastLoginAt: Date | null;
   createdAt: Date;
 };
@@ -21,6 +22,7 @@ export type AdminFields = {
   lastName: string;
   phone: string;
   status: AdminUserStatus;
+  role: AdminRole;
 };
 
 export type AdminListQuery = {

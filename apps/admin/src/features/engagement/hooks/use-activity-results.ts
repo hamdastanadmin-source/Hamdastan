@@ -25,10 +25,11 @@ type Loadable<T> = { key: string; data?: T; error?: string };
  * flight differing from the key answered, so nothing is set inside an
  * effect's body and an out-of-date answer is never shown as current.
  */
-function useLoad<T>(key: string, load: () => Promise<T>) {
+function useLoad<T>(key: string, load: () => Promise<T>, enabled = true) {
   const [state, setState] = useState<Loadable<T> | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     load().then(
       (data) => active && setState({ key, data }),
@@ -39,12 +40,12 @@ function useLoad<T>(key: string, load: () => Promise<T>) {
     };
     // `key` encodes everything `load` reads.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, enabled]);
 
   const current = state?.key === key ? state : null;
   return {
     data: current?.data ?? (state?.data as T | undefined) ?? null,
-    loading: !current,
+    loading: enabled && !current,
     error: current?.error ?? null,
   };
 }
@@ -55,7 +56,7 @@ function useLoad<T>(key: string, load: () => Promise<T>) {
  * change them (status, review, revoke). Every write reloads everything,
  * because a review moves the figures, the grants and the history at once.
  */
-export function useActivityResults(id: string) {
+export function useActivityResults(id: string, access: { individual: boolean; xp: boolean }) {
   const [filter, setFilter] = useState<ActivityResultsQuery>({});
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus | undefined>('pending');
   const [reviewPage, setReviewPage] = useState(1);
@@ -67,10 +68,14 @@ export function useActivityResults(id: string) {
   );
   const submissions = useLoad<Paginated<AdminSubmission>>(
     JSON.stringify({ id, reviewStatus, reviewPage, reloads }),
-    () => adminEngagementService.submissions(id, { status: reviewStatus, page: reviewPage })
+    () => adminEngagementService.submissions(id, { status: reviewStatus, page: reviewPage }),
+    // One person's answers and grants are only asked for by a role that may see them.
+    access.individual
   );
-  const grants = useLoad<Paginated<AdminXpGrant>>(JSON.stringify({ id, grantPage, reloads }), () =>
-    adminEngagementService.grants(id, { page: grantPage })
+  const grants = useLoad<Paginated<AdminXpGrant>>(
+    JSON.stringify({ id, grantPage, reloads }),
+    () => adminEngagementService.grants(id, { page: grantPage }),
+    access.xp
   );
   const history = useLoad<AdminActivityEvent[]>(JSON.stringify({ id, reloads }), () =>
     adminEngagementService.history(id)

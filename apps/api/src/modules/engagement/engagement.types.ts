@@ -9,6 +9,8 @@ import type {
   ReviewStatus,
 } from '@hamdastan/types';
 
+import type { IdempotencyRef } from '../../shared/idempotency';
+
 /**
  * Types internal to the Engagement module. What leaves the API is in
  * `@hamdastan/types`; this is what the repository returns.
@@ -83,6 +85,8 @@ export type SubmissionWrite = {
   anonymous: boolean;
   answers: ActivityAnswers;
   result: AssessmentResult | null;
+  /** The part of `result` the person is shown; what a replay answers with. */
+  visibleResult: AssessmentResult | null;
   score: number | null;
   passed: boolean | null;
   maxSubmissions: number;
@@ -90,10 +94,20 @@ export type SubmissionWrite = {
   completes: boolean;
   /** The reward, when this submission earns one; capped by `maxAwards`. */
   reward: { xp: number; maxAwards: number; reason: string } | null;
+  /**
+   * The request's idempotency key, when it sent one. Claimed on the same
+   * transaction as the response and the reward, and answered from on retry.
+   */
+  idempotency: IdempotencyRef | null;
 };
 
+/**
+ * What a submission came to — and, with an idempotency key, exactly what a
+ * retry of it is answered with, so a `submitted` carries what the response
+ * is built from.
+ */
 export type SubmissionOutcome =
-  | { status: 'submitted'; xpAwarded: number }
+  | { status: 'submitted'; xpAwarded: number; completes: boolean; result: AssessmentResult | null }
   | { status: 'limit_reached' | 'pending_review' };
 
 export type ResponseRow = {

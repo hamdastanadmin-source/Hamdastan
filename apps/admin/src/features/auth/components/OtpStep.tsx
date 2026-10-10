@@ -1,14 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CircleAlert, KeyRound, Loader2, RotateCcw } from 'lucide-react';
+import { CircleAlert, Loader2, RotateCcw } from 'lucide-react';
 
 import { OTP } from '@hamdastan/config';
 import { toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
   InputOTP,
   InputOTPGroup,
@@ -20,8 +17,6 @@ import { errorMessage } from '@/lib';
 
 type OtpStepProps = {
   phone: string;
-  /** Present only while the API's development echo is on. */
-  debugCode?: string;
   resendIn: number;
   onVerify: (code: string) => Promise<void>;
   onResend: () => Promise<void>;
@@ -33,7 +28,7 @@ type OtpStepProps = {
  * The parent remounts this step on every resend (by `key`), which is what
  * restarts the resend timer.
  */
-export function OtpStep({ phone, debugCode, resendIn, onVerify, onResend, onEditPhone }: OtpStepProps) {
+export function OtpStep({ phone, resendIn, onVerify, onResend, onEditPhone }: OtpStepProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -87,19 +82,6 @@ export function OtpStep({ phone, debugCode, resendIn, onVerify, onResend, onEdit
           ویرایش شماره
         </Button>
       </p>
-
-      {debugCode && (
-        <Alert>
-          <KeyRound aria-hidden="true" />
-          <AlertTitle>کد تست</AlertTitle>
-          <AlertDescription>
-            <span dir="ltr" className="font-mono text-base tracking-[0.3em] text-foreground">
-              {debugCode}
-            </span>
-            <span>تا وصل شدن سرویس پیامک، کد همین‌جا نمایش داده می‌شه.</span>
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* LTR: the first digit typed sits where the code starts in the SMS. */}
       <div dir="ltr" className="flex justify-center">

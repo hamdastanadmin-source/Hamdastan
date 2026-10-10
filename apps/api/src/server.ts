@@ -18,6 +18,11 @@ import {
 import { setAdminRepository, sqlAdminRepository } from './modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
 import { setEngagementRepository, sqlEngagementRepository } from './modules/engagement';
+import {
+  maintenanceService,
+  setMaintenanceRepository,
+  sqlMaintenanceRepository,
+} from './modules/maintenance';
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
@@ -69,6 +74,7 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setProgressRepository(sqlProgressRepository);
   setAdminRepository(sqlAdminRepository);
   setEngagementRepository(sqlEngagementRepository);
+  setMaintenanceRepository(sqlMaintenanceRepository);
 
   log('database connected — users, auth, onboarding, progress, admin and engagement repositories bound');
 }
@@ -79,23 +85,30 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
  * deployed environment sets `SMS_PROVIDER=kavenegar` and nothing else
  * changes.
  */
-function chooseSmsSender(log: FastifyBaseLogger): SmsSender {
+function chooseSmsSender(log: FastifyBaseLogger): SmsSender | null {
   if (env.SMS_PROVIDER === 'kavenegar') {
     return createKavenegarSmsSender({
       // Both are guaranteed by the check in `config/env.ts`.
       apiKey: env.KAVENEGAR_API_KEY!,
       template: env.KAVENEGAR_TEMPLATE ?? 'verify',
+      timeoutMs: env.SMS_TIMEOUT_MS,
+      log,
     });
   }
-  return createConsoleSmsSender(log);
+  // Fail closed: the console sender is a development tool, and production
+  // without a real provider issues no codes at all (requests answer 503).
+  if (env.isProduction) return null;
+  return createConsoleSmsSender(log, { revealCode: true });
 }
 
 async function main(): Promise<void> {
   const app = await buildApp();
+  let stopMaintenance = () => {};
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(signal, () => {
       app.log.info({ signal }, 'shutting down');
+      stopMaintenance();
       void app
         .close()
         // After the server stops accepting requests, so in-flight statements
@@ -107,10 +120,13 @@ async function main(): Promise<void> {
 
   const smsSender = chooseSmsSender(app.log);
   setSmsSender(smsSender);
-  app.log.info({ provider: smsSender.name }, 'sms sender bound');
+  if (smsSender) app.log.info({ provider: smsSender.name }, 'sms sender bound');
+  else app.log.error('no SMS provider in production — one-time codes are refused (503) until SMS_PROVIDER=kavenegar');
 
+  let dataLayerOpen = false;
   try {
     await openDataLayer((message) => app.log.info(message));
+    dataLayerOpen = true;
   } catch (error) {
     if (env.isProduction) {
       app.log.fatal({ err: error }, 'data layer unavailable');
@@ -126,6 +142,9 @@ async function main(): Promise<void> {
     await closePool();
     process.exit(1);
   }
+
+  // Expired tokens, codes and long-ended sessions, hourly.
+  if (dataLayerOpen) stopMaintenance = maintenanceService.start(app.log);
 }
 
 void main();

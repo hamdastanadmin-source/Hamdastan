@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, type Page } from '@playwright/test';
 
 import { API_BASE_URL } from '@hamdastan/config';
 
@@ -36,4 +36,25 @@ export async function requireApi(): Promise<void> {
 export function testPhone(): string {
   const suffix = String(Math.floor(Math.random() * 10_000_000)).padStart(7, '0');
   return `0999${suffix}`;
+}
+
+/**
+ * Clicks «دریافت کد» and returns the one-time code the API issued.
+ *
+ * The screens never show the code — it goes by SMS — so the test reads it
+ * from the response to `POST /auth/otp/request`, which carries it as
+ * `debugCode` only in development with `OTP_DEBUG_DISPLAY=true` (never in
+ * production).
+ */
+export async function requestCodeFromScreen(page: Page): Promise<string> {
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith('/auth/otp/request') && r.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'دریافت کد' }).click();
+  const body = (await (await response).json()) as { data?: { debugCode?: string } };
+  const code = body.data?.debugCode;
+  if (!code) {
+    throw new Error('No debugCode in the response: run the API with OTP_DEBUG_DISPLAY=true (development only).');
+  }
+  return code;
 }

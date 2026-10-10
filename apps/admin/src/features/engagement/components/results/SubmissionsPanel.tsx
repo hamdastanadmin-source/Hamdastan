@@ -49,12 +49,14 @@ export function SubmissionsPanel({
   onStatus: (status: ReviewStatus | undefined) => void;
   page: number;
   onPage: (page: number) => void;
-  onReview: (id: string, decision: 'approve' | 'reject', note?: string) => Promise<{ xpAwarded: number }>;
+  /** Absent when the admin may not review: the queue is then read-only. */
+  onReview?: (id: string, decision: 'approve' | 'reject', note?: string) => Promise<{ xpAwarded: number }>;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<AdminSubmission | null>(null);
 
   const review = async (submission: AdminSubmission, decision: 'approve' | 'reject', note?: string) => {
+    if (!onReview) return;
     setBusyId(submission.id);
     try {
       const { xpAwarded } = await onReview(submission.id, decision, note);
@@ -121,7 +123,7 @@ export function SubmissionsPanel({
             {submission.reviewNote && (
               <p className="rounded-md bg-muted p-3 text-sm">یادداشت بررسی: {submission.reviewNote}</p>
             )}
-            {submission.reviewStatus === 'pending' && (
+            {submission.reviewStatus === 'pending' && onReview && (
               <div className="flex gap-2">
                 <Button
                   size="sm"

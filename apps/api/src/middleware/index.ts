@@ -5,4 +5,6 @@
 
 export { registerErrorHandler } from './error-handler';
 export { authenticate, currentUser } from './authenticate';
-export { authenticateAdmin, currentAdmin } from './authenticate-admin';
+export { authenticateAdmin, currentAdmin, requireAdminPermission } from './authenticate-admin';
+export { rateLimits, registerRateLimit } from './rate-limit';
+export { registerCsrfProtection } from './csrf';

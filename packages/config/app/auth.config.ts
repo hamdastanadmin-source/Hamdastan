@@ -28,8 +28,14 @@ export const OTP = {
 /** Session and token lifetimes. */
 export const SESSION = {
   ACCESS_TOKEN_TTL_SECONDS: 15 * 60,
-  /** Rolling: pushed out again on every refresh. */
-  REFRESH_TOKEN_TTL_SECONDS: 30 * 24 * 60 * 60,
+  /**
+   * The idle timeout. Rolling: every refresh pushes it out again, so a
+   * session unused for this long ends, and one in use carries on —
+   * until `ABSOLUTE_TTL_SECONDS`.
+   */
+  REFRESH_TOKEN_TTL_SECONDS: 7 * 24 * 60 * 60,
+  /** No session outlives this, counted from sign-in, however active it is. */
+  ABSOLUTE_TTL_SECONDS: 30 * 24 * 60 * 60,
   /**
    * A spent refresh token presented again this soon after is the same client
    * racing itself — a navigation fires the page and its prefetches at once,

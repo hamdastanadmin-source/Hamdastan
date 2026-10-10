@@ -2,12 +2,15 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { ADMIN_SESSION, API_PREFIX } from '@hamdastan/config';
+import { ADMIN_ROLE_PERMISSIONS, type AdminPermission, type AdminRole } from '@hamdastan/types';
 
 import { buildApp } from '../app';
 import { closePool, getPool, runMigrations } from '../data';
 import type { SmsSender } from '../integrations';
 import { setAdminRepository, sqlAdminRepository } from '../modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from '../modules/auth';
+import { setEngagementRepository, sqlEngagementRepository } from '../modules/engagement';
+import { setProgressRepository, sqlProgressRepository } from '../modules/progress';
 import { setUsersRepository, sqlUsersRepository } from '../modules/users';
 
 /**
@@ -58,8 +61,9 @@ async function adminSignIn(phone: string): Promise<Cookies> {
   return cookies;
 }
 
+/** A system admin unless the test says otherwise: most of these are about the list, not roles. */
 async function createAdmin(cookies: Cookies, fields: Record<string, unknown>) {
-  return call('POST', '/admin/users', fields, cookies);
+  return call('POST', '/admin/users', { role: 'system_admin', ...fields }, cookies);
 }
 
 describe.skipIf(!hasDatabase)('admin panel against a migrated database', () => {
@@ -72,6 +76,8 @@ describe.skipIf(!hasDatabase)('admin panel against a migrated database', () => {
     setUsersRepository(sqlUsersRepository);
     setAuthRepository(sqlAuthRepository);
     setAdminRepository(sqlAdminRepository);
+    setProgressRepository(sqlProgressRepository);
+    setEngagementRepository(sqlEngagementRepository);
     setSmsSender(silentSender);
 
     app = await buildApp();
@@ -339,6 +345,223 @@ describe.skipIf(!hasDatabase)('admin panel against a migrated database', () => {
       // Still signed in, still active.
       const after = await call('GET', '/admin/me', undefined, main);
       expect(after.json().data.admin.status).toBe('active');
+    });
+  });
+
+  describe('the admin idle timeout', () => {
+    it('ends a session unused for two hours, though its twelve are not up', async () => {
+      const cookies = await adminSignIn(MAIN_ADMIN_PHONE);
+      expect((await call('GET', '/admin/me', undefined, cookies)).statusCode).toBe(200);
+
+      await getPool().query(
+        `UPDATE v2_admin_sessions SET last_seen_at = now() - interval '2 hours 1 minute'
+          WHERE token_hash = encode(sha256($1::bytea), 'hex')`,
+        [cookies[ADMIN_SESSION.COOKIE]]
+      );
+      expect((await call('GET', '/admin/me', undefined, cookies)).statusCode).toBe(401);
+    });
+
+    it('counts use as activity, so a working admin stays signed in', async () => {
+      const cookies = await adminSignIn(MAIN_ADMIN_PHONE);
+      await getPool().query(
+        `UPDATE v2_admin_sessions SET last_seen_at = now() - interval '1 hour 50 minutes'
+          WHERE token_hash = encode(sha256($1::bytea), 'hex')`,
+        [cookies[ADMIN_SESSION.COOKIE]]
+      );
+      expect((await call('GET', '/admin/me', undefined, cookies)).statusCode).toBe(200);
+      const { rows } = await getPool().query(
+        `SELECT last_seen_at > now() - interval '1 minute' AS fresh FROM v2_admin_sessions
+          WHERE token_hash = encode(sha256($1::bytea), 'hex')`,
+        [cookies[ADMIN_SESSION.COOKIE]]
+      );
+      expect(rows[0].fresh).toBe(true);
+    });
+  });
+
+  describe("managing a person's sessions", () => {
+    async function productSignIn(phone: string): Promise<Cookies> {
+      const requested = await call('POST', '/auth/otp/request', { phone });
+      const code = requested.json().data.debugCode as string;
+      const verified = await app.inject({
+        method: 'POST',
+        url: `${API_PREFIX}/auth/otp/verify`,
+        payload: { phone, code },
+        headers: { 'user-agent': 'Mozilla/5.0 (iPhone) test' },
+      });
+      expect(verified.statusCode, verified.body).toBe(200);
+      return cookiesFrom(verified);
+    }
+    const me = (cookies: Cookies) => call('GET', '/me', undefined, cookies);
+
+    it('finds a person by number and lists their live sessions with the device', async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const phone = nextPhone();
+      await productSignIn(phone);
+      await productSignIn(phone);
+
+      const found = await call('POST', '/admin/app-users/sessions/lookup', { phone }, admin);
+      expect(found.statusCode, found.body).toBe(200);
+      const { user, sessions } = found.json().data;
+      expect(user).toMatchObject({ phone, suspended: false });
+      expect(sessions).toHaveLength(2);
+      expect(sessions[0]).toMatchObject({ userAgent: 'Mozilla/5.0 (iPhone) test', ip: '127.0.0.1' });
+
+      expect((await call('POST', '/admin/app-users/sessions/lookup', { phone: nextPhone() }, admin)).statusCode).toBe(404);
+    });
+
+    it('ends one session at once, and leaves the others', async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const phone = nextPhone();
+      const first = await productSignIn(phone);
+      const second = await productSignIn(phone);
+      const { user, sessions } = (await call('POST', '/admin/app-users/sessions/lookup', { phone }, admin)).json().data;
+
+      // Newest first: the second sign-in.
+      const ended = await call('DELETE', `/admin/app-users/${user.id}/sessions/${sessions[0].id}`, undefined, admin);
+      expect(ended.statusCode, ended.body).toBe(200);
+      expect((await me(second)).statusCode).toBe(401);
+      expect((await call('POST', '/auth/refresh', undefined, second)).statusCode).toBe(401);
+      expect((await me(first)).statusCode).toBe(200);
+
+      // Already ended, or not this person's: 404, never another's session.
+      expect((await call('DELETE', `/admin/app-users/${user.id}/sessions/${sessions[0].id}`, undefined, admin)).statusCode).toBe(404);
+      const other = (await call('POST', '/admin/app-users/sessions/lookup', { phone: MAIN_ADMIN_PHONE }, admin));
+      if (other.statusCode === 200) {
+        const otherId = other.json().data.user.id as string;
+        expect((await call('DELETE', `/admin/app-users/${otherId}/sessions/${sessions[1].id}`, undefined, admin)).statusCode).toBe(404);
+        expect((await me(first)).statusCode).toBe(200);
+      }
+
+      const { rows } = await getPool().query(`SELECT revoked_reason FROM v2_sessions WHERE id = $1`, [sessions[0].id]);
+      expect(rows[0].revoked_reason).toBe('admin');
+    });
+
+    it('ends every session the person has', async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const phone = nextPhone();
+      const devices = [await productSignIn(phone), await productSignIn(phone), await productSignIn(phone)];
+      const { user } = (await call('POST', '/admin/app-users/sessions/lookup', { phone }, admin)).json().data;
+
+      const all = await call('DELETE', `/admin/app-users/${user.id}/sessions`, undefined, admin);
+      expect(all.statusCode, all.body).toBe(200);
+      expect(all.json().data).toEqual({ revoked: 3 });
+      for (const device of devices) expect((await me(device)).statusCode).toBe(401);
+
+      const after = await call('GET', `/admin/app-users/${user.id}/sessions`, undefined, admin);
+      expect(after.json().data.sessions).toEqual([]);
+    });
+
+    it('is closed to anyone without an admin session, and refuses malformed ids', async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const person = await productSignIn(nextPhone());
+      const someId = '00000000-0000-4000-8000-000000000000';
+
+      expect((await call('POST', '/admin/app-users/sessions/lookup', { phone: MAIN_ADMIN_PHONE })).statusCode).toBe(401);
+      expect((await call('POST', '/admin/app-users/sessions/lookup', { phone: MAIN_ADMIN_PHONE }, person)).statusCode).toBe(401);
+      expect((await call('DELETE', `/admin/app-users/${someId}/sessions`, undefined, person)).statusCode).toBe(401);
+      expect((await call('DELETE', `/admin/app-users/not-a-uuid/sessions`, undefined, admin)).statusCode).toBe(400);
+      expect((await call('GET', `/admin/app-users/${someId}/sessions`, undefined, admin)).statusCode).toBe(404);
+    });
+  });
+
+  describe('roles and permissions', () => {
+    const ANY = '00000000-0000-4000-8000-000000000000';
+    /** Every admin route that does something, and the permission it needs. */
+    const ROUTES: Array<{ method: 'GET' | 'POST' | 'PATCH' | 'DELETE'; url: string; needs: AdminPermission; body?: unknown }> = [
+      { method: 'GET', url: '/admin/users', needs: 'admins.manage' },
+      { method: 'POST', url: '/admin/users', needs: 'admins.manage', body: {} },
+      { method: 'PATCH', url: `/admin/users/${ANY}`, needs: 'admins.manage', body: {} },
+      { method: 'DELETE', url: `/admin/users/${ANY}`, needs: 'admins.manage' },
+      { method: 'POST', url: '/admin/app-users/sessions/lookup', needs: 'sessions.manage', body: {} },
+      { method: 'GET', url: `/admin/app-users/${ANY}/sessions`, needs: 'sessions.manage' },
+      { method: 'DELETE', url: `/admin/app-users/${ANY}/sessions/${ANY}`, needs: 'sessions.manage' },
+      { method: 'DELETE', url: `/admin/app-users/${ANY}/sessions`, needs: 'sessions.manage' },
+      { method: 'GET', url: '/admin/engagement/activities', needs: 'activities.read' },
+      { method: 'POST', url: '/admin/engagement/activities', needs: 'activities.write', body: {} },
+      { method: 'GET', url: `/admin/engagement/activities/${ANY}`, needs: 'activities.read' },
+      { method: 'POST', url: `/admin/engagement/activities/${ANY}/status`, needs: 'activities.publish', body: {} },
+      { method: 'POST', url: `/admin/engagement/activities/${ANY}/duplicate`, needs: 'activities.write' },
+      { method: 'GET', url: `/admin/engagement/activities/${ANY}/results`, needs: 'results.read' },
+      { method: 'GET', url: `/admin/engagement/activities/${ANY}/export`, needs: 'results.export' },
+      { method: 'GET', url: `/admin/engagement/activities/${ANY}/submissions`, needs: 'results.individual' },
+      { method: 'GET', url: `/admin/engagement/activities/${ANY}/grants`, needs: 'xp.read' },
+      { method: 'POST', url: `/admin/engagement/submissions/${ANY}/review`, needs: 'submissions.review', body: {} },
+      { method: 'POST', url: `/admin/engagement/xp/${ANY}/revoke`, needs: 'xp.revoke', body: {} },
+    ];
+
+    async function signedInAs(role: AdminRole): Promise<Cookies> {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const phone = nextPhone();
+      const created = await createAdmin(admin, { firstName: 'نقش', lastName: 'آزمایشی', phone, role });
+      expect(created.statusCode, created.body).toBe(201);
+      expect(created.json().data.role).toBe(role);
+      return adminSignIn(phone);
+    }
+
+    it.each(['system_admin', 'content_manager', 'mission_reviewer'] as const)(
+      'lets a %s through exactly the routes its permissions name',
+      async (role) => {
+        const cookies = await signedInAs(role);
+        for (const route of ROUTES) {
+          const response = await call(route.method, route.url, route.body, cookies);
+          const allowed = ADMIN_ROLE_PERMISSIONS[role].includes(route.needs);
+          if (allowed) {
+            // Past the guard: whatever the handler says about a made-up id, not a 403.
+            expect(response.statusCode, `${role} ${route.method} ${route.url}`).not.toBe(403);
+          } else {
+            expect(response.statusCode, `${role} ${route.method} ${route.url}`).toBe(403);
+            expect(response.json().error.code).toBe('ADMIN_PERMISSION_DENIED');
+          }
+        }
+      }
+    );
+
+    it('gives every role its own view of itself', async () => {
+      const reviewer = await signedInAs('mission_reviewer');
+      const me = await call('GET', '/admin/me', undefined, reviewer);
+      expect(me.statusCode).toBe(200);
+      expect(me.json().data.admin.role).toBe('mission_reviewer');
+    });
+
+    it('requires a role to create an admin, and refuses one that does not exist', async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const base = { firstName: 'بی', lastName: 'نقش', phone: nextPhone() };
+      expect((await call('POST', '/admin/users', base, admin)).statusCode).toBe(400);
+      expect((await call('POST', '/admin/users', { ...base, role: 'root' }, admin)).statusCode).toBe(400);
+    });
+
+    it('changes a role, effective on the next request, but never your own', async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const phone = nextPhone();
+      const created = (await createAdmin(admin, { firstName: 'ارتقا', lastName: 'آزمایشی', phone, role: 'content_manager' })).json().data;
+      const theirs = await adminSignIn(phone);
+      expect((await call('GET', '/admin/users', undefined, theirs)).statusCode).toBe(403);
+
+      expect((await call('PATCH', `/admin/users/${created.id}`, { role: 'system_admin' }, admin)).statusCode).toBe(200);
+      expect((await call('GET', '/admin/users', undefined, theirs)).statusCode).toBe(200);
+
+      const self = (await call('GET', '/admin/me', undefined, admin)).json().data.admin;
+      const demote = await call('PATCH', `/admin/users/${self.id}`, { role: 'content_manager' }, admin);
+      expect(demote.statusCode).toBe(400);
+      expect(demote.json().error.code).toBe('ADMIN_SELF_ROLE_CHANGE');
+    });
+
+    it("checks the admin's status on every request, not only when their sessions are revoked", async () => {
+      const admin = await adminSignIn(MAIN_ADMIN_PHONE);
+      const phone = nextPhone();
+      await createAdmin(admin, { firstName: 'وضعیت', lastName: 'آزمایشی', phone, role: 'content_manager' });
+      const theirs = await adminSignIn(phone);
+      expect((await call('GET', '/admin/engagement/activities', undefined, theirs)).statusCode).toBe(200);
+
+      // Straight in the database — no session is revoked, only the status changes.
+      await getPool().query(`UPDATE v2_admin_users SET status = 'INACTIVE' WHERE phone = $1`, [phone]);
+      expect((await call('GET', '/admin/engagement/activities', undefined, theirs)).statusCode).toBe(401);
+      expect((await call('GET', '/admin/me', undefined, theirs)).statusCode).toBe(401);
+    });
+
+    it('keeps existing admins as system admins after the migration', async () => {
+      const { rows } = await getPool().query(`SELECT role FROM v2_admin_users WHERE phone = $1`, [MAIN_ADMIN_PHONE]);
+      expect(rows[0].role).toBe('SYSTEM_ADMIN');
     });
   });
 });

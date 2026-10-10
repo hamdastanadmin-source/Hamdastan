@@ -7,7 +7,20 @@ import type {
   ReviewStatus,
 } from '@hamdastan/types';
 
-import { query, queryOne, withTransaction, type DbClient } from '../../data';
+import {
+  claimIdempotency,
+  completeIdempotency,
+  findIdempotency,
+  query,
+  queryOne,
+  withTransaction,
+  type DbClient,
+} from '../../data';
+import {
+  IDEMPOTENCY_TTL_SECONDS,
+  type IdempotencyRef,
+  type StoredIdempotency,
+} from '../../shared/idempotency';
 import { createRepositorySlot } from '../../shared/repository';
 import { grantWithin } from '../progress';
 
@@ -74,7 +87,14 @@ export interface EngagementRepository {
   listForUser(userId: string, now: Date): Promise<UserActivityRecord[]>;
   findForUser(activityId: string, userId: string): Promise<UserActivityRecord | null>;
   saveDraft(activityId: string, userId: string, answers: ActivityAnswers): Promise<void>;
-  submit(write: SubmissionWrite): Promise<SubmissionOutcome>;
+  /**
+   * Stores a response and pays its reward, in one transaction. With an
+   * idempotency key, a key already used answers with what it recorded —
+   * `mismatch` when that was a different request — and nothing is written.
+   */
+  submit(write: SubmissionWrite): Promise<SubmissionOutcome | { status: 'key_mismatch' }>;
+  /** What an idempotency key recorded, if anything — read before any work. */
+  findSubmission(ref: IdempotencyRef): Promise<StoredIdempotency<SubmissionOutcome> | null>;
 }
 
 const slot = createRepositorySlot<EngagementRepository>('engagement');
@@ -757,8 +777,28 @@ export const sqlEngagementRepository: EngagementRepository = {
     );
   },
 
+  async findSubmission(ref) {
+    return findIdempotency<SubmissionOutcome>(ref);
+  },
+
   async submit(write) {
-    return withTransaction(async (client): Promise<SubmissionOutcome> => {
+    return withTransaction(async (client): Promise<SubmissionOutcome | { status: 'key_mismatch' }> => {
+      // Claimed first, on this transaction: a retry that arrives while this
+      // one is still running waits here, then answers from what it records.
+      if (write.idempotency) {
+        const stored = await claimIdempotency<SubmissionOutcome>(
+          client,
+          write.idempotency,
+          IDEMPOTENCY_TTL_SECONDS
+        );
+        if (stored?.state === 'mismatch') return { status: 'key_mismatch' };
+        if (stored) return stored.outcome;
+      }
+      const finish = async (outcome: SubmissionOutcome): Promise<SubmissionOutcome> => {
+        if (write.idempotency) await completeIdempotency(client, write.idempotency, outcome);
+        return outcome;
+      };
+
       // The row exists before it is locked, so a first submission and a
       // concurrent one both queue on it rather than both inserting.
       await client.query(
@@ -772,8 +812,8 @@ export const sqlEngagementRepository: EngagementRepository = {
         [write.activityId, write.userId]
       );
       const participation = rows[0];
-      if (participation.status === 'pending_review') return { status: 'pending_review' };
-      if (participation.submissions >= write.maxSubmissions) return { status: 'limit_reached' };
+      if (participation.status === 'pending_review') return finish({ status: 'pending_review' });
+      if (participation.submissions >= write.maxSubmissions) return finish({ status: 'limit_reached' });
 
       // An anonymous response carries no person, and only the (UTC) day it
       // came in — the participation's own timestamps cannot be matched to it.
@@ -809,7 +849,7 @@ export const sqlEngagementRepository: EngagementRepository = {
       const xpAwarded = write.completes
         ? await payReward(client, write.activityId, write.versionId, write.userId, participation.xp_awards, write.reward)
         : 0;
-      return { status: 'submitted', xpAwarded };
+      return finish({ status: 'submitted', xpAwarded, completes: write.completes, result: write.visibleResult });
     });
   },
 };

@@ -1,17 +1,14 @@
 'use client';
 
-import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
-import { CircleAlert, KeyRound, Loader2, RotateCcw } from 'lucide-react';
+import { CircleAlert, Loader2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { OTP } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 import { toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
   InputOTP,
   InputOTPGroup,
@@ -31,11 +28,6 @@ import {
 import { useAuthActions } from '../hooks/use-auth-actions';
 import { useCountdown } from '../hooks/use-countdown';
 import { authErrorMessage } from '../utils/errors';
-import {
-  getDebugCode,
-  getServerDebugCode,
-  subscribeDebugCode,
-} from '../utils/otp-handoff';
 
 /**
  * Step two: proving the number belongs to the person holding it.
@@ -65,15 +57,6 @@ export function OtpForm({ phone }: { phone: string }) {
   const [checking, setChecking] = useState(false);
   const [resendIn, setResendIn] = useState<number>(OTP.RESEND_AFTER_SECONDS);
   const remaining = useCountdown(resendIn);
-
-  // The development echo, handed over by the previous screen. Subscribed to
-  // rather than read once, so a resend replaces it — and read as `null` on
-  // the server, so the markup matches on hydration.
-  const debugCode = useSyncExternalStore(
-    subscribeDebugCode,
-    getDebugCode,
-    getServerDebugCode
-  );
 
   // Guards the auto-submit against React running the effect twice, which it
   // does in development's strict mode — a code is spendable exactly once.
@@ -137,22 +120,6 @@ export function OtpForm({ phone }: { phone: string }) {
             </>
           }
         />
-
-        {debugCode && (
-          <Alert>
-            <KeyRound aria-hidden="true" />
-            <AlertTitle>کد تست</AlertTitle>
-            <AlertDescription>
-              <span
-                dir="ltr"
-                className="font-mono text-base tracking-[0.3em] text-foreground"
-              >
-                {debugCode}
-              </span>
-              <span>تا وصل شدن سرویس پیامک، کد همین‌جا نمایش داده می‌شه.</span>
-            </AlertDescription>
-          </Alert>
-        )}
 
         <div className="flex flex-col items-center gap-4">
           {/* The boxes run LTR: the first digit typed sits at the start of

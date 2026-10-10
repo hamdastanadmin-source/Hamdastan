@@ -7,7 +7,7 @@ import type {
 
 import { env } from '../../config';
 import type { SmsSender } from '../../integrations';
-import { AppError, UnauthorizedError } from '../../shared/errors';
+import { AppError, NotFoundError, UnauthorizedError } from '../../shared/errors';
 import {
   generateNumericCode,
   generateToken,
@@ -18,7 +18,14 @@ import {
 import { toSession, usersService, type UserRecord } from '../users';
 
 import { authRepository } from './auth.repository';
-import type { SessionTokens, TokenHashes } from './auth.types';
+import type {
+  ClientInfo,
+  PurgeCounts,
+  RetentionPolicy,
+  SessionRecord,
+  SessionTokens,
+  TokenHashes,
+} from './auth.types';
 
 /**
  * Business logic for the Auth module — proving that someone owns a phone
@@ -42,13 +49,18 @@ import type { SessionTokens, TokenHashes } from './auth.types';
 let smsSender: SmsSender | null = null;
 
 /** Binds the SMS adapter. Called once, at boot, from `server.ts`. */
-export function setSmsSender(sender: SmsSender): void {
+export function setSmsSender(sender: SmsSender | null): void {
   smsSender = sender;
 }
 
+/**
+ * The bound sender. Unbound means there is no provider that may be used —
+ * in production, `SMS_PROVIDER=console` — and sign-in fails closed: no code
+ * is issued, stored or counted.
+ */
 function sender(): SmsSender {
   if (!smsSender) {
-    throw new AppError(501, 'SMS_NOT_CONFIGURED', 'ارسال پیامک فعلاً ممکن نیست، کمی بعد دوباره امتحان کن');
+    throw new AppError(503, 'SMS_UNAVAILABLE', 'ارسال پیامک فعلاً ممکن نیست، کمی بعد دوباره امتحان کن');
   }
   return smsSender;
 }
@@ -68,13 +80,39 @@ class RateLimitedError extends AppError {
   }
 }
 
-/** Mints a fresh pair and the hashes that go with it. */
-function issueTokens(now: Date): { tokens: SessionTokens; hashes: TokenHashes } {
+/**
+ * Refuses a number that has entered too many wrong codes lately — across
+ * codes, so asking for a fresh one does not reset the count. Returns quietly
+ * otherwise.
+ */
+async function assertNotLocked(phone: string, now: Date): Promise<void> {
+  const window = await authRepository().findFailures(phone);
+  if (!window || window.failures < env.OTP_MAX_FAILURES) return;
+
+  const endsAt = new Date(window.windowStartedAt.getTime() + seconds(env.OTP_FAILURE_WINDOW_SECONDS));
+  if (endsAt > now) throw lockedError(secondsUntil(endsAt, now));
+}
+
+function lockedError(retryAfter?: number): AppError {
+  return new AppError(
+    429,
+    'OTP_LOCKED',
+    'تعداد تلاش‌ها زیاد بود، کمی بعد کد جدید بگیر',
+    retryAfter === undefined ? undefined : { retryAfter }
+  );
+}
+
+/**
+ * Mints a fresh pair and the hashes that go with it. Neither outlives
+ * `capAt`, the session's absolute end.
+ */
+function issueTokens(now: Date, capAt?: Date): { tokens: SessionTokens; hashes: TokenHashes } {
+  const capped = (at: Date) => (capAt && capAt < at ? capAt : at);
   const tokens: SessionTokens = {
     accessToken: generateToken(),
-    accessExpiresAt: new Date(now.getTime() + seconds(SESSION.ACCESS_TOKEN_TTL_SECONDS)),
+    accessExpiresAt: capped(new Date(now.getTime() + seconds(SESSION.ACCESS_TOKEN_TTL_SECONDS))),
     refreshToken: generateToken(),
-    refreshExpiresAt: new Date(now.getTime() + seconds(SESSION.REFRESH_TOKEN_TTL_SECONDS)),
+    refreshExpiresAt: capped(new Date(now.getTime() + seconds(env.session.idleSeconds))),
   };
 
   return {
@@ -108,6 +146,7 @@ const otpScope = (purpose: OtpPurpose) => (purpose === 'user' ? undefined : purp
 async function consumeOtp(phone: string, code: string, purpose: OtpPurpose): Promise<void> {
   const now = new Date();
   const repository = authRepository();
+  await assertNotLocked(phone, now);
   const challenge = await repository.findChallenge(phone);
 
   if (!challenge) {
@@ -119,21 +158,29 @@ async function consumeOtp(phone: string, code: string, purpose: OtpPurpose): Pro
   }
   if (challenge.attempts >= OTP.MAX_ATTEMPTS) {
     await repository.deleteChallenge(phone);
-    throw new AppError(429, 'OTP_LOCKED', 'تعداد تلاش‌ها زیاد بود، کد جدید بگیر');
+    throw lockedError();
   }
 
   if (!hashesMatch(challenge.codeHash, hashOtp(phone, code, otpScope(purpose)))) {
     const attempts = await repository.recordFailedAttempt(phone);
+    const window = await repository.recordFailure(phone, now, env.OTP_FAILURE_WINDOW_SECONDS);
+
+    if (window.failures >= env.OTP_MAX_FAILURES) {
+      await repository.deleteChallenge(phone);
+      const endsAt = new Date(window.windowStartedAt.getTime() + seconds(env.OTP_FAILURE_WINDOW_SECONDS));
+      throw lockedError(secondsUntil(endsAt, now));
+    }
     if (attempts >= OTP.MAX_ATTEMPTS) {
       await repository.deleteChallenge(phone);
-      throw new AppError(429, 'OTP_LOCKED', 'تعداد تلاش‌ها زیاد بود، کد جدید بگیر');
+      throw lockedError();
     }
     throw new AppError(400, 'OTP_INVALID', 'کد اشتباهه، دوباره امتحان کن', {
-      attemptsLeft: OTP.MAX_ATTEMPTS - attempts,
+      attemptsLeft: Math.min(OTP.MAX_ATTEMPTS - attempts, env.OTP_MAX_FAILURES - window.failures),
     });
   }
 
   await repository.deleteChallenge(phone);
+  await repository.clearFailures(phone);
 }
 
 export const authService = {
@@ -154,9 +201,15 @@ export const authService = {
     ip: string | null,
     purpose: OtpPurpose = 'user'
   ): Promise<OtpRequestResponse> {
+    // First, before anything is written: with no provider there is nothing
+    // to send, so no challenge, no cooldown and no counted send.
+    const sms = sender();
     const now = new Date();
     const windowStart = new Date(now.getTime() - seconds(OTP.RATE_WINDOW_SECONDS));
     const repository = authRepository();
+
+    // A locked number gets no new code: it could not use one.
+    await assertNotLocked(phone, now);
 
     const live = await repository.findChallenge(phone);
     if (live && live.resendAvailableAt > now) {
@@ -188,13 +241,13 @@ export const authService = {
       attempts: 0,
     });
     await repository.recordSend(phone, ip);
-    await sender().sendOtp(phone, code);
+    await sms.sendOtp(phone, code);
 
     return {
       resendIn: OTP.RESEND_AFTER_SECONDS,
       // Spread rather than a null, so with the switch off the field does not
       // exist in the JSON at all.
-      ...(env.OTP_DEBUG_DISPLAY ? { debugCode: code } : {}),
+      ...(env.otpEchoAllowed ? { debugCode: code } : {}),
     };
   },
 
@@ -211,13 +264,16 @@ export const authService = {
    */
   async verifyOtp(
     phone: string,
-    code: string
+    code: string,
+    client: ClientInfo
   ): Promise<{ session: OtpVerifyResponse; tokens: SessionTokens }> {
     await consumeOtp(phone, code, 'user');
 
     const { user, isNew } = await usersService.ensureByPhone(phone);
-    const { tokens, hashes } = issueTokens(new Date());
-    await authRepository().createSession(user.id, hashes);
+    const now = new Date();
+    const absoluteExpiresAt = new Date(now.getTime() + seconds(env.session.absoluteSeconds));
+    const { tokens, hashes } = issueTokens(now, absoluteExpiresAt);
+    await authRepository().createSession(user.id, hashes, client, absoluteExpiresAt);
 
     return { session: { ...toSession(user), isNew }, tokens };
   },
@@ -254,9 +310,18 @@ export const authService = {
       sha256(refreshToken),
       now,
       hashes,
-      SESSION.REFRESH_REUSE_GRACE_SECONDS
+      {
+        reuseGraceSeconds: SESSION.REFRESH_REUSE_GRACE_SECONDS,
+        absoluteSeconds: env.session.absoluteSeconds,
+      }
     );
     if (!resolved) throw new UnauthorizedError('نشستت تموم شده، دوباره وارد شو');
+
+    // The repository stored the pair capped at the session's absolute end;
+    // the cookies must not claim to last longer than the rows do.
+    const cap = resolved.absoluteExpiresAt;
+    if (tokens.accessExpiresAt > cap) tokens.accessExpiresAt = cap;
+    if (tokens.refreshExpiresAt > cap) tokens.refreshExpiresAt = cap;
 
     const user = await usersService.getById(resolved.userId);
     return { session: toSession(user), tokens };
@@ -266,5 +331,28 @@ export const authService = {
   async logout(refreshToken: string | undefined): Promise<void> {
     if (!refreshToken) return;
     await authRepository().revokeSessionByRefreshToken(sha256(refreshToken));
+  },
+
+  // ─── Managing a person's sessions ──────────────────────────────
+  // For the admin panel, which decides who may call these. Revoking a
+  // session ends its access token on the very next request: every request
+  // reads the session's state with the token.
+
+  listSessions(userId: string): Promise<SessionRecord[]> {
+    return authRepository().listActiveSessions(userId, new Date());
+  },
+
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const revoked = await authRepository().revokeSession(userId, sessionId, 'admin');
+    if (!revoked) throw new NotFoundError('این نشست پیدا نشد یا قبلاً بسته شده');
+  },
+
+  revokeAllSessions(userId: string): Promise<number> {
+    return authRepository().revokeAllSessions(userId, 'admin');
+  },
+
+  /** The cleanup job's share: expired tokens, codes, and long-ended sessions. */
+  purgeExpired(retention: RetentionPolicy): Promise<PurgeCounts> {
+    return authRepository().purgeExpired(new Date(), retention);
   },
 };

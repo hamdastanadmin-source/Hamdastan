@@ -3,4 +3,4 @@
  * component cannot pull `next/headers` into its bundle.
  */
 
-export { getAdminSession, requireAdminSession } from './services/session.service';
+export { getAdminSession, requireAdminPermission, requireAdminSession } from './services/session.service';

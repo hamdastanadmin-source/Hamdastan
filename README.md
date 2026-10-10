@@ -13,7 +13,7 @@ npm run dev         # apps/web    → http://localhost:3000
 The other two apps run the same way:
 
 ```bash
-npm run dev:admin   # apps/admin  → http://localhost:3001
+npm run dev:admin   # apps/admin  → http://localhost:3001/admin
 npm run dev:api     # apps/api    → http://localhost:4000/health
 ```
 
@@ -24,10 +24,12 @@ directory, so `setup.sh` symlinks `apps/web/.env` and `apps/admin/.env` to it �
 edit the root file and both apps see the change. `apps/api` reads the same file
 via `--env-file-if-exists`, and `docker compose` via `env_file`.
 
-`.env.example` ships with `OTP_DEBUG_DISPLAY=true`, so the sign-in flow works
-without an SMS gateway: the six-digit code is returned by the API and shown on
-the verification screen. Sign in with any valid-looking mobile number while
-building UI.
+`.env.example` ships with `OTP_DEBUG_DISPLAY=true` and `SMS_PROVIDER=console`,
+so the sign-in flow works without an SMS gateway. The screens never show the
+code; in development it is written to the API's console log
+(`[sms:console] one-time code`) and returned as `debugCode` in the API
+response, which the end-to-end tests read. Sign in with any valid-looking
+mobile number while building UI.
 
 There are no seed credentials: the product has no passwords. `apps/admin`
 still signs in with a username and a password and is a separate story.
@@ -145,6 +147,21 @@ host it loaded the page from: the session cookie is first-party and CORS does
 not arise. Changing the domain means changing `PUBLIC_BASE_URL` and
 `deploy/nginx.conf`, and **redeploying** rather than restarting —
 `NEXT_PUBLIC_` variables are baked into the browser bundle at build time.
+
+The step-by-step procedure — staged migration, switch, nginx, smoke test and
+rollback — is `docs/deploy-runbook.md`; `./scripts/smoke-test.sh <url>` is the
+read-only check to run after every deploy.
+
+**Before a deploy that adds migrations**, know that production applies them
+at boot (`DATABASE_MIGRATE_ON_BOOT=true`). It is worth checking the nginx
+configuration on the server first —
+`docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm nginx nginx -t`
+— because nginx that will not start takes the whole site with it.
+
+nginx reaches the API over a network of its own, `edge`, at a fixed address
+(`NGINX_EDGE_IP`, default `10.250.250.2` in `10.250.250.0/29`); the API
+believes the client address only from there. If that range is already used on
+the host, set `EDGE_SUBNET` and `NGINX_EDGE_IP` in `deploy/.env.production`.
 
 The site is served at `https://hamdaastaan.ir`; :80 redirects there. nginx
 reads its certificate from `/etc/letsencrypt` on the host and will not start

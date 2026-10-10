@@ -57,6 +57,11 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | A validation rule both sides apply | `packages/validation` |
 | A number both sides must agree on (a timeout, an age limit) | `packages/config/app` |
 | An outbound call to somebody else's service | `apps/api/src/integrations` |
+| A rate-limit policy for a route | `rateLimits` in `apps/api/src/middleware/rate-limit.ts`, named in the route's `config.rateLimit` |
+| A permission an admin route needs | `ADMIN_PERMISSIONS` / `ADMIN_ROLE_PERMISSIONS` in `packages/types/admin.ts`, guarded with `requireAdminPermission` |
+| Making a write safe to retry | an `Idempotency-Key` claimed through `apps/api/src/data/idempotency.ts`, on the write's own transaction |
+| A job that runs on a timer | `apps/api/src/modules/maintenance`, started from `server.ts` |
+| How a front-end client retries and times out | `packages/shared/http.ts` (the rule); the numbers in `packages/config/app/http.config.ts` |
 | A helper one feature uses | that feature's `utils/` |
 | A helper genuinely shared | `packages/shared` |
 | A colour, spacing or radius value | `packages/ui/tokens` |
@@ -162,8 +167,18 @@ Like `apps/web`, the admin root layout wraps everything in
 `Tabs` — and on portalled overlays, and without the provider it writes
 `ltr`: a toggle group of cards then lays out and punctuates left-to-right
 inside an RTL page.
-There are two: `users` (the admin allow-list) and `engagement` (Engagement
-Studio — the builder, the list and the results dashboard). The builder reads
+There are three: `users` (the admin allow-list and roles), `engagement`
+(Engagement Studio — the builder, the list and the results dashboard) and
+`sessions` (a product account's live sessions, ended one or all at once).
+
+**What an admin sees follows their role.** `src/lib/access.ts` holds the
+sections and `can(role, permission)`, read from the same
+`ADMIN_ROLE_PERMISSIONS` table the API enforces. The menu shows only the
+sections the role opens; a page calls `requireAdminPermission(...)`
+(`@/features/auth/server`), which sends an admin without it to their first
+permitted section; inside a screen, `useAdminCan()` (`@/features/auth`,
+provided by `AdminShell`) hides the buttons the API would refuse. None of it
+is access control — `requireAdminPermission` in `apps/api` is. The builder reads
 and writes the question spreadsheet in the browser with `read-excel-file` and
 `write-excel-file` (dependencies of `apps/admin` alone, loaded on demand); the
 row → question mapping is `packages/validation/engagement-import.ts`, so it
@@ -285,6 +300,15 @@ The front-end talks to our backend and to nothing else. There is no direct call
 to a third-party API, and no data access of any kind — if the product needs an
 external service, `apps/api` fronts it and exposes a route.
 
+**Retries and timeouts belong to the transport.** `createHttpClient`
+(`packages/shared/http.ts`) gives every attempt a timeout and retries only
+what cannot happen twice: `GET`/`HEAD`, and a write sent with an
+`idempotencyKey` — never a `PUT` just because it is a `PUT`. It retries only
+a network failure, a timeout, 502, 503, 504 or 429, with exponential backoff
+and full jitter, honouring `Retry-After`. A service opts a write in by
+passing an `idempotencyKey` it generated once per user action
+(`createIdempotencyKey`); a component never retries anything itself.
+
 ---
 
 ## 4. Backend (`apps/api`)
@@ -305,7 +329,8 @@ src/
 
 `auth`, `users`, `onboarding`, `account`, `worlds`, `content`, `missions`,
 `trivia`, `community`, `progress`, `events`, `commerce`, `notifications`,
-`search`, `admin`, `engagement` — each with the same seven files:
+`search`, `admin`, `engagement` — each with the same seven files — and
+`maintenance`, which has no HTTP surface (below):
 
 ```
 module/
@@ -345,6 +370,13 @@ computation: `onboarding` keeps its questionnaire scoring in
 `engagement.scoring.ts`, and the dashboard figures and the CSV in
 `engagement.results.ts`. They import no repository and no HTTP, so they are
 tested as plain functions.
+
+**`maintenance`** is the cleanup job, and the one module with no routes,
+controller or schema: nothing about it is reachable over HTTP. Its service
+composes the purges the owning modules expose (`authService.purgeExpired`,
+`adminService.purgeEnded`) plus the idempotency record, and its repository
+holds the advisory lock that keeps two instances from running it at once.
+`server.ts` starts its timer once the data layer is open.
 
 **`engagement`** is Engagement Studio: one engine for surveys, missions and
 assessments. It mounts two route plugins — `/admin/engagement` behind
@@ -426,6 +458,20 @@ The data layer exports `DbClient` (the `pg` client a `withTransaction`
 callback receives) so a helper such as `grantWithin` can be typed without a
 repository importing `pg` itself.
 
+**CSRF** is `middleware/csrf.ts`, an `onRequest` hook: a state-changing
+request with a foreign or `null` `Origin`, or `Sec-Fetch-Site: cross-site`,
+is a 403 before routing; and Fastify's `text/plain` parser is removed, so a
+body a form could send without a preflight is a 415. HSTS is left to nginx
+(helmet's is turned off).
+
+**Rate limits** are `middleware/rate-limit.ts`: `@fastify/rate-limit` with
+a sliding-window store (`rate-limit-store.ts`), registered in `app.ts` before
+any route. Every route gets exactly one policy — the one it names in
+`config.rateLimit`, or the default, keyed by admin, else user, else address.
+It runs as a `preHandler` after the route's own guard, which is what lets a
+signed-in request be counted by account rather than by address. The address
+is `request.ip`, which believes `X-Forwarded-For` only from `TRUST_PROXY`.
+
 `middleware/authenticate-admin.ts` is the same idea for the admin panel: it
 turns the `hd_admin` cookie into `request.admin`, re-reading the admin's status
 on every call. The `admin` module owns `v2_admin_users` and
@@ -433,6 +479,20 @@ on every call. The `admin` module owns `v2_admin_users` and
 (`authService.requestOtp(…, 'admin')` and `authService.consumeOtp`), which
 hash them under an `admin` scope so neither flow's code opens the other —
 `admin → auth → users`, still one-way.
+
+An admin route that does anything registers
+`requireAdminPermission('<permission>')` instead — the session, then the
+role's grant, from `ADMIN_ROLE_PERMISSIONS` in `@hamdastan/types`. A route
+names a permission, never a role. Only `/admin/me` uses `authenticateAdmin`
+alone.
+
+Session lifetimes live in `SESSION` and `ADMIN_SESSION`
+(`@hamdastan/config`), overridable from the environment through
+`env.session`. The product session's idle limit is the refresh token's
+rolling expiry and its absolute limit `v2_sessions.absolute_expires_at`,
+both enforced by the auth repository at refresh and at every access-token
+lookup; the admin session's idle limit is `last_seen_at`, checked by
+`findBySessionToken`.
 
 ### Integrations
 
@@ -467,6 +527,21 @@ Until a module's implementation is bound with `setUsersRepository(...)` in
 than returning fake data, so an unimplemented endpoint cannot pass for a
 working one.
 
+Beside the pool, the data layer has two helpers a repository may use:
+
+- **`idempotency.ts`** — `v2_idempotency_keys`, which no module owns.
+  `claimIdempotency` runs on the caller's transaction (like `grantWithin`),
+  so a key is claimed, the work done and the outcome recorded in one commit;
+  a duplicate waits on the claim and then reads the outcome.
+  `engagement`'s submit is the worked example.
+- **`deleteInBatches`** — for the cleanup job: a large backlog deleted a
+  batch at a time instead of in one long-locking statement.
+
+Every pooled statement is bounded by `DATABASE_STATEMENT_TIMEOUT_MS`
+(server-side, with a client-side timeout a little later); the migration
+runner lifts it for its own session and resets it before returning the
+connection.
+
 The schema lives in `database/migrations/*.sql` and is applied by
 `npm run db:migrate`. An applied file is never edited — the runner checksums
 them and refuses one that has changed. See `database/README.md` for the rest,
@@ -479,6 +554,7 @@ and `RULES.md` §1 for the data-safety constraints.
 ```
 deploy/
 ├── nginx.conf              the reverse proxy's server block
+├── nginx-api.inc           what every API location shares: limits, timeouts, gzip
 ├── env.production.example  the template
 └── .env.production         real credentials; gitignored
 ```
@@ -494,6 +570,22 @@ published port:
 Serving both from one origin is deliberate: the browser calls the API on the
 host it loaded the page from, so the session cookie is first-party and CORS
 does not arise.
+
+nginx is the gateway; there is no other. It replaces `X-Forwarded-For` with
+the connecting address, sends its `$request_id` as `X-Request-ID`, limits
+requests per address (`limit_req`, stricter on the sign-in routes, answering
+429 in the API's envelope), caps API bodies at 1 MB and API calls at 30 s, and
+logs latency without query strings. Every `proxy_set_header` is set once at
+the top of `nginx.conf`: a location that set one of its own would inherit
+none of them.
+
+**Who may say who the client is.** nginx reaches the API over `edge`, a
+compose network of its own on which nginx has a fixed address
+(`NGINX_EDGE_IP`), through the alias `api-edge` that exists only there. The
+API's `TRUST_PROXY` names that address and nothing else. `web` and `admin`
+reach the API over the default network and are not trusted: their
+server-side calls carry the visitor's cookie and are counted by session, so
+they never need to relay a client address — and could not forge one.
 
 `docker-compose.yml` is the local stack; `docker-compose.prod.yml` is an
 overlay that removes the published ports, adds nginx, and builds the browser
@@ -696,3 +788,4 @@ on `bg-owl-backdrop`, white in both themes.
 | `npm run build` | Production build of both Next apps |
 | `npm run test:e2e` | Playwright against the real `apps/web` |
 | `npm run db:migrate` | Applies pending migrations; safe to re-run |
+| `./scripts/smoke-test.sh <url>` | Read-only checks of a running stack through nginx, after every deploy — see `docs/deploy-runbook.md` |

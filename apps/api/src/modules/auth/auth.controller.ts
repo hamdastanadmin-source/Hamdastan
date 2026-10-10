@@ -6,6 +6,8 @@ import { clearSessionCookies, setSessionCookies } from '../../shared/cookies';
 import { ok } from '../../shared/response';
 import { parseBody } from '../../shared/validate';
 
+import type { ClientInfo } from './auth.types';
+
 import { authSchemas } from './auth.schema';
 import { authService } from './auth.service';
 
@@ -17,6 +19,15 @@ import { authService } from './auth.service';
  * into cookies. The cookie is an HTTP detail, which is why the service hands
  * back tokens and never a `Set-Cookie`.
  */
+/** Where the request came from, for the session list an admin can see. */
+export function clientInfoOf(request: FastifyRequest): ClientInfo {
+  const userAgent = request.headers['user-agent'];
+  return {
+    ip: request.ip || null,
+    userAgent: typeof userAgent === 'string' ? userAgent.slice(0, 300) : null,
+  };
+}
+
 export const authController = {
   async requestOtp(request: FastifyRequest, reply: FastifyReply) {
     const { phone } = parseBody(authSchemas.otpRequest.body, request.body);
@@ -26,7 +37,7 @@ export const authController = {
 
   async verifyOtp(request: FastifyRequest, reply: FastifyReply) {
     const { phone, code } = parseBody(authSchemas.otpVerify.body, request.body);
-    const { session, tokens } = await authService.verifyOtp(phone, code);
+    const { session, tokens } = await authService.verifyOtp(phone, code, clientInfoOf(request));
     setSessionCookies(reply, tokens);
     return reply.send(ok(session));
   },

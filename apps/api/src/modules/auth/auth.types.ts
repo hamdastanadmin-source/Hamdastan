@@ -40,3 +40,29 @@ export type ResolvedSession = {
   userId: string;
   sessionId: string;
 };
+
+/** A session plus the end it can never be renewed past. */
+export type RotatedSession = ResolvedSession & { absoluteExpiresAt: Date };
+
+/** Where a sign-in or a refresh came from — shown when managing sessions. */
+export type ClientInfo = { ip: string | null; userAgent: string | null };
+
+/** Why a session ended, as `v2_sessions.revoked_reason` records it. */
+export type RevokeReason = 'logout' | 'reuse_detected' | 'admin';
+
+/** A live session, as an admin managing a person's sessions sees it. */
+export type SessionRecord = {
+  id: string;
+  createdAt: Date;
+  lastSeenAt: Date | null;
+  expiresAt: Date;
+  absoluteExpiresAt: Date | null;
+  userAgent: string | null;
+  ip: string | null;
+};
+
+/** What the cleanup deleted, per table — logged, so it can be watched. */
+export type PurgeCounts = Record<string, number>;
+
+/** How long ended rows are kept before the cleanup deletes them. */
+export type RetentionPolicy = { sessionDays: number; otpSendDays: number };

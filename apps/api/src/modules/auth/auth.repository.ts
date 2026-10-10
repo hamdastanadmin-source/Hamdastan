@@ -1,7 +1,18 @@
 import { query, queryOne, withTransaction } from '../../data';
 import { createRepositorySlot } from '../../shared/repository';
 
-import type { OtpChallenge, ResolvedSession, TokenHashes } from './auth.types';
+import { deleteInBatches } from '../../data';
+
+import type {
+  ClientInfo,
+  OtpChallenge,
+  PurgeCounts,
+  RetentionPolicy,
+  RevokeReason,
+  RotatedSession,
+  SessionRecord,
+  TokenHashes,
+} from './auth.types';
 
 /**
  * Data access port for the Auth module, and the PostgreSQL adapter that
@@ -21,6 +32,20 @@ export interface AuthRepository {
   recordFailedAttempt(phone: string): Promise<number>;
   deleteChallenge(phone: string): Promise<void>;
 
+  // ─── Wrong codes, per number across codes ────────────────────
+  /** The live failure window for a number, or null when there is none. */
+  findFailures(phone: string): Promise<{ failures: number; windowStartedAt: Date } | null>;
+  /**
+   * Counts one wrong code. Starts a new window when the last one began more
+   * than `windowSeconds` before `now`. Returns the window after the increment.
+   */
+  recordFailure(
+    phone: string,
+    now: Date,
+    windowSeconds: number
+  ): Promise<{ failures: number; windowStartedAt: Date }>;
+  clearFailures(phone: string): Promise<void>;
+
   // ─── Rate limiting ───────────────────────────────────────────
   recordSend(phone: string, ip: string | null): Promise<void>;
   countSendsForPhone(phone: string, since: Date): Promise<number>;
@@ -28,7 +53,12 @@ export interface AuthRepository {
 
   // ─── Sessions ────────────────────────────────────────────────
   /** Opens a session and issues its first token pair, in one transaction. */
-  createSession(userId: string, tokens: TokenHashes): Promise<string>;
+  createSession(
+    userId: string,
+    tokens: TokenHashes,
+    client: ClientInfo,
+    absoluteExpiresAt: Date
+  ): Promise<string>;
   // Resolving an access token is `UsersRepository.findByAccessToken`: it is
   // read together with the user row, in one round trip, on every request.
   /**
@@ -41,10 +71,21 @@ export interface AuthRepository {
     tokenHash: string,
     now: Date,
     next: TokenHashes,
-    reuseGraceSeconds: number
-  ): Promise<ResolvedSession | null>;
+    policy: { reuseGraceSeconds: number; absoluteSeconds: number }
+  ): Promise<RotatedSession | null>;
   /** Ends the session a refresh token belongs to, and every token in it. */
   revokeSessionByRefreshToken(tokenHash: string): Promise<void>;
+
+  // ─── Managing a person's sessions (the admin panel) ──────────
+  listActiveSessions(userId: string, now: Date): Promise<SessionRecord[]>;
+  /** False when the session is not this person's, or already ended. */
+  revokeSession(userId: string, sessionId: string, reason: RevokeReason): Promise<boolean>;
+  /** Answers how many were live. */
+  revokeAllSessions(userId: string, reason: RevokeReason): Promise<number>;
+
+  // ─── Cleanup ─────────────────────────────────────────────────
+  /** Deletes what can never be used again, keeping ended sessions for `retention`. */
+  purgeExpired(now: Date, retention: RetentionPolicy): Promise<PurgeCounts>;
 }
 
 const slot = createRepositorySlot<AuthRepository>('auth');
@@ -112,6 +153,34 @@ export const sqlAuthRepository: AuthRepository = {
     await query(`DELETE FROM v2_otp_challenges WHERE phone = $1`, [phone]);
   },
 
+  async findFailures(phone) {
+    const row = await queryOne<{ failures: number; window_started_at: Date }>(
+      `SELECT failures, window_started_at FROM v2_otp_failures WHERE phone = $1`,
+      [phone]
+    );
+    return row ? { failures: row.failures, windowStartedAt: row.window_started_at } : null;
+  },
+
+  async recordFailure(phone, now, windowSeconds) {
+    // One statement, so two wrong guesses racing each other both count.
+    const row = await queryOne<{ failures: number; window_started_at: Date }>(
+      `INSERT INTO v2_otp_failures AS f (phone, failures, window_started_at)
+       VALUES ($1, 1, $2)
+       ON CONFLICT (phone) DO UPDATE
+             SET failures = CASE WHEN f.window_started_at <= $2::timestamptz - make_interval(secs => $3)
+                                 THEN 1 ELSE f.failures + 1 END,
+                 window_started_at = CASE WHEN f.window_started_at <= $2::timestamptz - make_interval(secs => $3)
+                                          THEN $2 ELSE f.window_started_at END
+       RETURNING failures, window_started_at`,
+      [phone, now, windowSeconds]
+    );
+    return { failures: row!.failures, windowStartedAt: row!.window_started_at };
+  },
+
+  async clearFailures(phone) {
+    await query(`DELETE FROM v2_otp_failures WHERE phone = $1`, [phone]);
+  },
+
   async recordSend(phone, ip) {
     await query(`INSERT INTO v2_otp_sends (phone, ip) VALUES ($1, $2::inet)`, [phone, ip]);
   },
@@ -134,11 +203,12 @@ export const sqlAuthRepository: AuthRepository = {
     return Number(row?.count ?? 0);
   },
 
-  async createSession(userId, tokens) {
+  async createSession(userId, tokens, origin, absoluteExpiresAt) {
     return withTransaction(async (client) => {
       const { rows } = await client.query<{ id: string }>(
-        `INSERT INTO v2_sessions (user_id, expires_at) VALUES ($1, $2) RETURNING id`,
-        [userId, tokens.refreshExpiresAt]
+        `INSERT INTO v2_sessions (user_id, expires_at, absolute_expires_at, last_seen_at, user_agent, ip)
+         VALUES ($1, $2, $3, now(), $4, $5::inet) RETURNING id`,
+        [userId, tokens.refreshExpiresAt, absoluteExpiresAt, origin.userAgent, origin.ip]
       );
       const sessionId = rows[0].id;
 
@@ -164,7 +234,7 @@ export const sqlAuthRepository: AuthRepository = {
     });
   },
 
-  async rotateRefreshToken(tokenHash, now, next, reuseGraceSeconds) {
+  async rotateRefreshToken(tokenHash, now, next, policy) {
     return withTransaction(async (client) => {
       // `FOR UPDATE` serialises two clients presenting the same token, so
       // exactly one of them spends it and the other sees it already spent.
@@ -172,10 +242,12 @@ export const sqlAuthRepository: AuthRepository = {
         user_id: string;
         session_id: string;
         used_at: Date | null;
+        absolute_expires_at: Date | null;
         expired: boolean;
       }>(
-        `SELECT r.user_id, r.session_id, r.used_at,
-                (r.expires_at <= $2 OR s.revoked_at IS NOT NULL OR s.expires_at <= $2) AS expired
+        `SELECT r.user_id, r.session_id, r.used_at, s.absolute_expires_at,
+                (r.expires_at <= $2 OR s.revoked_at IS NOT NULL OR s.expires_at <= $2
+                  OR s.absolute_expires_at <= $2) AS expired
            FROM v2_refresh_tokens r
            JOIN v2_sessions s ON s.id = r.session_id
           WHERE r.token_hash = $1
@@ -192,11 +264,12 @@ export const sqlAuthRepository: AuthRepository = {
         // here signed people out every fifteen minutes, so it gets a pair of
         // its own, in the same session.
         const sinceSpentMs = now.getTime() - current.used_at.getTime();
-        if (sinceSpentMs > reuseGraceSeconds * 1000) {
+        if (sinceSpentMs > policy.reuseGraceSeconds * 1000) {
           // Spent a while ago: a replay — a stolen copy, or a client that
           // lost track. There is no way to tell, so the whole session goes.
           await client.query(
-            `UPDATE v2_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL`,
+            `UPDATE v2_sessions SET revoked_at = now(), revoked_reason = 'reuse_detected'
+              WHERE id = $1 AND revoked_at IS NULL`,
             [current.session_id]
           );
           return null;
@@ -207,32 +280,126 @@ export const sqlAuthRepository: AuthRepository = {
           [tokenHash, now]
         );
       }
+
+      // A session from before absolute lifetimes existed gets its end now —
+      // a full term from its first refresh under the rule, not from sign-in,
+      // so nobody is signed out by the rule arriving.
+      const absoluteExpiresAt =
+        current.absolute_expires_at ?? new Date(now.getTime() + policy.absoluteSeconds * 1000);
+      const cap = (at: Date) => (at < absoluteExpiresAt ? at : absoluteExpiresAt);
+
       await client.query(
         `INSERT INTO v2_refresh_tokens (token_hash, session_id, user_id, expires_at)
          VALUES ($1, $2, $3, $4)`,
-        [next.refreshTokenHash, current.session_id, current.user_id, next.refreshExpiresAt]
+        [next.refreshTokenHash, current.session_id, current.user_id, cap(next.refreshExpiresAt)]
       );
       await client.query(
         `INSERT INTO v2_access_tokens (token_hash, session_id, user_id, expires_at)
          VALUES ($1, $2, $3, $4)`,
-        [next.accessTokenHash, current.session_id, current.user_id, next.accessExpiresAt]
+        [next.accessTokenHash, current.session_id, current.user_id, cap(next.accessExpiresAt)]
       );
-      // Rolling expiry: a weekly visitor is never signed out.
-      await client.query(`UPDATE v2_sessions SET expires_at = $2 WHERE id = $1`, [
-        current.session_id,
-        next.refreshExpiresAt,
-      ]);
+      // Rolling expiry, up to the absolute end: a weekly visitor stays
+      // signed in, for at most the session's absolute lifetime. The device
+      // columns are left as sign-in recorded them: most refreshes arrive
+      // from `apps/web`'s server on the visitor's behalf, whose address and
+      // user agent are its own.
+      await client.query(
+        `UPDATE v2_sessions SET expires_at = $2, absolute_expires_at = $3, last_seen_at = $4
+          WHERE id = $1`,
+        [current.session_id, cap(next.refreshExpiresAt), absoluteExpiresAt, now]
+      );
 
-      return { userId: current.user_id, sessionId: current.session_id };
+      return { userId: current.user_id, sessionId: current.session_id, absoluteExpiresAt };
     });
   },
 
   async revokeSessionByRefreshToken(tokenHash) {
     await query(
-      `UPDATE v2_sessions SET revoked_at = now()
+      `UPDATE v2_sessions SET revoked_at = now(), revoked_reason = 'logout'
         WHERE id = (SELECT session_id FROM v2_refresh_tokens WHERE token_hash = $1)
           AND revoked_at IS NULL`,
       [tokenHash]
     );
+  },
+
+  async listActiveSessions(userId, now) {
+    const rows = await query<{
+      id: string;
+      created_at: Date;
+      last_seen_at: Date | null;
+      expires_at: Date;
+      absolute_expires_at: Date | null;
+      user_agent: string | null;
+      ip: string | null;
+    }>(
+      `SELECT id, created_at, last_seen_at, expires_at, absolute_expires_at, user_agent, host(ip) AS ip
+         FROM v2_sessions
+        WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > $2
+          AND (absolute_expires_at IS NULL OR absolute_expires_at > $2)
+        ORDER BY COALESCE(last_seen_at, created_at) DESC`,
+      [userId, now]
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      createdAt: row.created_at,
+      lastSeenAt: row.last_seen_at,
+      expiresAt: row.expires_at,
+      absoluteExpiresAt: row.absolute_expires_at,
+      userAgent: row.user_agent,
+      ip: row.ip,
+    }));
+  },
+
+  async revokeSession(userId, sessionId, reason) {
+    // The user id is part of the match, so a session id from one person
+    // cannot be used to end another's.
+    const rows = await query(
+      `UPDATE v2_sessions SET revoked_at = now(), revoked_reason = $3
+        WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL
+        RETURNING id`,
+      [sessionId, userId, reason]
+    );
+    return rows.length > 0;
+  },
+
+  async revokeAllSessions(userId, reason) {
+    const rows = await query(
+      `UPDATE v2_sessions SET revoked_at = now(), revoked_reason = $2
+        WHERE user_id = $1 AND revoked_at IS NULL
+        RETURNING id`,
+      [userId, reason]
+    );
+    return rows.length;
+  },
+
+  async purgeExpired(now, retention) {
+    // Tokens die first: an expired token can neither sign anyone in nor be
+    // replayed (a replay of an expired token is refused before the reuse
+    // check), so nothing is lost by deleting it. Sessions are kept for the
+    // retention period after they end, as the record of who was signed in
+    // when; deleting one takes any tokens still under it.
+    const day = 24 * 60 * 60;
+    return {
+      access_tokens: await deleteInBatches('v2_access_tokens', 'expires_at < $1', [now]),
+      refresh_tokens: await deleteInBatches('v2_refresh_tokens', 'expires_at < $1', [now]),
+      sessions: await deleteInBatches(
+        'v2_sessions',
+        `COALESCE(revoked_at, LEAST(expires_at, COALESCE(absolute_expires_at, expires_at)))
+           < $1::timestamptz - make_interval(secs => $2)`,
+        [now, retention.sessionDays * day]
+      ),
+      otp_challenges: await deleteInBatches('v2_otp_challenges', 'expires_at < $1', [now]),
+      otp_sends: await deleteInBatches(
+        'v2_otp_sends',
+        'sent_at < $1::timestamptz - make_interval(secs => $2)',
+        [now, retention.otpSendDays * day]
+      ),
+      // A failure window long over: its count no longer locks anything.
+      otp_failures: await deleteInBatches(
+        'v2_otp_failures',
+        'window_started_at < $1::timestamptz - make_interval(secs => $2)',
+        [now, day]
+      ),
+    };
   },
 };

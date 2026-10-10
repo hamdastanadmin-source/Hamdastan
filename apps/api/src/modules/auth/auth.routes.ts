@@ -1,5 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 
+import { rateLimits } from '../../middleware';
+
 import { authController } from './auth.controller';
 
 /**
@@ -16,7 +18,7 @@ import { authController } from './auth.controller';
  */
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/otp/request', authController.requestOtp);
-  app.post('/otp/verify', authController.verifyOtp);
-  app.post('/refresh', authController.refresh);
+  app.post('/otp/verify', { config: { rateLimit: rateLimits.otpVerify } }, authController.verifyOtp);
+  app.post('/refresh', { config: { rateLimit: rateLimits.refresh } }, authController.refresh);
   app.post('/logout', authController.logout);
 };

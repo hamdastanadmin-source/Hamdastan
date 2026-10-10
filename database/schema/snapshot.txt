@@ -5,6 +5,7 @@ column v2_access_tokens.user_id uuid nullable=NO default=
 column v2_admin_sessions.admin_id uuid nullable=NO default=
 column v2_admin_sessions.created_at timestamp with time zone nullable=NO default=now()
 column v2_admin_sessions.expires_at timestamp with time zone nullable=NO default=
+column v2_admin_sessions.last_seen_at timestamp with time zone nullable=NO default=now()
 column v2_admin_sessions.revoked_at timestamp with time zone nullable=YES default=
 column v2_admin_sessions.token_hash character nullable=NO default=
 column v2_admin_users.created_at timestamp with time zone nullable=NO default=now()
@@ -13,6 +14,7 @@ column v2_admin_users.id uuid nullable=NO default=gen_random_uuid()
 column v2_admin_users.last_login_at timestamp with time zone nullable=YES default=
 column v2_admin_users.last_name character varying nullable=NO default=
 column v2_admin_users.phone character varying nullable=NO default=
+column v2_admin_users.role USER-DEFINED nullable=NO default='SYSTEM_ADMIN'::v2_admin_role
 column v2_admin_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_admin_status
 column v2_admin_users.updated_at timestamp with time zone nullable=NO default=now()
 column v2_engagement_activities.audience jsonb nullable=NO default='{"kind": "all"}'::jsonb
@@ -64,6 +66,13 @@ column v2_engagement_versions.created_by uuid nullable=YES default=
 column v2_engagement_versions.definition jsonb nullable=NO default=
 column v2_engagement_versions.id uuid nullable=NO default=gen_random_uuid()
 column v2_engagement_versions.version integer nullable=NO default=
+column v2_idempotency_keys.created_at timestamp with time zone nullable=NO default=now()
+column v2_idempotency_keys.expires_at timestamp with time zone nullable=NO default=
+column v2_idempotency_keys.idem_key character varying nullable=NO default=
+column v2_idempotency_keys.outcome jsonb nullable=YES default=
+column v2_idempotency_keys.owner_id uuid nullable=NO default=
+column v2_idempotency_keys.request_hash character nullable=NO default=
+column v2_idempotency_keys.scope character varying nullable=NO default=
 column v2_onboarding_events.event character varying nullable=NO default=
 column v2_onboarding_events.id bigint nullable=NO default=nextval('v2_onboarding_events_id_seq'::regclass)
 column v2_onboarding_events.occurred_at timestamp with time zone nullable=NO default=now()
@@ -78,6 +87,9 @@ column v2_otp_challenges.expires_at timestamp with time zone nullable=NO default
 column v2_otp_challenges.issued_at timestamp with time zone nullable=NO default=now()
 column v2_otp_challenges.phone character varying nullable=NO default=
 column v2_otp_challenges.resend_available_at timestamp with time zone nullable=NO default=
+column v2_otp_failures.failures integer nullable=NO default=0
+column v2_otp_failures.phone character varying nullable=NO default=
+column v2_otp_failures.window_started_at timestamp with time zone nullable=NO default=now()
 column v2_otp_sends.id bigint nullable=NO default=nextval('v2_otp_sends_id_seq'::regclass)
 column v2_otp_sends.ip inet nullable=YES default=
 column v2_otp_sends.phone character varying nullable=NO default=
@@ -93,10 +105,15 @@ column v2_refresh_tokens.session_id uuid nullable=NO default=
 column v2_refresh_tokens.token_hash character nullable=NO default=
 column v2_refresh_tokens.used_at timestamp with time zone nullable=YES default=
 column v2_refresh_tokens.user_id uuid nullable=NO default=
+column v2_sessions.absolute_expires_at timestamp with time zone nullable=YES default=
 column v2_sessions.created_at timestamp with time zone nullable=NO default=now()
 column v2_sessions.expires_at timestamp with time zone nullable=NO default=
 column v2_sessions.id uuid nullable=NO default=gen_random_uuid()
+column v2_sessions.ip inet nullable=YES default=
+column v2_sessions.last_seen_at timestamp with time zone nullable=YES default=
 column v2_sessions.revoked_at timestamp with time zone nullable=YES default=
+column v2_sessions.revoked_reason character varying nullable=YES default=
+column v2_sessions.user_agent character varying nullable=YES default=
 column v2_sessions.user_id uuid nullable=NO default=
 column v2_social_profiles.ao numeric nullable=YES default=
 column v2_social_profiles.available_afternoon boolean nullable=YES default=
@@ -203,10 +220,13 @@ constraint v2_engagement_versions v2_engagement_versions_created_by_fkey FOREIGN
 constraint v2_engagement_versions v2_engagement_versions_once UNIQUE (activity_id, version)
 constraint v2_engagement_versions v2_engagement_versions_pkey PRIMARY KEY (id)
 constraint v2_engagement_versions v2_engagement_versions_positive CHECK ((version > 0))
+constraint v2_idempotency_keys v2_idempotency_keys_pkey PRIMARY KEY (scope, owner_id, idem_key)
 constraint v2_onboarding_events v2_onboarding_events_event CHECK (((event)::text = ANY ((ARRAY['quiz_started'::character varying, 'quiz_question_viewed'::character varying, 'quiz_question_answered'::character varying, 'quiz_back_clicked'::character varying, 'quiz_section_completed'::character varying, 'quiz_abandoned'::character varying, 'quiz_resumed'::character varying, 'quiz_completed'::character varying, 'quiz_result_viewed'::character varying, 'quiz_result_continue_clicked'::character varying])::text[])))
 constraint v2_onboarding_events v2_onboarding_events_pkey PRIMARY KEY (id)
 constraint v2_onboarding_events v2_onboarding_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_otp_challenges v2_otp_challenges_pkey PRIMARY KEY (phone)
+constraint v2_otp_failures v2_otp_failures_failures CHECK ((failures >= 0))
+constraint v2_otp_failures v2_otp_failures_pkey PRIMARY KEY (phone)
 constraint v2_otp_sends v2_otp_sends_pkey PRIMARY KEY (id)
 constraint v2_questionnaire_answers v2_questionnaire_answers_pkey PRIMARY KEY (user_id, question_id)
 constraint v2_questionnaire_answers v2_questionnaire_answers_presentation_index CHECK (((presentation_index >= 1) AND (presentation_index <= 20)))
@@ -243,6 +263,7 @@ constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_
 constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK (((((source_type)::text = 'reversal'::text) AND (xp_amount < 0)) OR (((source_type)::text <> 'reversal'::text) AND (xp_amount > 0))))
 enum v2_activity_status draft,published,paused,closed,archived
 enum v2_activity_type survey,mission,assessment
+enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER
 enum v2_admin_status ACTIVE,INACTIVE
 enum v2_gender MALE,FEMALE
 enum v2_onboarding_step basic_info,onboarding,done
@@ -270,11 +291,15 @@ index v2_engagement_responses_pkey CREATE UNIQUE INDEX v2_engagement_responses_p
 index v2_engagement_responses_user CREATE INDEX v2_engagement_responses_user ON public.v2_engagement_responses USING btree (user_id) WHERE (user_id IS NOT NULL)
 index v2_engagement_versions_once CREATE UNIQUE INDEX v2_engagement_versions_once ON public.v2_engagement_versions USING btree (activity_id, version)
 index v2_engagement_versions_pkey CREATE UNIQUE INDEX v2_engagement_versions_pkey ON public.v2_engagement_versions USING btree (id)
+index v2_idempotency_keys_expires_at CREATE INDEX v2_idempotency_keys_expires_at ON public.v2_idempotency_keys USING btree (expires_at)
+index v2_idempotency_keys_pkey CREATE UNIQUE INDEX v2_idempotency_keys_pkey ON public.v2_idempotency_keys USING btree (scope, owner_id, idem_key)
 index v2_onboarding_events_funnel CREATE INDEX v2_onboarding_events_funnel ON public.v2_onboarding_events USING btree (event, occurred_at)
 index v2_onboarding_events_pkey CREATE UNIQUE INDEX v2_onboarding_events_pkey ON public.v2_onboarding_events USING btree (id)
 index v2_onboarding_events_user CREATE INDEX v2_onboarding_events_user ON public.v2_onboarding_events USING btree (user_id, occurred_at)
 index v2_otp_challenges_expires_at CREATE INDEX v2_otp_challenges_expires_at ON public.v2_otp_challenges USING btree (expires_at)
 index v2_otp_challenges_pkey CREATE UNIQUE INDEX v2_otp_challenges_pkey ON public.v2_otp_challenges USING btree (phone)
+index v2_otp_failures_pkey CREATE UNIQUE INDEX v2_otp_failures_pkey ON public.v2_otp_failures USING btree (phone)
+index v2_otp_failures_window CREATE INDEX v2_otp_failures_window ON public.v2_otp_failures USING btree (window_started_at)
 index v2_otp_sends_ip_window CREATE INDEX v2_otp_sends_ip_window ON public.v2_otp_sends USING btree (ip, sent_at DESC)
 index v2_otp_sends_phone_window CREATE INDEX v2_otp_sends_phone_window ON public.v2_otp_sends USING btree (phone, sent_at DESC)
 index v2_otp_sends_pkey CREATE UNIQUE INDEX v2_otp_sends_pkey ON public.v2_otp_sends USING btree (id)

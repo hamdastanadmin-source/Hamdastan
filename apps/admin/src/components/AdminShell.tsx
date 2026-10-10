@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, Sparkles, Users } from 'lucide-react';
+import { LogOut, MonitorSmartphone, Sparkles, Users, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { AdminUser } from '@hamdastan/types';
@@ -25,16 +25,17 @@ import {
   SidebarTrigger,
 } from '@hamdastan/ui';
 
-import { useAdminAuth } from '@/features/auth';
-import { errorMessage } from '@/lib';
+import { AdminAccessProvider, useAdminAuth } from '@/features/auth';
+import { can, errorMessage, homeFor, ROLE_LABELS, SECTIONS, withBasePath } from '@/lib';
 
 import { ThemeToggle } from './ThemeToggle';
 
-/** The panel's sections. A new one is a line here and a route under `(panel)/`. */
-const NAV = [
-  { href: '/users', label: 'مدیریت کاربران', icon: Users },
-  { href: '/engagement', label: 'استودیو', icon: Sparkles },
-] as const;
+/** Each section's icon. The sections themselves, and who sees them, are `SECTIONS` in `@/lib`. */
+const ICONS: Record<(typeof SECTIONS)[number]['href'], LucideIcon> = {
+  '/users': Users,
+  '/engagement': Sparkles,
+  '/sessions': MonitorSmartphone,
+};
 
 /**
  * The frame around every signed-in page: a dashboard with the menu in a
@@ -63,8 +64,8 @@ export function AdminShell({ admin, children }: { admin: AdminUser; children: Re
       {/* rtl-ok: `side` names the physical edge; in RTL the reading start is the right. */}
       <Sidebar side="right" collapsible="offcanvas">
         <SidebarHeader>
-          <Link href="/users" className="flex items-center gap-2 px-2 py-1.5 font-bold">
-            <Image src="/images/brand/logo.svg" alt="" width={32} height={32} priority />
+          <Link href={homeFor(admin.role)} className="flex items-center gap-2 px-2 py-1.5 font-bold">
+            <Image src={withBasePath('/images/brand/logo.svg')} alt="" width={32} height={32} priority />
             پنل مدیریت
           </Link>
         </SidebarHeader>
@@ -74,7 +75,8 @@ export function AdminShell({ admin, children }: { admin: AdminUser; children: Re
             <SidebarGroupLabel>منو</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu aria-label="منوی اصلی">
-                {NAV.map(({ href, label, icon: Icon }) => {
+                {SECTIONS.filter((section) => can(admin.role, section.permission)).map(({ href, label }) => {
+                  const Icon = ICONS[href];
                   const current = pathname === href || pathname.startsWith(`${href}/`);
                   return (
                     <SidebarMenuItem key={href}>
@@ -96,6 +98,7 @@ export function AdminShell({ admin, children }: { admin: AdminUser; children: Re
           <div className="flex items-center gap-1 px-2">
             <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
               {admin.firstName} {admin.lastName}
+              <span className="block text-xs">{ROLE_LABELS[admin.role]}</span>
             </span>
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={signOut} aria-label="خروج">
@@ -112,11 +115,11 @@ export function AdminShell({ admin, children }: { admin: AdminUser; children: Re
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-4 md:px-6">
           <SidebarTrigger />
           <span className="text-sm font-semibold">
-            {NAV.find(({ href }) => pathname === href || pathname.startsWith(`${href}/`))?.label ?? 'پنل مدیریت'}
+            {SECTIONS.find(({ href }) => pathname === href || pathname.startsWith(`${href}/`))?.label ?? 'پنل مدیریت'}
           </span>
         </header>
         <main id="main-content" className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8">
-          {children}
+          <AdminAccessProvider role={admin.role}>{children}</AdminAccessProvider>
         </main>
       </SidebarInset>
     </SidebarProvider>

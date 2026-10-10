@@ -10,6 +10,7 @@ import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { AdminActivityDetail } from '@hamdastan/types';
 import { Badge, Button, Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@hamdastan/ui';
 
+import { useAdminCan } from '@/features/auth';
 import { errorMessage } from '@/lib';
 
 import { useActivityEditor, type ActivityEditorApi } from '../hooks/use-activity-editor';
@@ -51,6 +52,9 @@ export function ActivityEditor({
 }) {
   const router = useRouter();
   const editor = useActivityEditor(initial);
+  const can = useAdminCan();
+  const canWrite = can('activities.write');
+  const canPublish = can('activities.publish');
   const [step, setStep] = useState<EditorStepId>(initialStep);
   const index = EDITOR_STEPS.findIndex((s) => s.id === step);
   const live = editor.saved !== null && editor.saved.status !== 'draft';
@@ -108,9 +112,11 @@ export function ActivityEditor({
             </p>
           )}
         </div>
-        <Button variant="outline" onClick={() => run(false)} loading={editor.busy}>
-          ذخیره
-        </Button>
+        {canWrite && (
+          <Button variant="outline" onClick={() => run(false)} loading={editor.busy}>
+            ذخیره
+          </Button>
+        )}
       </div>
 
       <Tabs value={step} onValueChange={(value) => goTo(value as EditorStepId)}>
@@ -138,9 +144,12 @@ export function ActivityEditor({
         </Button>
         {/* Keyed apart, so the outline «بعدی» is not animated into the primary action. */}
         {step === 'preview' ? (
-          <Button key="publish" onClick={() => run(true)} loading={editor.busy}>
-            {live ? 'ذخیره‌ی تغییرات' : editor.state.startsAt && new Date(editor.state.startsAt) > new Date() ? 'زمان‌بندی انتشار' : 'انتشار'}
-          </Button>
+          // Without both permissions the preview is read-only: the API would refuse the save.
+          canWrite && canPublish ? (
+            <Button key="publish" onClick={() => run(true)} loading={editor.busy}>
+              {live ? 'ذخیره‌ی تغییرات' : editor.state.startsAt && new Date(editor.state.startsAt) > new Date() ? 'زمان‌بندی انتشار' : 'انتشار'}
+            </Button>
+          ) : null
         ) : (
           <Button key="next" variant="outline" onClick={() => goTo(EDITOR_STEPS[index + 1].id)}>
             بعدی

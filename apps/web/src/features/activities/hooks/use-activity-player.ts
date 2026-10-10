@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { ActivityAnswers, ActivityAnswerValue, ActivitySubmission, PlayerActivity } from '@hamdastan/types';
+import { createIdempotencyKey } from '@hamdastan/shared';
 import { answerError, validateAnswers } from '@hamdastan/validation';
 
 import { activitiesService } from '@/services';
@@ -32,6 +33,13 @@ export function useActivityPlayer(activity: PlayerActivity) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<ActivitySubmission | null>(null);
+  /**
+   * The key of the submission in flight, kept across a failed attempt: a
+   * second tap after "no connection" may be the same submission arriving
+   * twice, and the API can only tell if it carries the same key. A changed
+   * answer makes it a different submission, with a key of its own.
+   */
+  const submissionKey = useRef<string | null>(null);
 
   const current = flow[index];
   const isLast = index === flow.length - 1;
@@ -47,6 +55,7 @@ export function useActivityPlayer(activity: PlayerActivity) {
   const setAnswer = useCallback(
     (value: ActivityAnswerValue | undefined) => {
       setError(null);
+      submissionKey.current = null;
       setAnswers((previous) => {
         const next = { ...previous };
         if (value === undefined) delete next[current.question.id];
@@ -76,8 +85,12 @@ export function useActivityPlayer(activity: PlayerActivity) {
       return;
     }
     setSubmitting(true);
+    submissionKey.current ??= createIdempotencyKey();
     try {
-      setOutcome(await activitiesService.submit(activity.id, activity.versionId, checked.answers));
+      setOutcome(
+        await activitiesService.submit(activity.id, activity.versionId, checked.answers, submissionKey.current)
+      );
+      submissionKey.current = null;
       setPhase('done');
     } finally {
       setSubmitting(false);

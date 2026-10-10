@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { currentAdmin, currentUser } from '../../middleware';
+import { idempotencyKeyOf } from '../../shared/idempotency';
 import { ok } from '../../shared/response';
 import { parseBody } from '../../shared/validate';
 
@@ -103,6 +104,8 @@ export const engagementController = {
   async submit(request: FastifyRequest, reply: FastifyReply) {
     const id = idOf(request);
     const input = parseBody(schemas.submit.body, request.body);
-    return reply.send(ok(await service.submit(currentUser(request), id, input)));
+    return reply.send(
+      ok(await service.submit(currentUser(request), id, input, idempotencyKeyOf(request)))
+    );
   },
 };
