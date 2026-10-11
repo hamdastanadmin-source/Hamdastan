@@ -100,6 +100,11 @@ password and no separate registration.
 - **The account is created at verification**, not at the end of the form. A
   person who abandons the profile form still has a verified number on file and
   returns to the same account.
+- **The account starts with a username** — `user` and eight random digits
+  (`user04817263`), drawn by the API when the row is created; the unique index
+  decides, and a clash draws again. An account created before this gets one
+  the first time `GET /me/account` loads it. It is the person's to change in
+  «ویرایش پروفایل».
 - Six-digit code, valid two minutes, five attempts, resend after two minutes.
   Three sends per number and ten per IP in a ten-minute window.
 - **Five wrong codes per number in fifteen minutes, across codes**, lock the
@@ -149,7 +154,7 @@ line. It streams in in that order a word at a time — about two seconds in
 all — and the action appears last; with reduced motion it is all there at
 once. Under the text, the owl fitting two puzzle pieces together
 (`onboarding-intro.webp`, source in `assets/illustrations/`) arrives with the
-action — a single frame until its animated version arrives. It is prepared
+action — a still image. It is prepared
 and shown exactly like the questionnaire's owls (see *Artwork* under Stage 2
 below; `StageArtwork`), centred between the text and the footer, so
 it reads as part of the stage rather than a clip on it. The
@@ -230,13 +235,15 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
 - **Artwork.** An owl sits under the text of the intro
   (`questionnaire-intro.webp`), of the onboarding intro
   (`onboarding-intro.webp`), and of every chapter reward: Section 1 and
-  Section 3 share `questionnaire-section-1.webp`, Section 2 has
-  `questionnaire-section-2.webp` (a single frame until its animated version
-  arrives). The files live in
+  Section 2 share `questionnaire-section-1.webp`, Section 3 has
+  `questionnaire-section-2.webp` (the tired owl). The onboarding intro and
+  Section 3 are stills; the intro (the owl in flight) and Sections 1–2 (the
+  owl painting) are animated. The files live in
   `apps/web/public/images/brand/` (sources in `assets/illustrations/`) and
   are all prepared the same way — 720×491, the subject kept clear of the
   edges in every frame, the artwork's grey backdrop and its vignette lifted
-  to white, with a `-still.webp` first frame.
+  to white (a master drawn on transparency stays transparent, so it sits on
+  the stage in both themes), with a `-still.webp` first frame.
   On screen it is centred in the space between the text and the footer, so
   every owl lands in the same place at the same scale whatever the text
   above it. It belongs to the stage rather than playing on it: no frame or
@@ -288,8 +295,8 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   onboarding and home after it.
 - **Processing.** The animated detective owl (`OwlLoader`, the same one
   that opens `/profile/social`) over the whole screen, on white in both
-  themes — no text, no spinner. It stays for at least one full 5-second loop
-  and until the request has returned, looping while it waits; then it fades
+  themes — no text, no spinner. It stays for at least 5 seconds (half of
+  its 10-second loop) and until the request has returned, looping while it waits; then it fades
   and the result enters. Reopening a finished result does not replay it.
 - **Result — meaning first, numbers last.** A social-profile report, made to
   be shared, in this order:
@@ -402,7 +409,8 @@ bump the version:
 
 `/`. The worlds are not open yet, so home carries the person's next step.
 The header is their avatar (see «Where the avatar comes from», §4.4) and
-name, linking to the profile; the bottom nav holds خانه and پروفایل. Signing out is not on home.
+`@username` (their display name only if an older account has none), linking
+to the profile — no greeting line; the bottom nav holds خانه and پروفایل. Signing out is not on home.
 
 - **Questionnaire not done:** the first thing on the screen is a card —
   «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
@@ -440,10 +448,10 @@ bottom:
    «مشاهده نتیجه کامل» (→ `/profile/social`, the full social-profile report
    described under stage 2's result); the result's title, description and
    insights are not repeated on the hub. Opening `/profile/social` shows the
-   animated detective owl (`OwlLoader`, `owl-detective.webp`, a 5-second
+   animated detective owl (`OwlLoader`, `owl-detective.webp`, a 10-second
    loop) over the whole screen, on white in both themes so it reads as the
-   screen rather than a clip. The result is not shown until one full loop has
-   played *and* the result has loaded; the owl keeps looping while it waits. Before the questionnaire is done: a
+   screen rather than a clip. The result is not shown until 5 seconds have
+   passed *and* the result has loaded; the owl keeps looping while it waits. Before the questionnaire is done: a
    mission card instead — «پروفایلت هنوز کامل نیست», «آزمون کوتاه شخصیت رو
    کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم.», «حدود ۵ دقیقه»,
    «+50 XP», «شروع آزمون».
@@ -1046,7 +1054,7 @@ Engagement Studio (0010):
 - **`v2_onboarding_events`** — append-only funnel events. The presentation
   index is filled in by the API from the question id.
 - **`v2_users` account columns** — `username` (unique, stored lower-case,
-  held to it by a CHECK), `bio`, `city`, `instagram`, `telegram`, `linkedin` (handles only, from `0008`), `avatar_config` (`jsonb`, the five
+  held to it by a CHECK; set at creation, see §4.1), `bio`, `city`, `instagram`, `telegram`, `linkedin` (handles only, from `0008`), `avatar_config` (`jsonb`, the five
   catalog ids; null until saved) and `settings` (`jsonb`; missing keys take
   `DEFAULT_SETTINGS`, so a new setting needs no migration).
 - **`v2_xp_transactions`** — the XP ledger, append-only: `user_id`,
@@ -1427,7 +1435,7 @@ app background; re-export them all when the master changes.
 | Metrics and alerting | Medium | Latency and error rate are in the logs; ship them to a dashboard with alerts, and watch CPU, memory and the database at the host |
 | Load test the limits | Medium | Tune the §10 numbers against real traffic |
 | Final logo and app icons | Done | Owl mark from `assets/brand/hamdastan-logo.svg`; see §9.3 |
-| Final Welcome artwork | Done | Animated WebP at `apps/web/public/images/brand/welcome-hero.webp` (source in `assets/illustrations/`), with a still first frame for reduced motion |
+| Final Welcome artwork | Done | The owl among its stories, a still WebP at `apps/web/public/images/brand/welcome-hero.webp` (640×360, source in `assets/illustrations/`), on white with its edges fading into the screen — no frame, no corners and no halo behind it. `welcome-hero-still.webp` beside it serves reduced motion, so an animated replacement needs no code change |
 | Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
 | Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
 | Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |

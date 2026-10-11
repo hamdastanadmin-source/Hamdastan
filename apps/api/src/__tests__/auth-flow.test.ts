@@ -427,6 +427,7 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
 
     it('completes the profile mission on a username and a city, and keeps usernames unique', async () => {
       const cookies = await homeUser();
+      expect((await get('/me/account', cookies)).json().data.profile.username).toMatch(/^user\d{8}$/);
 
       const partial = await patch('/me/profile', { username: 'Neg.Sal' }, cookies);
       expect(partial.statusCode, partial.body).toBe(200);
@@ -446,6 +447,16 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
 
       const invalid = await patch('/me/profile', { username: '1abc' }, other);
       expect(invalid.statusCode).toBe(400);
+    });
+
+    it('gives an account created before usernames existed one when it loads', async () => {
+      const cookies = await homeUser();
+      const before = (await get('/me/account', cookies)).json().data.profile.username;
+      await getPool().query('UPDATE v2_users SET username = NULL WHERE username = $1', [before]);
+
+      const username = (await get('/me/account', cookies)).json().data.profile.username;
+      expect(username).toMatch(/^user\d{8}$/);
+      expect((await get('/me/account', cookies)).json().data.profile.username).toBe(username);
     });
 
     it('stores social handles, from a handle or a pasted link, and clears them', async () => {

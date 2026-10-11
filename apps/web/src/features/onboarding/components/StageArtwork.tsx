@@ -12,7 +12,8 @@ import type { CSSProperties } from 'react';
  * lifted to white and a `<name>-still.webp` first frame beside it. On the
  * screen there is no frame and no corners: the edges fade out over that
  * clear margin — 14% at the sides, 10% top and bottom — so the fade never
- * reaches the subject.
+ * reaches the subject. A master drawn on transparency keeps it, so it sits on
+ * the stage in both themes.
  *
  * `my-auto` centres it in the space between the text and the footer, so it
  * lands in the same place on every screen however much text sits above it.

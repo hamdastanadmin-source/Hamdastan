@@ -66,7 +66,7 @@ async function currentLevel(userId: string): Promise<number> {
  */
 export const accountService = {
   async getOverview(current: UserRecord): Promise<AccountOverview> {
-    return overviewOf(current);
+    return overviewOf(await usersService.ensureUsername(current));
   },
 
   async updateProfile(current: UserRecord, fields: ProfileFields): Promise<AccountUpdate> {

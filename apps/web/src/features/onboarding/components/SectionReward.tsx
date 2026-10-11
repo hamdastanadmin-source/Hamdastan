@@ -20,8 +20,8 @@ import { StageArtwork } from './StageArtwork';
 /** The artwork that closes each chapter. A chapter without one shows text only. */
 const REWARD_ARTWORK: Partial<Record<SectionId, string>> = {
   1: 'questionnaire-section-1',
-  2: 'questionnaire-section-2',
-  3: 'questionnaire-section-1',
+  2: 'questionnaire-section-1',
+  3: 'questionnaire-section-2',
 };
 export function SectionReward({
   section,

@@ -4,14 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@hamdastan/shared/cn';
 
-/** One loop of `owl-detective.webp`: 60 frames, 5 seconds. */
+/**
+ * How long the owl stays at the least. `owl-detective.webp` is one 10-second
+ * loop (120 frames); the wait is half of it, so a fast result is not held up.
+ */
 const LOOP_MS = 5000;
 
 /**
  * The detective owl, over the whole column, while a result is on its way —
  * the questionnaire's processing step and the profile's full result.
  *
- * It leaves only when both are true: one full loop has played since the image
+ * It leaves only when both are true: `LOOP_MS` has passed since the image
  * loaded, and `ready`. A slow result keeps it looping. Then it fades out,
  * calls `onDone` and renders nothing.
  *
@@ -19,7 +22,7 @@ const LOOP_MS = 5000;
  * on white (`assets/illustrations/owl-detective.webp`, lifted to white and
  * framed like every other owl at 720×491), the screen is that white in both
  * themes, and the artwork's edges fade into it. An animated image has no
- * `ended` event, so the loop is timed from `load`.
+ * `ended` event, so the wait is timed from `load`.
  */
 export function OwlLoader({ ready, onDone }: { ready: boolean; onDone?: () => void }) {
   const imageRef = useRef<HTMLImageElement>(null);

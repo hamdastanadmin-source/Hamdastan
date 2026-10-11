@@ -39,8 +39,15 @@ export interface UsersRepository {
    * The row a verified code creates. Returns the existing user when the
    * number already has one, so two codes verified at once cannot produce two
    * accounts — the unique index on `phone` is what decides, not a prior read.
+   * Null when `username` is already held by someone else, so the caller can
+   * try another.
    */
-  createWithPhone(phone: string): Promise<UserRecord>;
+  createWithPhone(phone: string, username: string): Promise<UserRecord | null>;
+  /**
+   * Sets the username only where there is none, and returns the row either
+   * way. Null when `username` is already held by someone else.
+   */
+  assignUsername(id: string, username: string): Promise<UserRecord | null>;
   saveBasicInfo(id: string, info: BasicInfo): Promise<UserRecord>;
   setOnboardingStep(id: string, step: OnboardingStep): Promise<UserRecord>;
 
@@ -184,17 +191,39 @@ export const sqlUsersRepository: UsersRepository = {
     return row ? toRecord(row) : null;
   },
 
-  async createWithPhone(phone) {
+  async createWithPhone(phone, username) {
     // ON CONFLICT with a no-op update rather than DO NOTHING, because
     // DO NOTHING returns no row on conflict and the caller needs the user.
-    const rows = await query<UserRow>(
-      `INSERT INTO v2_users (phone)
-            VALUES ($1)
-       ON CONFLICT (phone) DO UPDATE SET updated_at = now()
-         RETURNING ${SELECT_COLUMNS}`,
-      [phone]
-    );
-    return toRecord(rows[0]);
+    // It covers `phone` only; a clash on `username` still raises.
+    try {
+      const rows = await query<UserRow>(
+        `INSERT INTO v2_users (phone, username)
+              VALUES ($1, $2)
+         ON CONFLICT (phone) DO UPDATE SET updated_at = now()
+           RETURNING ${SELECT_COLUMNS}`,
+        [phone, username]
+      );
+      return toRecord(rows[0]);
+    } catch (error) {
+      if ((error as { constraint?: string }).constraint === 'v2_users_username') return null;
+      throw error;
+    }
+  },
+
+  async assignUsername(id, username) {
+    try {
+      const rows = await query<UserRow>(
+        `UPDATE v2_users
+            SET username = COALESCE(username, $2), updated_at = now()
+          WHERE id = $1
+      RETURNING ${SELECT_COLUMNS}`,
+        [id, username]
+      );
+      return toRecord(rows[0]);
+    } catch (error) {
+      if ((error as { constraint?: string }).constraint === 'v2_users_username') return null;
+      throw error;
+    }
   },
 
   async saveBasicInfo(id, info) {

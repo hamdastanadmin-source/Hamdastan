@@ -34,7 +34,6 @@ const WORLD_BANNERS = [
  */
 export default async function HomePage() {
   const [{ profile, socialProfile }, activities] = await Promise.all([getAccountOverview(), getMyActivities()]);
-  const name = profile.displayName ?? 'دوست من';
 
   return (
     <Screen>
@@ -50,10 +49,9 @@ export default async function HomePage() {
               <AvatarFigure avatar={profile.avatar ?? DEFAULT_AVATAR} frame="portrait" label="" className="size-full" />
             )}
           </span>
-          <span className="flex flex-col">
-            <span className="text-xs text-muted-foreground">خوش برگشتی</span>
-            <h1 className="text-sm font-bold leading-tight">{name}</h1>
-          </span>
+          <h1 className="text-sm font-bold leading-tight">
+            {profile.username ? <bdi dir="ltr">@{profile.username}</bdi> : profile.displayName}
+          </h1>
         </Link>
       </ScreenHeader>
 

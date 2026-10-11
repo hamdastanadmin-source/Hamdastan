@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import {
   INTEREST_CATEGORIES,
   INTEREST_CATEGORY_BY_ID,
@@ -31,6 +33,23 @@ import type {
  * this function gives, which is why a half-filled account cannot be walked
  * past by editing a URL.
  */
+
+/**
+ * The username an account starts with: `user` and eight random digits, which
+ * passes `usernameSchema` and is the person's to change. The unique index
+ * decides whether it is free; a clash just draws again.
+ */
+const generateUsername = () => `user${randomInt(0, 100_000_000).toString().padStart(8, '0')}`;
+const USERNAME_ATTEMPTS = 5;
+
+/** Runs `write` with fresh usernames until one is free (`write` answers null on a clash). */
+async function withFreshUsername(write: (username: string) => Promise<UserRecord | null>) {
+  for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt++) {
+    const user = await write(generateUsername());
+    if (user) return user;
+  }
+  throw new Error('Could not draw a free username');
+}
 
 /** Strips everything the browser has no business knowing. */
 export function toAuthUser(record: UserRecord): AuthUser {
@@ -140,7 +159,19 @@ export const usersService = {
   async ensureByPhone(phone: string): Promise<{ user: UserRecord; isNew: boolean }> {
     const existing = await usersRepository().findByPhone(phone);
     if (existing) return { user: existing, isNew: false };
-    return { user: await usersRepository().createWithPhone(phone), isNew: true };
+    const user = await withFreshUsername((username) =>
+      usersRepository().createWithPhone(phone, username)
+    );
+    return { user, isNew: true };
+  },
+
+  /**
+   * Gives an account created before usernames were generated the one it
+   * would have been born with. A no-op for every other account.
+   */
+  async ensureUsername(user: UserRecord): Promise<UserRecord> {
+    if (user.username) return user;
+    return withFreshUsername((username) => usersRepository().assignUsername(user.id, username));
   },
 
   async saveBasicInfo(user: UserRecord, info: BasicInfo): Promise<UserRecord> {

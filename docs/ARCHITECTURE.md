@@ -768,10 +768,11 @@ which crops the head out of that one file — no second export per frame.
 
 The detective owl is the loader in front of a social-profile result (the
 questionnaire's processing step and `/profile/social`). The master is
-`assets/illustrations/owl-detective.webp` (960×540, off-white backdrop);
+`assets/illustrations/owl-detective.webp` (640×360, off-white backdrop);
 the served copy `apps/web/public/images/brand/owl-detective.webp` is
 prepared like the stage owls — backdrop lifted to white, owl scaled to the
-same height and centred on 720×491 — and keeps the 60-frame, 5-second loop.
+same height and centred on 720×491 — and keeps the 120-frame, 10-second
+loop. `OwlLoader` holds it for 5 seconds at the least (`LOOP_MS`).
 It is shown only through `OwlLoader` (`apps/web/src/components/artwork`),
 on `bg-owl-backdrop`, white in both themes.
 

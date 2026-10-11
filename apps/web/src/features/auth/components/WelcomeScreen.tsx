@@ -37,9 +37,11 @@ const MOTION = {
 } as const;
 
 /**
- * The hero motion. `unoptimized` because the image optimiser would hand back
- * a single still frame; the file is already a compressed WebP at its display
- * size. The source lives in `assets/illustrations/welcome-hero.webp`.
+ * The hero artwork: the owl among its stories, drawn on white and framed like
+ * the stage owls — the subject clear of the edges (15% at the sides, 11% top
+ * and bottom) so the edge fade never reaches it. `unoptimized` because the
+ * file is already a compressed WebP at its display size. The source lives in
+ * `assets/illustrations/welcome-hero.webp`.
  */
 const HERO = {
   motion: '/images/brand/welcome-hero.webp',
@@ -64,19 +66,11 @@ export function WelcomeScreen() {
       {/* No header. The mark and the name would repeat what the artwork
           already says, and the theme is chosen in settings, not here. */}
       <ScreenBody center className="gap-10 text-center">
-        <div className="relative animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none">
-          {/* A halo behind the artwork so it sits *in* the screen rather than
-              on top of it. A square halo the width of the column: it must not
-              spread sideways, or the page gains a horizontal scroll at
-              320px. */}
-          <div
-            aria-hidden="true"
-            className="hero-glow inset-x-0 top-1/2 aspect-square -translate-y-1/2"
-          />
-          {/* An animated WebP rather than a video: it needs no player, no
-              poster and no autoplay policy. Anyone who has asked for less
-              movement gets its first frame instead — an animated image cannot
-              be paused by `motion-reduce`, so the swap happens in `<picture>`. */}
+        <div className="animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none">
+          {/* A WebP rather than a video: it needs no player, no poster and no
+              autoplay policy. `<picture>` keeps the reduced-motion still, so
+              an animated file can replace this one without touching the
+              screen. */}
           <picture>
             <source media="(prefers-reduced-motion: reduce)" srcSet={HERO.still} />
             <img
@@ -84,8 +78,10 @@ export function WelcomeScreen() {
               alt=""
               // Capped in both directions: the artwork fills the column's
               // width but never grows past a phone-sized illustration,
-              // whatever the browser is doing outside the shell.
-              className="relative mx-auto h-auto max-h-[300px] w-full rounded-2xl object-cover"
+              // whatever the browser is doing outside the shell. No frame and
+              // no corners: its white edges fade into the screen, as on the
+              // stage (`StageArtwork`).
+              className="mx-auto h-auto max-h-[300px] w-full select-none object-contain [mask-composite:intersect] [mask-image:linear-gradient(to_right,transparent,black_14%,black_86%,transparent),linear-gradient(transparent,black_10%,black_90%,transparent)] dark:opacity-90"
             />
           </picture>
         </div>
