@@ -10,6 +10,7 @@ import type { SmsSender } from '../integrations';
 import { setAdminRepository, sqlAdminRepository } from '../modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from '../modules/auth';
 import { setEngagementRepository, sqlEngagementRepository } from '../modules/engagement';
+import { setMediaRepository, sqlMediaRepository } from '../modules/media';
 import { setProgressRepository, sqlProgressRepository } from '../modules/progress';
 import { setUsersRepository, sqlUsersRepository } from '../modules/users';
 
@@ -89,6 +90,7 @@ function definition(overrides: Partial<ActivityDefinition> = {}): ActivityDefini
     anonymous: false,
     review: 'auto',
     assessment: null,
+    journey: null,
     xp: XP,
     ...overrides,
   };
@@ -170,6 +172,7 @@ describe.skipIf(!hasDatabase)('Engagement Studio against a migrated database', (
     setAdminRepository(sqlAdminRepository);
     setProgressRepository(sqlProgressRepository);
     setEngagementRepository(sqlEngagementRepository);
+    setMediaRepository(sqlMediaRepository);
     setSmsSender(silentSender);
 
     app = await buildApp();

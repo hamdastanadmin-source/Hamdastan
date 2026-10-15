@@ -25,7 +25,8 @@ decision, and it is enforced by `MobileShell` and by a Playwright test.
 - **The operator** — runs content and moderation from `apps/admin`, a separate
   app. Signs in with a mobile number and a one-time code like the fan, but only
   if another admin has already added that number (§4.6). Designs and publishes
-  surveys, missions and assessments in Engagement Studio (§4.7).
+  surveys, missions, assessments and multi-day journeys in Engagement Studio
+  (§4.7), from images and motions kept in the media library (§4.8).
 
 ### 1.2 Core Value Proposition
 
@@ -78,7 +79,7 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
 | **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
 | **Badge (نشان)** | A mark of achievement, earned once every mission it requires is finished. Derived, never stored. |
-| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت) or assessment (آزمون) designed in Engagement Studio (§4.7). |
+| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت), assessment (آزمون) or multi-day journey (چالش چندروزه) designed in Engagement Studio (§4.7). |
 | **Activity version** | An activity's questions and scoring/XP settings, frozen. Editing a published or answered activity makes a new version; responses and rewards point at the one they belong to. |
 | **Participation** | One person's progress on one activity: saved draft, how many times they submitted and were rewarded. |
 | **MobileShell** | The 430px column every screen renders inside. |
@@ -622,7 +623,8 @@ reads the same table only to hide what would be refused.
 
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
 start), with the panel's name at the top, the sections the admin's role opens
-— مدیریت کاربران, استودیو (Engagement Studio, §4.7) and نشست‌های کاربران — and
+— مدیریت کاربران, استودیو (Engagement Studio, §4.7), کتابخانه‌ی رسانه (§4.8)
+and نشست‌های کاربران — and
 the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
@@ -839,12 +841,205 @@ that is inherent to rewarding an anonymous survey.) For other activities,
 names and numbers appear only in the review queue, the XP list and the CSV,
 all behind the admin session.
 
-**Not built yet:** images on an activity and image/file upload as mission
-proof (no file-storage integration exists; proof is text today), notifying
-people of a new activity (no notifications module), an event's participants
-as an audience (no events module), conditional questions, ready-made
-templates, advanced reports, Jalali date pickers in the builder (the browser's
-own date-time input is used, and dates are shown in Jalali), and admin roles.
+**The multi-day journey — چالش چندروزه** (`type = 'journey'`, migration
+`0015`). *All six phases are built: the data model and unlock clock, the builder,
+the media & motion library (§4.8), the player with its day-end page and
+invitations, the final character card, and the full preview. Referral
+records and rewards are not (they need their own migration).*
+
+- **Shape.** A journey is an activity like the others; its *days* are the
+  steps of its versioned definition (each needs a title) and its settings
+  are `definition.journey` (`JourneySettings`). Up to 90 days and 1000
+  questions (`JOURNEY_LIMITS`); a new one is 7 days with a target of 10
+  questions a day (`JOURNEY_DEFAULTS`; the target is not enforced).
+  `maxSubmissions` and `xp.maxAwards` are always 1.
+- **A campaign.** A journey needs a start («زمان شروع کمپین», the
+  activity's `startsAt`); its end is not entered — the API derives it as
+  the midnight after the last day, in the journey's zone (a 7-day journey
+  starting Saturday ends as Friday does). Everyone shares the same calendar.
+- **When a day opens** — decided by `apps/api` on every request
+  (`engagement.journey.ts`, pure; the zone maths is
+  `@hamdastan/shared/time-zone`), never by the device's clock:
+  - `calendar_day` (default): day 1 opens at the start, day *n* at local
+    midnight *n − 1* days later, in the journey's `timezone` (default
+    `Asia/Tehran`).
+  - `rolling_24h`: day *n* opens 24 hours after the person finished day
+    *n − 1* (still within the campaign).
+  - `missedDays`: `catch_up` (default) — an earlier day stays open until
+    the campaign ends, for whoever wants to go back to it; `lock` — it is
+    missed for good once the next day opens (calendar mode only).
+  - `requirePreviousDay` (default off, calendar mode): a day waits for the
+    one before it to be finished or missed.
+  - `allowReview` (default on): a finished day can be opened again to read.
+  - Each day is `locked` (with `lockReason` `schedule` or `previous_day`
+    and, when known, `unlocksAt`), `available`, `in_progress`, `completed`
+    or `missed`. **Nothing of a locked day is sent** — not its step, title,
+    questions or answers; only its number, status and opening time.
+- **Answering.** One question at a time, `POST /me/activities/:id/answers`.
+  Each answer is written the moment it is given, as its own row in
+  `v2_journey_answers`, so leaving and coming back — on any device —
+  resumes where the person stopped. An answer is written once (the row's
+  primary key): the same answer again is a harmless repeat
+  (`already_answered`, nothing paid), a different one is `409
+  JOURNEY_ALREADY_ANSWERED`, an early one `409 JOURNEY_DAY_LOCKED`. An
+  optional question may be skipped (`null`). The whole-activity submit and
+  draft routes refuse a journey (`409 JOURNEY_ANSWER_ONLY`).
+- **Finishing.** A day is finished when each of its questions has an answer
+  or a skip (`v2_journey_day_completions`); the journey when every day not
+  missed is. The results dashboard and the CSV read each finished day as
+  one response, straight from those two tables — nothing is copied
+  («پاسخ معتبر» counts finished days).
+- **XP**, each once by the ledger's unique key, in the answer's own
+  transaction: `rewards.perQuestion` for each answered (not skipped)
+  question, `rewards.perDay` for each finished day, and `xp.amount` for
+  finishing the journey. `xp.enabled` switches all three. The card shows
+  the most a person can earn.
+- **The builder** keeps its seven tabs; only what a journey needs changes:
+  - ۱ نوع — «چالش چندروزه». Switching to it keeps the questions already
+    written on day 1 and adds the rest of the week.
+  - ۲ اطلاعات — «تعداد روزها» (added at the end; a day is taken off the end
+    only while nothing is written in it), «هدف تعداد سؤال در هر روز», and
+    the minutes per day. No «تعداد دفعات» — a journey is taken once.
+  - ۳ سؤال‌ها — a tab per day, each showing «سؤال‌ها/هدف» and a dot when
+    something on that day needs fixing. The list shows that day's
+    questions, numbered from 1, under «تنظیمات و کاور روز»: the day's name,
+    a line above its first question, and — folded away — its cover
+    (`DailyCover`: headline, short text, start-button label, an optional
+    background colour of the admin's choosing, entry effect) beside a
+    preview. «⋯» on a question moves it up or down, duplicates it, deletes
+    it, or moves it to another day («انتقال به روز…»; a day keeps at least
+    one question). «⋯» on the day moves it, or deletes it while it is empty.
+    «ورود از اکسل» puts a row on the day named in «مرحله», else on the open
+    day; an import never adds days.
+  - ۵ XP — «XP هر پاسخ», «XP پایان هر روز», «XP پایان چالش», and the most
+    one person can earn.
+  - ۶ زمان‌بندی — «زمان شروع کمپین» (required), the end shown as worked
+    out, «باز شدن روزها», «منطقه‌ی زمانی», and, folded away, «قوانین
+    دسترسی» (missed days, require the previous day, review finished days),
+    then the day-by-day opening times in the journey's zone.
+- **Playing it — `/activities/:id`** (`JourneyPlayer`; the other types keep
+  `ActivityPlayer`).
+  - *The timeline.* «n از m روز» with a progress line, then every day: its
+    number, its name (none for a locked day), and what it is now — «انجام
+    شد» with the XP it paid, «ادامه، ۳ از ۱۰», «آماده‌ی شروع», «فردا ساعت
+    ۰۰:۰۰ باز می‌شه», «بعد از تکمیل روز قبل», «ازدست‌رفته». The one action
+    starts or continues the open day; with none open it counts down to the
+    next («روز بعد تا ۳ ساعت دیگه باز می‌شه») and, when the time comes, asks
+    the API again — the clock on the device only draws the countdown.
+  - *The cover.* The day's number and name, its mascot, headline, text and
+    button, coming in with its entry effect, over the admin's colour or
+    image (the words on the app's surface, so they read on any colour). A
+    day without a cover gets the same screen, plainly.
+  - *A question.* «روز ۱، سؤال ۲ از ۱۰» and a progress line; the image if
+    any (whole, never stretched); the text; the answers. «ثبت پاسخ» — or
+    «رد شدن از این سؤال» for an empty optional one — sends it at once.
+  - *The motion.* After an answer: the question's, else the day's, else the
+    journey's motion, in the middle of the screen, for its duration — or
+    until «رد کردن» or a tap. After the day's last answer: the day-end
+    motion instead (the journey-end one after the last day). A file that is
+    missing or fails to load is skipped; a video is muted unless the admin
+    turned sound on (and plays muted if the browser refuses sound).
+  - *The day-end page.* The admin's title and message with `{name}`,
+    `{day}`, `{days}` filled in, the mascot, «۲ از ۷ روز», the XP that day
+    paid (from the ledger), when the next day opens, and — if on — the
+    invitation text and «دعوت از دوستان»: the device's share sheet, else the
+    message and link copied.
+  - A finished day opens as a read-back of its answers, if review is on.
+  - Under reduced motion every motion and entry effect holds still.
+- **Invitations.** The link is the journey's own address. Someone without
+  an account (or with one still on its profile or onboarding) is sent to
+  the door as usual, and `proxy.ts` remembers the journey in an `httpOnly`
+  cookie for a day; the first time the account reaches home, it is taken to
+  the journey instead, once. Only an activity's address is ever remembered.
+  Invitations are not recorded and earn nothing yet — a referral record
+  and its optional reward need their own migration, and wait for it.
+- **Admin — «نتایج و اشتراک‌گذاری».** A journey's builder has an eighth tab,
+  before the last: the day-end page (title, message, mascot) and the
+  invitation (on/off, text, button, share message). The final character
+  card joins it in phase 5.
+- **The final character card.** In «نتایج و اشتراک‌گذاری» the admin lists
+  traits («شجاعت»، «هوش»…), characters — name, title, description, image,
+  and the trait each stands for (one character per trait) — and the
+  default; in the questions step, each option of a choice question can give
+  points to traits («امتیاز ویژگی‌ها», never sent to the product). When a
+  person finishes, the API adds up their picked options' points and gives
+  the top trait's character (ties to the trait listed first; no points, or
+  no character for it → the default). It is worked out once and kept
+  (`v2_journey_results`, with the character as it read then), so a
+  refresh, an edit or a new version never changes it. The card — character
+  image, name, title, description, the person's first name if the admin
+  allows and they leave it on, the logo (the admin's or the product's) and
+  the brand — is drawn on a canvas at 1080 × 1920 (`@hamdastan/ui/result-card`,
+  the same renderer the admin's preview uses) and saved («دانلود تصویر») or
+  shared as a PNG («اشتراک‌گذاری کارت»: the share sheet with the file, else
+  saved for the gallery).
+- **The full preview.** «باز کردن پیش‌نمایش» on the builder's last tab saves
+  and opens `/preview/activities/:id` in the product, in a new tab: pick a
+  day and a screen — timeline, a locked day, cover, questions (answers
+  simulated with their motions), day end with its invitation, the card (any
+  character) — on a phone frame or as a desktop shows it. Its data comes
+  from `GET /admin/engagement/activities/:id/preview` under the admin's own
+  session; anyone else gets the 404 page. Nothing it does is sent: no
+  answer, no XP, no participation.
+- **Images and motions** (from the library, §4.8). Any question of any
+  activity may have an image — above its text (the default) or between the
+  text and the answers («جای تصویر» in the question editor), drawn by both
+  players, whole and never stretched; one that fails to load is left out. A journey day's cover
+  may have a background image and a mascot. Motions are set in one of five
+  modes wherever one can be set (§4.8): after an answer — the journey's
+  («موشن‌های چالش», at the top of the question list), overridden by a day's
+  and by a question's own; after a day's last answer; after the journey's
+  last answer. Defaults are «غیرفعال». The player gets, with the activity,
+  what each referenced file is (`PlayerActivity.media`); a file it cannot
+  load is skipped and the answering carries on.
+
+### 4.8 Media & motion library — کتابخانه‌ی رسانه و موشن
+
+**Purpose:** keep every image and motion activities use in one place, so
+none is ever in the product's code. Code in `apps/admin/src/features/media`,
+`apps/api/src/modules/media` and `apps/api/src/integrations/storage`.
+Schema: migration `0016`.
+
+- **Files.** Images: PNG, JPEG, WebP. Motions: Lottie (JSON), WebM, MP4.
+  Every file is at most **250 KB** (`MEDIA_LIMITS`). What a file is, is read
+  from its bytes by the API (`media.sniff.ts`) — a renamed SVG, GIF or HTML
+  file is refused (`415 MEDIA_UNSUPPORTED`), as is anything bigger (`413
+  MEDIA_TOO_LARGE`). A Lottie file must parse as an animation.
+- **Where they live.** The row in `v2_media_assets`; the bytes on the API's
+  `api-media` Docker volume (`MEDIA_DIR`), as `<id>-<version>.<format>`.
+  They are served by the API at `GET /api/v1/media/:id` — public (an id is
+  unguessable), cached five minutes and revalidated by hash, sent with
+  `nosniff` and a sandboxing CSP so a file is only ever a file. A Lottie
+  motion's data is also at `GET /media/:id/lottie`, for the players. The
+  volume is not in a `pg_dump`; the deploy runbook backs it up beside it.
+- **The section — «کتابخانه‌ی رسانه», `/media`** (`activities.read`; changes
+  need `activities.write`). A grid of files — preview (a motion plays; held
+  still for anyone whose system asks for reduced motion), name, shelf,
+  format, size, and «در n فعالیت» or «استفاده‌نشده». Filters: name, shelf
+  (مسکات، کاور، تصویر سؤال، موشن پاسخ، جشن و پایان، کارت نتیجه، سایر), kind.
+  «بارگذاری فایل» (name, shelf, a local preview first); on a file, «ویرایش
+  نام و دسته», «جایگزینی فایل» — the same id, so the new file shows
+  everywhere it is used; an image stays an image (`409 MEDIA_KIND_CHANGED`)
+  — and «حذف», only for a file no activity uses, in any of its versions
+  (`409 MEDIA_IN_USE`).
+- **Choosing in the builder.** A file field opens the library as a picker
+  (choose, or upload and it is chosen), then shows the file with «جایگزینی»
+  and «حذف». On save, the API checks every id the definition names exists,
+  and that an image's place holds an image.
+- **A motion setting** (`MotionSetting`) is one of: «غیرفعال»; «مسکات آماده»
+  (a file from the mascot shelf); «موشن اختصاصی» (any file, or a new
+  upload); «افکت داخلی» (the product's own simple effects: کاغذرنگی، پاپ،
+  درخشش، لایک); «تصادفی» (2–12 files, one picked each time). With it: how
+  long it stays (0.5–5 s; an answer's starts at 1.2 s), a short caption,
+  and sound — off unless switched on, for a video's own track.
+
+**Not built yet:** image/file upload as mission proof (proof is text today;
+the media library's storage could carry it), notifying people of a new
+activity (no notifications module), an event's participants as an audience
+(no events module), recording who joined through a journey invitation and
+rewarding it (needs its own migration), conditional questions, ready-made
+templates, advanced reports, and Jalali date pickers in the builder (the
+browser's own date-time input is used, and dates are shown in Jalali).
 
 ---
 
@@ -988,6 +1183,15 @@ Engagement Studio (0010):
    |       |   v2_engagement_audit_log    |
    |       +------------------------------+
    └--1:N--  v2_xp_transactions (activity_id, activity_version_id, reverses_id)
+
+Journeys (0015, 0017) — each belongs to a participation (activity, user):
+
+v2_engagement_participations --1:N-- v2_journey_answers          (one per question; never replaced)
+                             --1:N-- v2_journey_day_completions  (one per finished day)
+                             --1:1-- v2_journey_results          (the character; kept once)
+
+Media library (0016): v2_media_assets — activities name a file by id
+inside their definition; the bytes are on the api-media volume.
 ```
 
 ### 6.2 Key relationships and why they are shaped that way
@@ -1088,6 +1292,27 @@ Engagement Studio (0010):
   reversal's amount is negative, every other row's positive. A grant's
   status (granted / revoked) is whether a reversal points at it.
 
+- **`v2_journey_answers` (0015)** — one row per answer, keyed
+  `(activity_id, user_id, question_id)`, never updated: `day_id` (the day
+  the question was on), `version_id`, `value` (`NULL` for a skip),
+  `answered_at`. Belongs to the participation row.
+- **`v2_journey_day_completions` (0015)** — one row per finished day,
+  keyed `(activity_id, user_id, day_id)`, with `completed_at`. `0015` also
+  adds `journey` to `v2_activity_type` and widens
+  `v2_xp_transactions.source_id` to 100 characters for the per-answer key
+  `<activity>:q:<question>` (a day is `<activity>:d:<day>`, the finish
+  `<activity>:1`).
+
+- **`v2_journey_results` (0017)** — one row per (activity, person), written
+  once: the version that decided it, the character as it then read, every
+  trait's total.
+
+- **`v2_media_assets` (0016)** — one row per library file: `kind`
+  (image/motion), `format` (read from the bytes), `category`, `name`,
+  `size_bytes` (≤ 250 KB), `sha256`, `version` (up by one on each
+  replacement). The bytes are on the `api-media` volume. Activities refer to
+  a file by id inside their definition; usage is read from there.
+
 - **`v2_admin_users`** — the admin panel's allow-list: `phone` (unique,
   normalised like `v2_users.phone`), `first_name`, `last_name`, `status`
   (`ACTIVE` / `INACTIVE`), `last_login_at`. Deliberately separate from
@@ -1101,8 +1326,8 @@ Engagement Studio (0010):
 The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 `0002_user_interests.sql`, `0004_social_questionnaire.sql`,
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
-everyone who finished it before XP existed), `0009_admin_users.sql` and
-`0010_engagement_studio.sql`.
+everyone who finished it before XP existed), `0009_admin_users.sql`,
+`0010_engagement_studio.sql` and `0015_engagement_journeys.sql`.
 
 ---
 
@@ -1187,10 +1412,20 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | POST | `/admin/engagement/audience/preview` | `{ audience }` | `{ eligible }` |
 | POST | `/admin/engagement/submissions/:id/review` | `{ decision: approve \| reject, note? }` | `{ xpAwarded }`; 409 `SUBMISSION_ALREADY_REVIEWED` |
 | POST | `/admin/engagement/xp/:transactionId/revoke` | `{ reason }` | `{ revoked: true }`; 409 `XP_ALREADY_REVOKED` |
+| GET | `/admin/engagement/activities/:id/preview` | — | `JourneyPreview`: `{ activity, definition }` — every day open, nothing recorded; journeys only |
+| GET | `/admin/media` | `?category=&kind=&search=&page=&pageSize=` | `Paginated<MediaAsset>` (with `usage`) |
+| POST | `/admin/media` | `{ name, category, data }` — `data` is the file, base64 | `MediaAsset` (201); 413 `MEDIA_TOO_LARGE`, 415 `MEDIA_UNSUPPORTED` |
+| GET | `/admin/media/:id` | — | `MediaAsset` |
+| PATCH | `/admin/media/:id` | `{ name?, category? }` | `MediaAsset` |
+| PUT | `/admin/media/:id/file` | `{ data }` | `MediaAsset` — same id, next version; 409 `MEDIA_KIND_CHANGED` |
+| DELETE | `/admin/media/:id` | — | `{ deleted: true }`; 409 `MEDIA_IN_USE` |
+| GET | `/media/:id` | — (public) | the file, with its type; `ETag`, 304 |
+| GET | `/media/:id/lottie` | — (public) | a Lottie motion's animation data |
 | GET | `/me/activities` | — | `ActivityCard[]` |
 | GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
 | PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
-| POST | `/me/activities/:id/submit` | `{ versionId, answers }`, header `Idempotency-Key` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`; 404 outside the audience |
+| POST | `/me/activities/:id/submit` | `{ versionId, answers }`, header `Idempotency-Key` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`, `JOURNEY_ANSWER_ONLY`; 404 outside the audience |
+| POST | `/me/activities/:id/answers` | `{ questionId, value }` — `value` null skips an optional question. Journeys only; safe to repeat | `JourneyAnswerOutcome`: `{ status: recorded \| already_answered, xpAwarded: { question, day, journey }, dayCompleted, journeyCompleted, xpTotal, journey }`; 400 per-question error; 409 `JOURNEY_DAY_LOCKED`, `JOURNEY_ALREADY_ANSWERED`, `ACTIVITY_CLOSED`, `ACTIVITY_VERSION_CHANGED` |
 
 **Retrying a submission.** The player sends an `Idempotency-Key` (16–100
 characters of `[A-Za-z0-9_-]`) generated once per submission and reused if
@@ -1240,6 +1475,8 @@ against the same objects, including the Persian messages.
 | Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
 | Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
 | Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options; scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); personality: ≥ 1 dimension and every non-text question tied to one; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
+| Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
+| Media file | ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم فایل باید حداکثر ۲۵۰ کیلوبایت باشه» / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
 | Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
 | Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 | XP revocation reason | Required, ≤ 300 | «دلیل ابطال رو بنویس» |
@@ -1369,6 +1606,12 @@ app background; re-export them all when the master changes.
   (`text/plain`, urlencoded and multipart — what a form can send without a
   preflight — are 415). Calls from `apps/web`'s server send no `Origin` and
   pass.
+- **Uploads:** a library file is taken only when its own bytes are one of
+  the six formats (an SVG, GIF or HTML file renamed is refused), and only up
+  to 250 KB; it is stored under a name the API makes, never one a client
+  sent, and served with `nosniff` and a sandboxing CSP, so it is only ever
+  an image, a video or animation data. Lottie is drawn without its
+  expression engine — an uploaded animation never runs code.
 - **HSTS** is sent by nginx alone, without `includeSubDomains` or
   `preload`; the API's helmet does not add a second header.
 - **Client address:** the API believes `X-Forwarded-For` only from the
@@ -1449,7 +1692,9 @@ app background; re-export them all when the master changes.
 | Serve `apps/admin` in production | Done | nginx routes `/admin` to the `admin` container; the app is built with `basePath: '/admin'` |
 | Admin roles and permissions | Done — apply `0014` | System admin, content manager, mission reviewer; permission per route — §4.6 |
 | Engagement Studio (phases 1–3) | Done — apply `0010` | Surveys, missions with review, knowledge and personality assessments, audience, versioning, XP ledger with revocation, results and CSV — §4.7. Needs migration `0010` applied to each database |
-| Image / file proof for missions, activity images | Medium | Needs a file-storage integration in `apps/api/src/integrations`; proof is text today |
+| Multi-day journey (چالش چندروزه) | Done — apply `0015`, `0016`, `0017` | Campaign calendar with server-side unlocking, per-answer storage and XP, builder, images and motions, player, day-end page, invitation links, character card, full preview — §4.7, §4.8. Not built: referral records and rewards (needs a migration) |
+| Media & motion library | Done — apply `0016` | Upload, sniffed formats, 250 KB, replace, safe delete, picker, motion settings — §4.8. The API's `api-media` volume must be backed up with the database |
+| Image / file proof for missions | Medium | The media library's `MediaStorage` can carry it; proof is text today |
 | Notify people of a new activity | Medium | Needs the notifications module |
 | Event participants as an audience | Medium | Needs the events module |
 | Conditional questions, templates, advanced reports | Low | Phase 4 of Engagement Studio |

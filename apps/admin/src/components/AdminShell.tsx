@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, MonitorSmartphone, Sparkles, Users, type LucideIcon } from 'lucide-react';
+import { Images, LogOut, MonitorSmartphone, Sparkles, Users, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { AdminUser } from '@hamdastan/types';
@@ -34,6 +34,7 @@ import { ThemeToggle } from './ThemeToggle';
 const ICONS: Record<(typeof SECTIONS)[number]['href'], LucideIcon> = {
   '/users': Users,
   '/engagement': Sparkles,
+  '/media': Images,
   '/sessions': MonitorSmartphone,
 };
 

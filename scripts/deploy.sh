@@ -82,6 +82,7 @@ rsync -az --delete \
   --exclude 'e2e/.auth' \
   --exclude '.claude' \
   --exclude 'assets' \
+  --exclude 'storage' \
   -e "ssh ${SSH_OPTS[*]}" \
   ./ "${TARGET}:${DEPLOY_PATH}/"
 

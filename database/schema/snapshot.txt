@@ -73,6 +73,35 @@ column v2_idempotency_keys.outcome jsonb nullable=YES default=
 column v2_idempotency_keys.owner_id uuid nullable=NO default=
 column v2_idempotency_keys.request_hash character nullable=NO default=
 column v2_idempotency_keys.scope character varying nullable=NO default=
+column v2_journey_answers.activity_id uuid nullable=NO default=
+column v2_journey_answers.answered_at timestamp with time zone nullable=NO default=now()
+column v2_journey_answers.day_id character varying nullable=NO default=
+column v2_journey_answers.question_id character varying nullable=NO default=
+column v2_journey_answers.user_id uuid nullable=NO default=
+column v2_journey_answers.value jsonb nullable=YES default=
+column v2_journey_answers.version_id uuid nullable=NO default=
+column v2_journey_day_completions.activity_id uuid nullable=NO default=
+column v2_journey_day_completions.completed_at timestamp with time zone nullable=NO default=now()
+column v2_journey_day_completions.day_id character varying nullable=NO default=
+column v2_journey_day_completions.user_id uuid nullable=NO default=
+column v2_journey_results.activity_id uuid nullable=NO default=
+column v2_journey_results.character jsonb nullable=NO default=
+column v2_journey_results.created_at timestamp with time zone nullable=NO default=now()
+column v2_journey_results.traits jsonb nullable=NO default='[]'::jsonb
+column v2_journey_results.user_id uuid nullable=NO default=
+column v2_journey_results.version_id uuid nullable=NO default=
+column v2_media_assets.category character varying nullable=NO default=
+column v2_media_assets.created_at timestamp with time zone nullable=NO default=now()
+column v2_media_assets.created_by uuid nullable=YES default=
+column v2_media_assets.format character varying nullable=NO default=
+column v2_media_assets.id uuid nullable=NO default=gen_random_uuid()
+column v2_media_assets.kind USER-DEFINED nullable=NO default=
+column v2_media_assets.name character varying nullable=NO default=
+column v2_media_assets.sha256 character nullable=NO default=
+column v2_media_assets.size_bytes integer nullable=NO default=
+column v2_media_assets.updated_at timestamp with time zone nullable=NO default=now()
+column v2_media_assets.updated_by uuid nullable=YES default=
+column v2_media_assets.version integer nullable=NO default=1
 column v2_onboarding_events.event character varying nullable=NO default=
 column v2_onboarding_events.id bigint nullable=NO default=nextval('v2_onboarding_events_id_seq'::regclass)
 column v2_onboarding_events.occurred_at timestamp with time zone nullable=NO default=now()
@@ -221,6 +250,22 @@ constraint v2_engagement_versions v2_engagement_versions_once UNIQUE (activity_i
 constraint v2_engagement_versions v2_engagement_versions_pkey PRIMARY KEY (id)
 constraint v2_engagement_versions v2_engagement_versions_positive CHECK ((version > 0))
 constraint v2_idempotency_keys v2_idempotency_keys_pkey PRIMARY KEY (scope, owner_id, idem_key)
+constraint v2_journey_answers v2_journey_answers_participation FOREIGN KEY (activity_id, user_id) REFERENCES v2_engagement_participations(activity_id, user_id) ON DELETE CASCADE
+constraint v2_journey_answers v2_journey_answers_pkey PRIMARY KEY (activity_id, user_id, question_id)
+constraint v2_journey_answers v2_journey_answers_version_id_fkey FOREIGN KEY (version_id) REFERENCES v2_engagement_versions(id) ON DELETE CASCADE
+constraint v2_journey_day_completions v2_journey_day_completions_participation FOREIGN KEY (activity_id, user_id) REFERENCES v2_engagement_participations(activity_id, user_id) ON DELETE CASCADE
+constraint v2_journey_day_completions v2_journey_day_completions_pkey PRIMARY KEY (activity_id, user_id, day_id)
+constraint v2_journey_results v2_journey_results_participation FOREIGN KEY (activity_id, user_id) REFERENCES v2_engagement_participations(activity_id, user_id) ON DELETE CASCADE
+constraint v2_journey_results v2_journey_results_pkey PRIMARY KEY (activity_id, user_id)
+constraint v2_journey_results v2_journey_results_version_id_fkey FOREIGN KEY (version_id) REFERENCES v2_engagement_versions(id) ON DELETE CASCADE
+constraint v2_media_assets v2_media_assets_category CHECK (((category)::text = ANY ((ARRAY['mascot'::character varying, 'cover'::character varying, 'question'::character varying, 'answer_motion'::character varying, 'celebration'::character varying, 'result'::character varying, 'other'::character varying])::text[])))
+constraint v2_media_assets v2_media_assets_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_media_assets v2_media_assets_format CHECK (((format)::text = ANY ((ARRAY['png'::character varying, 'jpeg'::character varying, 'webp'::character varying, 'lottie'::character varying, 'webm'::character varying, 'mp4'::character varying])::text[])))
+constraint v2_media_assets v2_media_assets_kind_format CHECK ((((kind = 'image'::v2_media_kind) AND ((format)::text = ANY ((ARRAY['png'::character varying, 'jpeg'::character varying, 'webp'::character varying])::text[]))) OR ((kind = 'motion'::v2_media_kind) AND ((format)::text = ANY ((ARRAY['lottie'::character varying, 'webm'::character varying, 'mp4'::character varying])::text[])))))
+constraint v2_media_assets v2_media_assets_pkey PRIMARY KEY (id)
+constraint v2_media_assets v2_media_assets_size CHECK (((size_bytes > 0) AND (size_bytes <= 256000)))
+constraint v2_media_assets v2_media_assets_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_media_assets v2_media_assets_version CHECK ((version > 0))
 constraint v2_onboarding_events v2_onboarding_events_event CHECK (((event)::text = ANY ((ARRAY['quiz_started'::character varying, 'quiz_question_viewed'::character varying, 'quiz_question_answered'::character varying, 'quiz_back_clicked'::character varying, 'quiz_section_completed'::character varying, 'quiz_abandoned'::character varying, 'quiz_resumed'::character varying, 'quiz_completed'::character varying, 'quiz_result_viewed'::character varying, 'quiz_result_continue_clicked'::character varying])::text[])))
 constraint v2_onboarding_events v2_onboarding_events_pkey PRIMARY KEY (id)
 constraint v2_onboarding_events v2_onboarding_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
@@ -262,10 +307,11 @@ constraint v2_xp_transactions v2_xp_transactions_source_type CHECK (((source_typ
 constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK (((((source_type)::text = 'reversal'::text) AND (xp_amount < 0)) OR (((source_type)::text <> 'reversal'::text) AND (xp_amount > 0))))
 enum v2_activity_status draft,published,paused,closed,archived
-enum v2_activity_type survey,mission,assessment
+enum v2_activity_type survey,mission,assessment,journey
 enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER
 enum v2_admin_status ACTIVE,INACTIVE
 enum v2_gender MALE,FEMALE
+enum v2_media_kind image,motion
 enum v2_onboarding_step basic_info,onboarding,done
 enum v2_participation_status in_progress,pending_review,completed,rejected
 enum v2_review_status none,pending,approved,rejected
@@ -293,6 +339,12 @@ index v2_engagement_versions_once CREATE UNIQUE INDEX v2_engagement_versions_onc
 index v2_engagement_versions_pkey CREATE UNIQUE INDEX v2_engagement_versions_pkey ON public.v2_engagement_versions USING btree (id)
 index v2_idempotency_keys_expires_at CREATE INDEX v2_idempotency_keys_expires_at ON public.v2_idempotency_keys USING btree (expires_at)
 index v2_idempotency_keys_pkey CREATE UNIQUE INDEX v2_idempotency_keys_pkey ON public.v2_idempotency_keys USING btree (scope, owner_id, idem_key)
+index v2_journey_answers_day CREATE INDEX v2_journey_answers_day ON public.v2_journey_answers USING btree (activity_id, day_id)
+index v2_journey_answers_pkey CREATE UNIQUE INDEX v2_journey_answers_pkey ON public.v2_journey_answers USING btree (activity_id, user_id, question_id)
+index v2_journey_day_completions_pkey CREATE UNIQUE INDEX v2_journey_day_completions_pkey ON public.v2_journey_day_completions USING btree (activity_id, user_id, day_id)
+index v2_journey_results_pkey CREATE UNIQUE INDEX v2_journey_results_pkey ON public.v2_journey_results USING btree (activity_id, user_id)
+index v2_media_assets_pkey CREATE UNIQUE INDEX v2_media_assets_pkey ON public.v2_media_assets USING btree (id)
+index v2_media_assets_shelf CREATE INDEX v2_media_assets_shelf ON public.v2_media_assets USING btree (category, created_at DESC)
 index v2_onboarding_events_funnel CREATE INDEX v2_onboarding_events_funnel ON public.v2_onboarding_events USING btree (event, occurred_at)
 index v2_onboarding_events_pkey CREATE UNIQUE INDEX v2_onboarding_events_pkey ON public.v2_onboarding_events USING btree (id)
 index v2_onboarding_events_user CREATE INDEX v2_onboarding_events_user ON public.v2_onboarding_events USING btree (user_id, occurred_at)

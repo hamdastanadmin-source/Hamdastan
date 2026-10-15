@@ -12,7 +12,8 @@
     "./tokens": "./tokens/index.ts",
     "./tokens/theme.store": "./tokens/theme.store.ts",
     "./tokens/*": "./tokens/*",
-    "./styles/*": "./styles/*"
+    "./styles/*": "./styles/*",
+    "./result-card": "./patterns/result-card.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

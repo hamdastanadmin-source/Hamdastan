@@ -25,3 +25,5 @@ docs
 .env
 .env.*
 !.env.example
+
+storage

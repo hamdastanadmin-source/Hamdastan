@@ -4,6 +4,7 @@ import { Alert, AlertDescription, Input } from '@hamdastan/ui';
 
 import type { ActivityEditorApi } from '../../hooks/use-activity-editor';
 import { Field, invalid } from './Field';
+import { JourneySchedule } from './JourneySchedule';
 
 /**
  * Step 6: when it opens and closes. A start in the future makes a publish a
@@ -12,6 +13,7 @@ import { Field, invalid } from './Field';
  */
 export function ScheduleStep({ editor }: { editor: ActivityEditorApi }) {
   const { state, update, errors } = editor;
+  if (state.type === 'journey') return <JourneySchedule editor={editor} />;
 
   return (
     <div className="flex flex-col gap-5">

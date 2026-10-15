@@ -79,6 +79,10 @@ All of these, before step 2:
 ```bash
 # Backup — the arvandbaas host is reached through the server (see database/README.md).
 pg_dump --no-owner --no-privileges "$PROD_DATABASE_URL" > hamdastan-$(date +%F-%H%M).sql
+# The media library's files are not in the database: they are the `api-media`
+# volume. Back it up with the dump — the rows and the files belong together.
+docker run --rm -v hamdastan_api-media:/media:ro -v "$PWD":/backup alpine \
+  tar czf /backup/hamdastan-media-$(date +%F-%H%M).tgz -C /media .
 
 # The edge network's range must not be in use.
 docker network ls -q | xargs docker network inspect -f '{{.Name}} {{range .IPAM.Config}}{{.Subnet}}{{end}}'
@@ -195,6 +199,12 @@ It is safe because:
 - **Sessions survive both ways.** No token format changed; the new columns
   are ignored by the old code, and sessions it creates get their absolute
   end on their first refresh after rolling forward.
+- **Journeys and the media library (`0015`–`0017`)** only add tables and an
+  enum value. Before rolling back past them, **pause every journey**
+  (`journey` activities) in the studio: the older code does not know the
+  type, and its player would offer a journey's ordinary submit. Their
+  answers, results and the `api-media` volume stay untouched for when the
+  release is rolled forward again.
 - **nginx and the network revert together.** The old `nginx.conf` proxies to
   `api:4000` on the default network, which the old compose file still
   provides; the unused `edge` network can be removed afterwards with

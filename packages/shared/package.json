@@ -10,7 +10,8 @@
     "./http": "./http.ts",
     "./format/number": "./format/number.ts",
     "./format/persian": "./format/persian.ts",
-    "./format/jalali": "./format/jalali.ts"
+    "./format/jalali": "./format/jalali.ts",
+    "./time-zone": "./time-zone.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

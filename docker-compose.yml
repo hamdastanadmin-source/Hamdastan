@@ -40,6 +40,10 @@ services:
       - API_PORT=4000
       - API_HOST=0.0.0.0
       - CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+    volumes:
+      # The media library's uploaded files (MEDIA_DIR). A named volume, so a
+      # rebuild or a redeploy keeps them; it is not in a pg_dump backup.
+      - api-media:/app/storage/media
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -69,3 +73,6 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+volumes:
+  api-media:

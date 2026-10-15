@@ -7,6 +7,7 @@ import {
   activityStatusActionSchema,
   activitySubmitSchema,
   audiencePreviewSchema,
+  journeyAnswerSchema,
   paginationQuerySchema,
   reviewListQuerySchema,
   submissionReviewSchema,
@@ -36,4 +37,5 @@ export const engagementSchemas = {
   revoke: { params: transactionParams, body: xpRevokeSchema },
   draft: { body: activityDraftSchema },
   submit: { body: activitySubmitSchema },
+  answer: { body: journeyAnswerSchema },
 } satisfies Record<string, unknown>;

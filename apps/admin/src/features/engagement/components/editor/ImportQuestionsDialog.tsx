@@ -50,12 +50,15 @@ export function ImportQuestionsDialog({
   onOpenChange,
   type,
   definition,
+  targetStep,
   onImport,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: ActivityType;
   definition: ActivityDefinition;
+  /** A journey: the day rows without a matching «مرحله» go to. */
+  targetStep?: number;
   onImport: (definition: ActivityDefinition, added: number) => void;
 }) {
   const [rows, setRows] = useState<ImportedQuestionRow[] | null>(null);
@@ -90,7 +93,7 @@ export function ImportQuestionsDialog({
 
   const apply = () => {
     if (!rows) return;
-    const merged = mergeImported(definition, type, rows);
+    const merged = mergeImported(definition, type, rows, targetStep);
     if ('error' in merged) return setFileError(merged.error);
     onImport(merged.definition, merged.added);
     reset();

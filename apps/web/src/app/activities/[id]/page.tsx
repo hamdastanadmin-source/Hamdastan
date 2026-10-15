@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { ActivityPlayer } from '@/features/activities';
+import { ActivityPlayer, JourneyPlayer } from '@/features/activities';
 import { getPlayerActivity } from '@/features/activities/server';
 
 export const metadata: Metadata = { title: 'فعالیت' };
@@ -10,5 +10,6 @@ export default async function ActivityPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const activity = await getPlayerActivity(id);
   // Keyed by version: an edit published while the page was open starts the player afresh.
+  if (activity.type === 'journey') return <JourneyPlayer key={activity.versionId} activity={activity} />;
   return <ActivityPlayer key={activity.versionId} activity={activity} />;
 }

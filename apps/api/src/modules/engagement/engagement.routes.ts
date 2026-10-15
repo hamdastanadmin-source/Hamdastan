@@ -24,6 +24,8 @@ export const engagementAdminRoutes: FastifyPluginAsync = async (app) => {
   app.put('/activities/:id', guard('activities.write'), c.update);
   app.post('/activities/:id/status', guard('activities.publish'), c.changeStatus);
   app.post('/activities/:id/duplicate', guard('activities.write'), c.duplicate);
+  // The full preview of a journey: read-only, nothing it does is recorded.
+  app.get('/activities/:id/preview', guard('activities.read'), c.preview);
   app.get('/activities/:id/results', guard('results.read'), c.results);
   app.get('/activities/:id/export', guard('results.export'), c.exportCsv);
   app.get('/activities/:id/submissions', guard('results.individual'), c.submissions);
@@ -41,4 +43,6 @@ export const engagementRoutes: FastifyPluginAsync = async (app) => {
   app.get('/:id', user, c.getMine);
   app.put('/:id/draft', user, c.saveDraft);
   app.post('/:id/submit', { ...user, config: { rateLimit: rateLimits.submit } }, c.submit);
+  // A journey's answers: one at a time, safe to repeat — an answer is written once.
+  app.post('/:id/answers', user, c.answerJourney);
 };

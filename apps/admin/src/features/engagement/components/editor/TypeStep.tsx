@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardList, Flag, GraduationCap, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardList, Flag, GraduationCap, type LucideIcon } from 'lucide-react';
 
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPES } from '@hamdastan/config';
 import type { ActivityType } from '@hamdastan/types';
@@ -22,6 +22,10 @@ const TYPES: Record<ActivityType, { icon: LucideIcon; body: string }> = {
     icon: GraduationCap,
     body: 'آزمون دانشی یا شخصیت‌شناسی با نتیجه. XP مستقل از نتیجه‌ست، مگه اینکه شرط قبولی بذاری.',
   },
+  journey: {
+    icon: CalendarDays,
+    body: 'یک ماجرای چندروزه؛ هر روز یک مرحله‌ی تازه باز می‌شه. XP برای هر پاسخ، هر روز و پایان چالش.',
+  },
 };
 
 /** Step 1. Locked once the activity has been published: a survey cannot become a mission mid-flight. */
@@ -39,7 +43,7 @@ export function TypeStep({ editor }: { editor: ActivityEditorApi }) {
         onValueChange={(type) => type && editor.update(switchType(editor.state, type as ActivityType))}
         disabled={locked}
         spacing={3}
-        className="grid w-full grid-cols-1 md:grid-cols-3"
+        className="grid w-full grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
         aria-label="نوع فعالیت"
       >
         {ACTIVITY_TYPES.map((type) => {

@@ -1,8 +1,9 @@
 'use client';
 
-import { Check, Clock } from 'lucide-react';
+import { Check, Clock, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { ACTIVITY_TYPE_LABELS } from '@hamdastan/config';
+import { ACTIVITY_TYPE_LABELS, WEB_BASE_URL } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityQuestion } from '@hamdastan/types';
 import {
@@ -18,7 +19,8 @@ import {
   ToggleGroupItem,
 } from '@hamdastan/ui';
 
-import { formatDateTime } from '@/lib';
+import { MediaPreview, useMediaAsset } from '@/features/media';
+import { errorMessage, formatDateTime } from '@/lib';
 
 import type { ActivityEditorApi } from '../../hooks/use-activity-editor';
 import { toInput } from '../../utils/draft';
@@ -27,16 +29,25 @@ import { describeAudience } from '../../utils/labels';
 const OPTION =
   'group/option h-auto min-h-12 w-full justify-start gap-3 whitespace-normal rounded-xl border px-4 py-3 text-start font-normal data-[state=on]:border-foreground';
 
-/** A question as the player draws it, inert. */
+/** A question's image as the player shows it: whole, within a fixed height, never stretched. */
+function QuestionImage({ id }: { id: string }) {
+  const { asset, missing } = useMediaAsset(id);
+  if (missing || !asset) return null;
+  return <MediaPreview asset={asset} className="aspect-video max-h-64 w-full rounded-xl bg-muted/40" />;
+}
+
+/** A question as the player draws it, inert: its image above or below its text, then its answers. */
 export function PreviewQuestion({ question, number }: { question: ActivityQuestion; number: number }) {
   return (
     <div className="flex flex-col gap-3">
+      {question.imageId && question.imagePosition !== 'below' && <QuestionImage id={question.imageId} />}
       <p className="text-xs text-muted-foreground">سؤال {toPersianDigits(number)}</p>
       <p className="text-lg font-semibold leading-relaxed">
         {question.title || 'متن سؤال'}
         {!question.required && <span className="ms-2 text-xs font-normal text-muted-foreground">(اختیاری)</span>}
       </p>
       {question.description && <p className="text-sm text-muted-foreground">{question.description}</p>}
+      {question.imageId && question.imagePosition === 'below' && <QuestionImage id={question.imageId} />}
 
       {(question.kind === 'single' || question.kind === 'multiple') && (
         <ToggleGroup type="multiple" spacing={2} className="w-full flex-col items-stretch" aria-label="گزینه‌ها">
@@ -93,81 +104,127 @@ export function PreviewStep({ editor }: { editor: ActivityEditorApi }) {
   const problems = Object.values(errors);
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-      <div
-        className="mx-auto w-full max-w-shell shrink-0 overflow-hidden rounded-3xl border-8 border-foreground/80 bg-background shadow-lg"
-        aria-label="پیش‌نمایش موبایل"
-      >
-        <div className="flex max-h-180 flex-col gap-6 overflow-y-auto p-5">
-          <article className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
-            <Badge variant="outline" className="w-fit">
-              {ACTIVITY_TYPE_LABELS[state.type]}
-            </Badge>
-            <h2 className="text-base font-bold leading-snug">{state.title || 'عنوان فعالیت'}</h2>
-            {state.summary && <p className="text-sm leading-relaxed text-muted-foreground">{state.summary}</p>}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <Clock aria-hidden="true" className="size-3.5" />
-                حدود {toPersianDigits(definition.estimatedMinutes)} دقیقه
-              </span>
-              {definition.xp.enabled && definition.xp.showBeforeStart && definition.xp.amount > 0 && (
-                <bdi dir="ltr" className="rounded-full border px-2 py-0.5 tabular-nums">
-                  +{toPersianDigits(definition.xp.amount)} XP
-                </bdi>
-              )}
-            </div>
-            <Button size="lg" className="w-full">
-              شروع
-            </Button>
-          </article>
+    <div className="flex flex-col gap-6">
+      {state.type === 'journey' && <FullPreview editor={editor} />}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div
+          className="mx-auto w-full max-w-shell shrink-0 overflow-hidden rounded-3xl border-8 border-foreground/80 bg-background shadow-lg"
+          aria-label="پیش‌نمایش موبایل"
+        >
+          <div className="flex max-h-180 flex-col gap-6 overflow-y-auto p-5">
+            <article className="flex flex-col gap-3 rounded-2xl border bg-card p-5">
+              <Badge variant="outline" className="w-fit">
+                {ACTIVITY_TYPE_LABELS[state.type]}
+              </Badge>
+              <h2 className="text-base font-bold leading-snug">{state.title || 'عنوان فعالیت'}</h2>
+              {state.summary && <p className="text-sm leading-relaxed text-muted-foreground">{state.summary}</p>}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock aria-hidden="true" className="size-3.5" />
+                  حدود {toPersianDigits(definition.estimatedMinutes)} دقیقه
+                </span>
+                {definition.xp.enabled && definition.xp.showBeforeStart && definition.xp.amount > 0 && (
+                  <bdi dir="ltr" className="rounded-full border px-2 py-0.5 tabular-nums">
+                    +{toPersianDigits(definition.xp.amount)} XP
+                  </bdi>
+                )}
+              </div>
+              <Button size="lg" className="w-full">
+                شروع
+              </Button>
+            </article>
 
-          {state.instructions && (
-            <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{state.instructions}</p>
+            {state.instructions && (
+              <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{state.instructions}</p>
+            )}
+
+            {questions.map(({ step, question }, index) => (
+              <div key={question.id} className="flex flex-col gap-3">
+                <Separator />
+                {state.type === 'mission' && step.questions[0]?.id === question.id && (
+                  <p className="text-sm font-semibold">{step.title}</p>
+                )}
+                <PreviewQuestion question={question} number={index + 1} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-4">
+          <dl className="grid gap-3 text-sm">
+            {[
+              ['نوع', ACTIVITY_TYPE_LABELS[state.type]],
+              ['مخاطبان', describeAudience(state.audience)],
+              ['سؤال‌ها', toPersianDigits(questions.length)],
+              ['XP', definition.xp.enabled ? toPersianDigits(definition.xp.amount) : 'ندارد'],
+              ['شروع', input.startsAt ? formatDateTime(input.startsAt) : 'از لحظه‌ی انتشار'],
+              ['پایان', input.endsAt ? formatDateTime(input.endsAt) : 'بدون پایان'],
+              ...(definition.anonymous ? [['حریم خصوصی', 'پاسخ‌ها ناشناس']] : []),
+            ].map(([term, value]) => (
+              <div key={term} className="flex justify-between gap-4 border-b pb-2">
+                <dt className="text-muted-foreground">{term}</dt>
+                <dd className="font-medium">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {problems.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTitle>قبل از انتشار این‌ها رو درست کن</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc ps-4">
+                  {problems.slice(0, 6).map((problem, index) => (
+                    <li key={index}>{problem}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
-
-          {questions.map(({ step, question }, index) => (
-            <div key={question.id} className="flex flex-col gap-3">
-              <Separator />
-              {state.type === 'mission' && step.questions[0]?.id === question.id && (
-                <p className="text-sm font-semibold">{step.title}</p>
-              )}
-              <PreviewQuestion question={question} number={index + 1} />
-            </div>
-          ))}
         </div>
       </div>
-
-      <div className="flex flex-1 flex-col gap-4">
-        <dl className="grid gap-3 text-sm">
-          {[
-            ['نوع', ACTIVITY_TYPE_LABELS[state.type]],
-            ['مخاطبان', describeAudience(state.audience)],
-            ['سؤال‌ها', toPersianDigits(questions.length)],
-            ['XP', definition.xp.enabled ? toPersianDigits(definition.xp.amount) : 'ندارد'],
-            ['شروع', input.startsAt ? formatDateTime(input.startsAt) : 'از لحظه‌ی انتشار'],
-            ['پایان', input.endsAt ? formatDateTime(input.endsAt) : 'بدون پایان'],
-            ...(definition.anonymous ? [['حریم خصوصی', 'پاسخ‌ها ناشناس']] : []),
-          ].map(([term, value]) => (
-            <div key={term} className="flex justify-between gap-4 border-b pb-2">
-              <dt className="text-muted-foreground">{term}</dt>
-              <dd className="font-medium">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {problems.length > 0 && (
-          <Alert variant="destructive">
-            <AlertTitle>قبل از انتشار این‌ها رو درست کن</AlertTitle>
-            <AlertDescription>
-              <ul className="list-disc ps-4">
-                {problems.slice(0, 6).map((problem, index) => (
-                  <li key={index}>{problem}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
     </div>
+  );
+}
+
+/**
+ * A journey's full preview, in the product itself — every day, its cover,
+ * questions, motions, end page, invitation and character card, on a phone
+ * frame or as a desktop shows it. It opens in a new tab on what is saved,
+ * so unsaved changes are saved first. Nothing done there is recorded.
+ */
+function FullPreview({ editor }: { editor: ActivityEditorApi }) {
+  const open = async () => {
+    // Opened now, while the click still counts, and pointed at the preview once saved.
+    const tab = window.open('', '_blank');
+    try {
+      const outcome = await editor.save();
+      if (!('detail' in outcome)) {
+        tab?.close();
+        toast.error('اول موارد مشخص‌شده رو اصلاح کن');
+        return;
+      }
+      const url = `${WEB_BASE_URL}/preview/activities/${outcome.detail.id}`;
+      if (tab) tab.location.href = url;
+      else window.location.assign(url);
+    } catch (error) {
+      tab?.close();
+      toast.error(errorMessage(error));
+    }
+  };
+
+  return (
+    <Alert>
+      <AlertTitle>پیش‌نمایش کامل تجربه</AlertTitle>
+      <AlertDescription className="flex flex-col gap-3">
+        <span>
+          هر روز، حالت قفل، کاور، سؤال‌های تصویری با موشن‌ها، پایان روز و دعوت، و کارت شخصیت — همون‌طور که کاربر می‌بینه،
+          در نمای موبایل یا دسکتاپ. هیچ پاسخ یا XPی ثبت نمی‌شه. (تغییرات اول ذخیره می‌شن.)
+        </span>
+        <Button variant="outline" className="w-fit" onClick={open} loading={editor.busy}>
+          <ExternalLink aria-hidden="true" />
+          باز کردن پیش‌نمایش
+        </Button>
+      </AlertDescription>
+    </Alert>
   );
 }

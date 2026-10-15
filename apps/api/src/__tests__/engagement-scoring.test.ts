@@ -19,6 +19,7 @@ const base: ActivityDefinition = {
   anonymous: false,
   review: 'auto',
   assessment: null,
+  journey: null,
   xp: XP,
 };
 

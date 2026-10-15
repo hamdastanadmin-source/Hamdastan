@@ -1,4 +1,14 @@
-import type { ActivityAnswers, ActivityCard, ActivitySubmission, PlayerActivity } from '@hamdastan/types';
+import { API_BASE_URL, API_PREFIX } from '@hamdastan/config';
+import type {
+  ActivityAnswers,
+  ActivityAnswerValue,
+  ActivityCard,
+  ActivitySubmission,
+  JourneyAnswerOutcome,
+  JourneyPreview,
+  PlayerActivity,
+  PlayerMedia,
+} from '@hamdastan/types';
 
 import { apiClient } from './api-client';
 
@@ -42,5 +52,31 @@ export const activitiesService = {
       { versionId, answers },
       { idempotencyKey }
     );
+  },
+
+  /**
+   * One journey answer. Safe to send again: the API keeps the first answer
+   * to a question and answers a repeat as one, without writing or paying.
+   */
+  answer(id: string, questionId: string, value: ActivityAnswerValue | null): Promise<JourneyAnswerOutcome> {
+    return apiClient.post<JourneyAnswerOutcome>(`/me/activities/${id}/answers`, { questionId, value });
+  },
+
+  /** An admin's full preview of a journey; the API checks the admin session it carries. */
+  preview(id: string, options?: ServerCall): Promise<JourneyPreview> {
+    return apiClient.get<JourneyPreview>(`/admin/engagement/activities/${id}/preview`, {
+      ...withCookie(options),
+      cache: 'no-store',
+    });
+  },
+
+  /** A Lottie motion's animation data. */
+  lottie(mediaId: string): Promise<object> {
+    return apiClient.get<object>(`/media/${mediaId}/lottie`);
+  },
+
+  /** Where a library file is loaded from — our API; its version is a new address when it is replaced. */
+  mediaUrl(media: PlayerMedia): string {
+    return `${API_BASE_URL}${API_PREFIX}/media/${media.id}?v=${media.version}`;
   },
 };

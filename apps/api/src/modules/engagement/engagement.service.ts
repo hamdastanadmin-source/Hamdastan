@@ -15,21 +15,37 @@ import {
   type AdminActivitySummary,
   type AdminSubmission,
   type AdminXpGrant,
+  type JourneyAnswerInput,
+  type JourneyAnswerOutcome,
+  type JourneyPreview,
   type Paginated,
   type ParticipationStatus,
   type PlayerActivity,
+  type PlayerJourney,
   type PlayerQuestion,
   type ReviewStatus,
 } from '@hamdastan/types';
-import { validateAnswers, type ActivityInputOutput } from '@hamdastan/validation';
+import { MOTION_DURATION } from '@hamdastan/config';
+import {
+  journeyDayEndDefaults,
+  journeyResultDefaults,
+  motionOff,
+  pickCharacter,
+  traitScores,
+  validateAnswers,
+  type ActivityInputOutput,
+} from '@hamdastan/validation';
 
 import { AppError, NotFoundError, ValidationError } from '../../shared/errors';
 import { requestHash, type StoredIdempotency } from '../../shared/idempotency';
 import type { AdminRecord } from '../admin';
+import { mediaService } from '../media';
 import { progressService } from '../progress';
 import type { UserRecord } from '../users';
 
 import { engagementRepository } from './engagement.repository';
+import { isAnswerable, isReadable, journeyDays, nextUnlockAt, type JourneyDayState } from './engagement.journey';
+import { mediaRefs } from './engagement.media';
 import { assessmentStats, describeAnswer, questionStats, toCsv } from './engagement.results';
 import { earnsXp, scoreAssessment } from './engagement.scoring';
 import type {
@@ -37,6 +53,8 @@ import type {
   ActivityListQuery,
   ActivityRecord,
   AdminActivityRecord,
+  JourneyProgressRecord,
+  JourneyResultRecord,
   ResponseFilter,
   StoredActivityStatus,
   SubmissionOutcome,
@@ -130,6 +148,9 @@ function participationStatus(entry: UserActivityRecord): ParticipationStatus {
 /** Whether the person may start, continue or submit again — the API's word, not the screen's. */
 function canSubmit(entry: UserActivityRecord, now: Date): boolean {
   const { activity, participation } = entry;
+  if (activity.type === 'journey') {
+    return entry.eligible && isOpen(activity, now) && !participation?.completedAt;
+  }
   return (
     entry.eligible &&
     isOpen(activity, now) &&
@@ -138,16 +159,26 @@ function canSubmit(entry: UserActivityRecord, now: Date): boolean {
   );
 }
 
+/** Everything an activity can pay one person: for a journey, every answer, every day and the finish. */
+function totalXp(definition: ActivityRecord['definition']): number {
+  const { xp, journey, steps } = definition;
+  if (!xp.enabled) return 0;
+  if (!journey) return xp.amount;
+  const questions = steps.reduce((sum, step) => sum + step.questions.length, 0);
+  return xp.amount + journey.rewards.perQuestion * questions + journey.rewards.perDay * steps.length;
+}
+
 function toCard(entry: UserActivityRecord, now: Date): ActivityCard {
   const { activity } = entry;
   const { xp, estimatedMinutes } = activity.definition;
+  const reward = totalXp(activity.definition);
   return {
     id: activity.id,
     type: activity.type,
     title: activity.title,
     summary: activity.summary,
     estimatedMinutes,
-    xp: xp.enabled && xp.showBeforeStart && xp.amount > 0 ? xp.amount : null,
+    xp: xp.showBeforeStart && reward > 0 ? reward : null,
     status: participationStatus(entry),
     endsAt: iso(activity.endsAt),
     canSubmit: canSubmit(entry, now),
@@ -162,6 +193,170 @@ function toCard(entry: UserActivityRecord, now: Date): ActivityCard {
 function visibleTo(entry: UserActivityRecord | null, now: Date): entry is UserActivityRecord {
   if (!entry || entry.activity.status === 'draft' || entry.activity.status === 'archived') return false;
   return entry.participation !== null || (entry.eligible && isOpen(entry.activity, now));
+}
+
+// ─── Journey ─────────────────────────────────────────────────────────────────
+
+const journeyOnly = () =>
+  new AppError(409, CODES.JOURNEY_ANSWER_ONLY, 'چالش چندروزه سؤال‌به‌سؤال جواب داده می‌شه');
+
+/** A journey's settings and start; the schema refuses a journey without either. */
+function journeyOf(activity: ActivityRecord) {
+  const settings = activity.definition.journey;
+  if (!settings || !activity.startsAt) throw new AppError(500, 'JOURNEY_MISCONFIGURED', 'تنظیمات این چالش ناقصه');
+  return { settings, campaignStart: activity.startsAt };
+}
+
+/** A journey's motions; one saved before motions existed has none set. */
+const journeyMotions = (settings: NonNullable<ActivityRecord['definition']['journey']>) =>
+  settings.motions ?? {
+    answer: motionOff(MOTION_DURATION.ANSWER_MS),
+    dayComplete: motionOff(MOTION_DURATION.DAY_COMPLETE_MS),
+    journeyComplete: motionOff(MOTION_DURATION.JOURNEY_COMPLETE_MS),
+  };
+
+/**
+ * Every library file the definition names must exist, and an image's place
+ * must hold an image. A problem lands under the field that names the file.
+ */
+async function checkMedia(input: ActivityInputOutput): Promise<void> {
+  const refs = mediaRefs(input.definition);
+  if (refs.length === 0) return;
+  const kinds = await mediaService.kinds(refs.map((ref) => ref.id));
+  const fields: Record<string, string> = {};
+  for (const ref of refs) {
+    const kind = kinds.get(ref.id);
+    if (!kind) fields[ref.path] ??= 'این فایل توی کتابخانه نیست؛ دوباره انتخابش کن';
+    else if (ref.needs && kind !== ref.needs) fields[ref.path] ??= 'اینجا فقط تصویر می‌شه گذاشت';
+  }
+  if (Object.keys(fields).length > 0) throw new ValidationError(Object.values(fields)[0], { fields });
+}
+
+/** The clock's view of one person's journey, now. */
+function journeyClock(activity: ActivityRecord, progress: JourneyProgressRecord, now: Date): JourneyDayState[] {
+  const { settings, campaignStart } = journeyOf(activity);
+  return journeyDays({
+    settings,
+    days: activity.definition.steps,
+    progress: new Map(
+      activity.definition.steps.map((step) => [
+        step.id,
+        {
+          answeredCount: step.questions.filter((q) => q.id in progress.answers).length,
+          completedAt: progress.completedDays.get(step.id) ?? null,
+        },
+      ])
+    ),
+    campaignStart,
+    now,
+  });
+}
+
+/**
+ * The journey as the person sees it. A day they may not open is a number,
+ * a status and an opening time — no title, no questions, no answers.
+ */
+/** A journey's results settings; one saved before results existed has them off. */
+const resultSettings = (activity: ActivityRecord) => activity.definition.journey?.result ?? journeyResultDefaults();
+
+/**
+ * The person's result: the one kept, or — for a finished journey with
+ * results on and none kept yet — worked out from their answers now and
+ * kept. Once kept it never changes.
+ */
+async function ensureResult(
+  activity: ActivityRecord,
+  userId: string,
+  progress: JourneyProgressRecord
+): Promise<JourneyResultRecord | null> {
+  const settings = resultSettings(activity);
+  if (!settings.enabled) return null;
+  const kept = await engagementRepository().findJourneyResult(activity.id, userId);
+  if (kept) return kept;
+
+  const scores = traitScores(activity.definition, progress.answers);
+  const character = pickCharacter(settings, scores);
+  if (!character) return null;
+  return engagementRepository().saveJourneyResult(activity.id, userId, activity.versionId, {
+    character: {
+      id: character.id,
+      name: character.name,
+      title: character.title,
+      description: character.description,
+      imageId: character.imageId,
+    },
+    traits: settings.traits.map((trait) => ({ id: trait.id, title: trait.title, score: scores.get(trait.id) ?? 0 })),
+  });
+}
+
+/** The library files a kept result shows: its character's picture and the card's logo. */
+function resultMedia(result: JourneyResultRecord | null, activity: ActivityRecord) {
+  const ids = [result?.character.imageId, result ? resultSettings(activity).card.logoId : null];
+  return mediaService.describe(ids.filter((id): id is string => Boolean(id)));
+}
+
+function toPlayerJourney(
+  entry: UserActivityRecord,
+  progress: JourneyProgressRecord,
+  states: JourneyDayState[],
+  now: Date,
+  result: JourneyResultRecord | null = null
+): PlayerJourney {
+  const { definition } = entry.activity;
+  const { settings } = journeyOf(entry.activity);
+  const answers: PlayerJourney['answers'] = {};
+
+  const days = definition.steps.map((step, index) => {
+    const state = states[index];
+    const readable = isReadable(state, settings);
+    if (readable) {
+      for (const question of step.questions) {
+        if (question.id in progress.answers) answers[question.id] = progress.answers[question.id];
+      }
+    }
+    return {
+      id: step.id,
+      number: state.number,
+      title: readable || state.status === 'completed' ? step.title : null,
+      status: state.status,
+      lockReason: state.lockReason,
+      unlocksAt: iso(state.unlocksAt),
+      closesAt: iso(state.closesAt),
+      questionCount: step.questions.length,
+      answeredCount: step.questions.filter((q) => q.id in progress.answers).length,
+      completedAt: iso(progress.completedDays.get(step.id) ?? null),
+      xpEarned: [...step.questions.map((q) => `${entry.activity.id}:q:${q.id}`), `${entry.activity.id}:d:${step.id}`].reduce(
+        (sum, sourceId) => sum + (progress.xp.get(sourceId) ?? 0),
+        0
+      ),
+    };
+  });
+
+  return {
+    days,
+    completedDays: states.filter((state) => state.status === 'completed').length,
+    nextUnlockAt: iso(nextUnlockAt(states, now)),
+    answers,
+    rewards: definition.xp.enabled ? { ...settings.rewards, completion: definition.xp.amount } : null,
+    completedAt: iso(entry.participation?.completedAt ?? null),
+    motions: journeyMotions(settings),
+    // A journey saved before the day-end page existed gets the default one.
+    dayEnd: settings.dayEnd ?? journeyDayEndDefaults(),
+    result: result && {
+      character: result.character,
+      traits: result.traits,
+      card: resultSettings(entry.activity).card,
+      createdAt: result.createdAt.toISOString(),
+    },
+  };
+}
+
+/** The steps the product receives: only the days the person may open. */
+function journeySteps(activity: ActivityRecord, states: JourneyDayState[]) {
+  const { settings } = journeyOf(activity);
+  return activity.definition.steps
+    .filter((_, index) => isReadable(states[index], settings))
+    .map((step) => ({ ...step, questions: step.questions.map(toPlayerQuestion) }));
 }
 
 /** Where a status action may start from, and what it leads to. */
@@ -237,6 +432,7 @@ export const engagementService = {
   },
 
   async create(actor: AdminRecord, input: ActivityInputOutput): Promise<AdminActivityDetail> {
+    await checkMedia(input);
     const id = await engagementRepository().create(toFields(input), actor.id);
     return this.get(id);
   },
@@ -249,6 +445,8 @@ export const engagementService = {
     if (current.status !== 'draft' && input.type !== current.type) {
       throw new ValidationError('نوع فعالیتِ منتشرشده عوض نمی‌شه', { fields: { type: 'نوع فعالیتِ منتشرشده عوض نمی‌شه' } });
     }
+
+    await checkMedia(input);
 
     // What has been published or answered is history: an edit becomes the next version.
     const newVersion = current.status !== 'draft' || current.stats.started > 0 || current.stats.responses > 0;
@@ -291,6 +489,47 @@ export const engagementService = {
       details: row.details,
       createdAt: row.createdAt.toISOString(),
     }));
+  },
+
+  /**
+   * A journey as a person would play it, for the admin's full preview: the
+   * current version, every day open and unanswered, each with the time it
+   * would open. Built here, from the same pieces as the real player, and
+   * never written anywhere.
+   */
+  async preview(id: string): Promise<JourneyPreview> {
+    const record = await requireActivity(id);
+    if (record.type !== 'journey' || !record.definition.journey) throw notFound();
+    const now = new Date();
+    const definition = record.definition;
+    const settings = definition.journey!;
+    const start = record.startsAt ?? now;
+    const empty: JourneyProgressRecord = { answers: {}, completedDays: new Map(), xp: new Map() };
+    const scheduled = journeyDays({ settings, days: definition.steps, progress: new Map(), campaignStart: start, now: start });
+    const states: JourneyDayState[] = scheduled.map((state) => ({ ...state, status: 'available', lockReason: null }));
+
+    const entry: UserActivityRecord = { activity: record, eligible: true, participation: null, lastResult: null };
+    const journey = toPlayerJourney(entry, empty, states, now);
+    const media = await mediaService.describe(mediaRefs(definition).map((ref) => ref.id));
+
+    return {
+      definition,
+      activity: {
+        ...toCard(entry, now),
+        canSubmit: true,
+        instructions: record.instructions,
+        versionId: record.versionId,
+        steps: definition.steps.map((step) => ({ ...step, questions: step.questions.map(toPlayerQuestion) })),
+        anonymous: false,
+        review: 'auto',
+        submissions: 0,
+        maxSubmissions: 1,
+        draft: null,
+        lastResult: null,
+        journey,
+        media,
+      },
+    };
   },
 
   // ─── Admin: results ────────────────────────────────────────────────────
@@ -431,17 +670,33 @@ export const engagementService = {
     if (!visibleTo(entry, now)) throw notFound();
 
     const { activity, participation } = entry;
+    let steps = activity.definition.steps.map((step) => ({ ...step, questions: step.questions.map(toPlayerQuestion) }));
+    let journey: PlayerJourney | null = null;
+    if (activity.type === 'journey') {
+      const progress = await engagementRepository().findJourneyProgress(id, user.id);
+      const states = journeyClock(activity, progress, now);
+      steps = journeySteps(activity, states);
+      const result = participation?.completedAt ? await ensureResult(activity, user.id, progress) : null;
+      journey = toPlayerJourney(entry, progress, states, now, result);
+    }
+    // Only the files the sent days (and the journey's own motions) refer to — and the person's own result's.
+    const sent = new Set(steps.map((step) => step.id));
+    const refs = mediaRefs(activity.definition, activity.definition.steps.filter((step) => sent.has(step.id)), false);
+    const resultIds = [journey?.result?.character.imageId, journey?.result?.card.logoId].filter((x): x is string => Boolean(x));
+
     return {
       ...toCard(entry, now),
       instructions: activity.instructions,
       versionId: activity.versionId,
-      steps: activity.definition.steps.map((step) => ({ ...step, questions: step.questions.map(toPlayerQuestion) })),
+      steps,
       anonymous: activity.definition.anonymous,
       review: activity.definition.review,
       submissions: participation?.submissions ?? 0,
       maxSubmissions: activity.definition.maxSubmissions,
       draft: participation?.draft ?? null,
       lastResult: activity.definition.assessment?.showResult ? entry.lastResult : null,
+      journey,
+      media: await mediaService.describe([...refs.map((ref) => ref.id), ...resultIds]),
     };
   },
 
@@ -449,6 +704,7 @@ export const engagementService = {
     const now = new Date();
     const entry = await engagementRepository().findForUser(id, user.id);
     if (!visibleTo(entry, now)) throw notFound();
+    if (entry.activity.type === 'journey') throw journeyOnly();
     if (!canSubmit(entry, now)) {
       throw new AppError(409, CODES.ACTIVITY_CLOSED, 'این فعالیت الان پاسخ نمی‌پذیره');
     }
@@ -488,6 +744,7 @@ export const engagementService = {
     if (!visibleTo(entry, now) || !entry.eligible) throw notFound();
 
     const { activity } = entry;
+    if (activity.type === 'journey') throw journeyOnly();
     if (!isOpen(activity, now)) {
       throw new AppError(409, CODES.ACTIVITY_CLOSED, 'مهلت این فعالیت تموم شده یا متوقف شده');
     }
@@ -527,5 +784,115 @@ export const engagementService = {
 
     if (outcome.status === 'key_mismatch') throw keyReused();
     return answerSubmission(user, outcome);
+  },
+  /**
+   * One answer to a journey question. Every check is made here, on the
+   * server's clock: the day must be open to this person now, the answer
+   * must fit its question, and an answer already given stands — the same
+   * answer again is a harmless repeat, a different one is refused. What it
+   * pays is worked out from the stored version and written with it.
+   */
+  async answerJourney(user: UserRecord, id: string, input: JourneyAnswerInput): Promise<JourneyAnswerOutcome> {
+    const now = new Date();
+    const entry = await engagementRepository().findForUser(id, user.id);
+    if (!visibleTo(entry, now) || !entry.eligible) throw notFound();
+
+    const { activity } = entry;
+    if (activity.type !== 'journey') throw new NotFoundError('سؤال پیدا نشد');
+    if (!isOpen(activity, now)) {
+      throw new AppError(409, CODES.ACTIVITY_CLOSED, 'مهلت این چالش تموم شده یا متوقف شده');
+    }
+
+    const { definition } = activity;
+    const dayIndex = definition.steps.findIndex((step) => step.questions.some((q) => q.id === input.questionId));
+    if (dayIndex < 0) {
+      throw new AppError(409, CODES.ACTIVITY_VERSION_CHANGED, 'این چالش به‌روز شده؛ صفحه رو دوباره باز کن');
+    }
+    const day = definition.steps[dayIndex];
+
+    const question = toPlayerQuestion(day.questions.find((q) => q.id === input.questionId)!);
+    const checked = validateAnswers([question], input.value === null ? {} : { [question.id]: input.value });
+    if (!checked.ok) {
+      throw new ValidationError(Object.values(checked.errors)[0], { fields: checked.errors });
+    }
+    const value = checked.answers[question.id] ?? null;
+
+    const progress = await engagementRepository().findJourneyProgress(id, user.id);
+    const states = journeyClock(activity, progress, now);
+    // A repeat is answered as one even once its day has closed — a retry of a day's last answer finds it finished.
+    if (question.id in progress.answers) {
+      return this.repeatedAnswer(user, entry, progress, progress.answers[question.id], value, now);
+    }
+    if (!isAnswerable(states[dayIndex])) {
+      throw new AppError(409, CODES.JOURNEY_DAY_LOCKED, 'این روز الان باز نیست');
+    }
+
+    const { settings } = journeyOf(activity);
+    const { xp } = definition;
+    const reward = (amount: number, reason: string) => (xp.enabled && amount > 0 ? { xp: amount, reason } : null);
+    const dayLabel = day.title || `روز ${dayIndex + 1}`;
+
+    const result = await engagementRepository().answerJourney({
+      activityId: activity.id,
+      versionId: activity.versionId,
+      userId: user.id,
+      dayId: day.id,
+      dayQuestionIds: day.questions.map((q) => q.id),
+      questionId: question.id,
+      value,
+      requiredDayIds: definition.steps.filter((_, index) => states[index].status !== 'missed').map((step) => step.id),
+      rewards: {
+        // A skipped question finishes its day but earns nothing itself.
+        question: value === null ? null : reward(settings.rewards.perQuestion, `«${activity.title}» — پاسخ`),
+        day: reward(settings.rewards.perDay, `«${activity.title}» — پایان ${dayLabel}`),
+        journey: earnsXp(definition, null) ? reward(xp.amount, `«${activity.title}» — پایان چالش`) : null,
+      },
+    });
+
+    // The state after the write, read back rather than guessed.
+    const [fresh, freshProgress] = await Promise.all([
+      engagementRepository().findForUser(id, user.id),
+      engagementRepository().findJourneyProgress(id, user.id),
+    ]);
+    const freshEntry = fresh ?? entry;
+    if (result.status === 'already_answered') {
+      return this.repeatedAnswer(user, freshEntry, freshProgress, result.value, value, now);
+    }
+
+    // The journey's last answer decides the result, here and once.
+    const kept = freshEntry.participation?.completedAt ? await ensureResult(activity, user.id, freshProgress) : null;
+    return {
+      status: 'recorded',
+      xpAwarded: result.xpAwarded,
+      dayCompleted: result.dayCompleted,
+      journeyCompleted: result.journeyCompleted,
+      xpTotal: await progressService.total(user.id),
+      journey: toPlayerJourney(freshEntry, freshProgress, journeyClock(activity, freshProgress, now), now, kept),
+      media: await resultMedia(kept, activity),
+    };
+  },
+
+  /** The same answer again changes nothing and pays nothing; a different one is refused. */
+  async repeatedAnswer(
+    user: UserRecord,
+    entry: UserActivityRecord,
+    progress: JourneyProgressRecord,
+    stored: ActivityAnswers[string] | null,
+    sent: ActivityAnswers[string] | null,
+    now: Date
+  ): Promise<JourneyAnswerOutcome> {
+    if (JSON.stringify(stored) !== JSON.stringify(sent)) {
+      throw new AppError(409, CODES.JOURNEY_ALREADY_ANSWERED, 'به این سؤال قبلاً جواب دادی');
+    }
+    const kept = entry.participation?.completedAt ? await ensureResult(entry.activity, user.id, progress) : null;
+    return {
+      status: 'already_answered',
+      xpAwarded: { question: 0, day: 0, journey: 0 },
+      dayCompleted: false,
+      journeyCompleted: false,
+      xpTotal: await progressService.total(user.id),
+      journey: toPlayerJourney(entry, progress, journeyClock(entry.activity, progress, now), now, kept),
+      media: await resultMedia(kept, entry.activity),
+    };
   },
 };

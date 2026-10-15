@@ -46,6 +46,31 @@ const SIGNED_IN_EXITS = new Set([...PUBLIC_PATHS, '/auth/basic-info']);
  */
 const DEFERRABLE_ONBOARDING = '/onboarding/questionnaire';
 
+/**
+ * An invitation is a link to a journey. A visitor who must first sign in,
+ * or finish their profile and onboarding, is brought back to it afterwards:
+ * the page they asked for is remembered in this cookie, and the first time
+ * the account is free to go anywhere, it goes there instead of home.
+ *
+ * Only an activity's own address is remembered, never anything a link could
+ * point elsewhere with — so it cannot be used to send anyone off the site.
+ */
+const RETURN_COOKIE = 'hd_return_to';
+const RETURNABLE = /^\/activities\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const RETURN_MAX_AGE_SECONDS = 60 * 60 * 24;
+
+function remember(response: NextResponse, pathname: string): NextResponse {
+  if (RETURNABLE.test(pathname)) {
+    response.cookies.set(RETURN_COOKIE, pathname, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: RETURN_MAX_AGE_SECONDS,
+    });
+  }
+  return response;
+}
+
 const isPublic = (pathname: string) =>
   PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
@@ -98,8 +123,11 @@ export async function proxy(request: NextRequest) {
   /** On to the page, with no session handed on. */
   const proceed = () => NextResponse.next({ request: { headers: forwardedHeaders(request) } });
 
+  // An admin's preview needs no product account: the API checks the admin session itself.
+  if (pathname.startsWith('/preview/')) return proceed();
+
   if (!hasSessionCookie) {
-    return isPublic(pathname) ? proceed() : redirectTo('/welcome');
+    return isPublic(pathname) ? proceed() : remember(redirectTo('/welcome'), pathname);
   }
 
   // A session cookie is present, so ask the API what it is worth. The access
@@ -132,7 +160,7 @@ export async function proxy(request: NextRequest) {
   if (!session) {
     // The session is gone for good. Clearing the cookies here stops every
     // later navigation paying for the same two failed calls.
-    const response = isPublic(pathname) ? proceed() : redirectTo('/welcome');
+    const response = isPublic(pathname) ? proceed() : remember(redirectTo('/welcome'), pathname);
     response.cookies.delete(SESSION.ACCESS_COOKIE);
     response.cookies.delete(SESSION.REFRESH_COOKIE);
     return response;
@@ -146,7 +174,25 @@ export async function proxy(request: NextRequest) {
   // `/onboarding` — and nowhere else until the step is done.
   const onStep = pathname === target || pathname.startsWith(`${target}/`);
   if (nextStep !== 'home' && !onStep) {
-    return applyCookies(redirectTo(target), setCookie);
+    return applyCookies(remember(redirectTo(target), pathname), setCookie);
+  }
+
+  // Free to go anywhere now: an invitation it came through is where it goes first —
+  // from home or from the door, never from a page the person chose themselves.
+  const returnTo = request.cookies.get(RETURN_COOKIE)?.value;
+  if (nextStep === 'home' && returnTo && RETURNABLE.test(returnTo)) {
+    const landing =
+      pathname === '/' ||
+      SIGNED_IN_EXITS.has(pathname) ||
+      ((pathname === '/onboarding' || pathname.startsWith('/onboarding/')) && pathname !== DEFERRABLE_ONBOARDING);
+    if (landing || pathname === returnTo) {
+      const response =
+        pathname === returnTo
+          ? NextResponse.next({ request: { headers: forwardedHeaders(request, session, setCookie) } })
+          : redirectTo(returnTo);
+      response.cookies.delete(RETURN_COOKIE);
+      return applyCookies(response, setCookie);
+    }
   }
 
   // A finished one is free to go anywhere except back through the door —

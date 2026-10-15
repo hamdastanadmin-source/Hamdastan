@@ -6,3 +6,5 @@
 export type { SmsSender } from './sms/sms-sender';
 export { createConsoleSmsSender } from './sms/console-sms-sender';
 export { createKavenegarSmsSender } from './sms/kavenegar-sms-sender';
+export type { MediaStorage } from './storage/media-storage';
+export { createLocalMediaStorage } from './storage/local-media-storage';

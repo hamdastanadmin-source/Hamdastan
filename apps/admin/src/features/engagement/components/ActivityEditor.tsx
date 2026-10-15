@@ -14,13 +14,14 @@ import { useAdminCan } from '@/features/auth';
 import { errorMessage } from '@/lib';
 
 import { useActivityEditor, type ActivityEditorApi } from '../hooks/use-activity-editor';
-import { EDITOR_STEPS, type EditorStepId } from '../utils/draft';
+import { stepsFor, type EditorStepId } from '../utils/draft';
 import { STATUS_BADGE, STATUS_LABELS } from '../utils/labels';
 import { AudienceStep } from './editor/AudienceStep';
 import { DetailsStep } from './editor/DetailsStep';
 import { PreviewStep } from './editor/PreviewStep';
 import { QuestionsStep } from './editor/QuestionsStep';
 import { ScheduleStep } from './editor/ScheduleStep';
+import { SharingStep } from './editor/SharingStep';
 import { TypeStep } from './editor/TypeStep';
 import { XpStep } from './editor/XpStep';
 
@@ -31,6 +32,7 @@ const STEP_VIEWS: Record<EditorStepId, (props: { editor: ActivityEditorApi }) =>
   audience: AudienceStep,
   xp: XpStep,
   schedule: ScheduleStep,
+  sharing: SharingStep,
   preview: PreviewStep,
 };
 
@@ -39,7 +41,7 @@ const STEP_TRIGGER =
   'shrink-0 px-3 data-[state=active]:border-foreground data-[state=active]:text-foreground';
 
 /**
- * The activity builder — seven steps, one screen. Any step can be opened;
+ * The activity builder — seven steps (eight for a journey), one screen. Any step can be opened;
  * «بعدی»/«قبلی» walk them in order. «ذخیره» keeps a draft (or, once live,
  * writes a new version); the last step's primary action publishes.
  */
@@ -55,8 +57,11 @@ export function ActivityEditor({
   const can = useAdminCan();
   const canWrite = can('activities.write');
   const canPublish = can('activities.publish');
-  const [step, setStep] = useState<EditorStepId>(initialStep);
-  const index = EDITOR_STEPS.findIndex((s) => s.id === step);
+  const steps = stepsFor(editor.state.type);
+  const [chosen, setStep] = useState<EditorStepId>(initialStep);
+  // A step the type does not have (a journey's, after switching type) falls back to the first.
+  const step = steps.some((s) => s.id === chosen) ? chosen : steps[0].id;
+  const index = steps.findIndex((s) => s.id === step);
   const live = editor.saved !== null && editor.saved.status !== 'draft';
 
   const goTo = (next: EditorStepId) => {
@@ -121,7 +126,7 @@ export function ActivityEditor({
 
       <Tabs value={step} onValueChange={(value) => goTo(value as EditorStepId)}>
         <TabsList className="w-full justify-start overflow-x-auto">
-          {EDITOR_STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <TabsTrigger key={s.id} value={s.id} className={STEP_TRIGGER}>
               {toPersianDigits(i + 1)}. {s.label}
             </TabsTrigger>
@@ -137,7 +142,7 @@ export function ActivityEditor({
       </Tabs>
 
       <div className="flex items-center justify-between gap-3">
-        <Button variant="outline" disabled={index === 0} onClick={() => goTo(EDITOR_STEPS[index - 1].id)}>
+        <Button variant="outline" disabled={index === 0} onClick={() => goTo(steps[index - 1].id)}>
           {/* RTL: the previous step lies towards the reading start, on the right. */}
           <ChevronRight aria-hidden="true" />
           قبلی
@@ -151,7 +156,7 @@ export function ActivityEditor({
             </Button>
           ) : null
         ) : (
-          <Button key="next" variant="outline" onClick={() => goTo(EDITOR_STEPS[index + 1].id)}>
+          <Button key="next" variant="outline" onClick={() => goTo(steps[index + 1].id)}>
             بعدی
             <ChevronLeft aria-hidden="true" />
           </Button>

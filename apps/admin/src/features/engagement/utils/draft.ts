@@ -1,3 +1,5 @@
+import { ENGAGEMENT_LIMITS, JOURNEY_DEFAULTS, JOURNEY_LIMITS, MOTION_DURATION } from '@hamdastan/config';
+import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type {
   ActivityDefinition,
   ActivityInput,
@@ -5,7 +7,9 @@ import type {
   ActivityStep,
   ActivityType,
   AdminActivityDetail,
+  DailyCover,
 } from '@hamdastan/types';
+import { journeyDayEndDefaults, journeyResultDefaults, motionOff } from '@hamdastan/validation';
 
 /**
  * The builder's working copy and the blank pieces it starts from.
@@ -32,6 +36,9 @@ export function emptyQuestion(kind: ActivityQuestion['kind'], keep?: Partial<Act
     required: keep?.required ?? true,
     dimensionId: keep?.dimensionId,
     reverse: keep?.reverse,
+    imageId: keep?.imageId,
+    imagePosition: keep?.imagePosition,
+    motion: keep?.motion,
   };
   switch (kind) {
     case 'single':
@@ -63,15 +70,68 @@ export const emptyStep = (title = ''): ActivityStep => ({
   questions: [emptyQuestion('single')],
 });
 
+/** How many steps (a journey's days) and questions an activity of this type may hold. */
+export const limitsFor = (type: ActivityType) =>
+  type === 'journey'
+    ? { steps: JOURNEY_LIMITS.DAYS_MAX, questions: JOURNEY_LIMITS.QUESTIONS_MAX }
+    : { steps: ENGAGEMENT_LIMITS.STEPS_MAX, questions: ENGAGEMENT_LIMITS.QUESTIONS_MAX };
+
+/** A journey day's title by its number: «روز ۳». */
+export const dayTitle = (number: number) => `روز ${toPersianDigits(number)}`;
+
+/** Nothing written in a question: no text, no option labels. */
+export function isBlankQuestion(question: ActivityQuestion): boolean {
+  if (question.title.trim() !== '') return false;
+  return !('options' in question) || question.options.every((option) => option.label.trim() === '');
+}
+
+/** A step as it was created: one blank question, no description, no cover. */
+export const isUntouchedStep = (step: ActivityStep) =>
+  step.questions.length === 1 && isBlankQuestion(step.questions[0]) && !step.description && !step.cover;
+
+/** A day's cover before the admin writes one. */
+export const emptyCover = (): DailyCover => ({
+  headline: '',
+  text: '',
+  buttonLabel: 'بزن بریم!',
+  background: null,
+  entryEffect: 'fade',
+  backgroundImageId: null,
+  mascot: motionOff(),
+});
+
+/** A new journey: a week, a day per step, opening each calendar day in Tehran; earlier days stay open. */
+const emptyJourney = (): NonNullable<ActivityDefinition['journey']> => ({
+  unlockMode: 'calendar_day',
+  timezone: JOURNEY_DEFAULTS.TIMEZONE,
+  missedDays: 'catch_up',
+  requirePreviousDay: false,
+  allowReview: true,
+  questionsPerDay: JOURNEY_DEFAULTS.QUESTIONS_PER_DAY,
+  rewards: { perQuestion: 0, perDay: 10 },
+  motions: {
+    answer: motionOff(MOTION_DURATION.ANSWER_MS),
+    dayComplete: motionOff(MOTION_DURATION.DAY_COMPLETE_MS),
+    journeyComplete: motionOff(MOTION_DURATION.JOURNEY_COMPLETE_MS),
+  },
+  dayEnd: journeyDayEndDefaults(),
+  result: journeyResultDefaults(),
+});
+
 export function emptyDefinition(type: ActivityType): ActivityDefinition {
+  const steps =
+    type === 'journey'
+      ? Array.from({ length: JOURNEY_DEFAULTS.DAYS }, (_, i) => emptyStep(dayTitle(i + 1)))
+      : [emptyStep(type === 'mission' ? 'مرحله‌ی ۱' : '')];
   return {
-    steps: [emptyStep(type === 'mission' ? 'مرحله‌ی ۱' : '')],
+    steps,
     estimatedMinutes: type === 'survey' ? 3 : 5,
     maxSubmissions: 1,
     anonymous: false,
     review: type === 'mission' ? 'manual' : 'auto',
     assessment:
       type === 'assessment' ? { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true } : null,
+    journey: type === 'journey' ? emptyJourney() : null,
     xp: { enabled: true, amount: 20, showBeforeStart: true, maxAwards: 1, requirePass: false },
   };
 }
@@ -89,10 +149,20 @@ export function emptyState(type: ActivityType = 'survey'): EditorState {
   };
 }
 
-/** A new type keeps the content that still fits it: the title and the questions. */
+/**
+ * A new type keeps the content that still fits it: the title and the
+ * questions. A journey keeps its week of days — the first holds the
+ * questions already written — and every day is titled.
+ */
 export function switchType(state: EditorState, type: ActivityType): EditorState {
   const blank = emptyDefinition(type);
-  const steps = type === 'mission' ? state.definition.steps : state.definition.steps.slice(0, 1);
+  const multiStep = (t: ActivityType) => t === 'mission' || t === 'journey';
+  let steps: ActivityStep[];
+  if (multiStep(type) && multiStep(state.type)) steps = state.definition.steps;
+  else if (multiStep(type)) steps = [{ ...blank.steps[0], questions: state.definition.steps[0].questions }, ...blank.steps.slice(1)];
+  else steps = state.definition.steps.slice(0, 1);
+
+  if (type === 'journey') steps = steps.map((step, i) => (step.title ? step : { ...step, title: dayTitle(i + 1) }));
   return { ...state, type, definition: { ...blank, steps, xp: state.definition.xp } };
 }
 
@@ -125,7 +195,7 @@ export function toInput(state: EditorState): ActivityInput {
   };
 }
 
-/** The builder's seven steps, in order. */
+/** The builder's steps, in order: seven for every type, and an eighth a journey adds before the last. */
 export const EDITOR_STEPS = [
   { id: 'type', label: 'نوع' },
   { id: 'details', label: 'اطلاعات' },
@@ -133,14 +203,24 @@ export const EDITOR_STEPS = [
   { id: 'audience', label: 'مخاطبان' },
   { id: 'xp', label: 'XP' },
   { id: 'schedule', label: 'زمان‌بندی' },
+  { id: 'sharing', label: 'نتایج و اشتراک‌گذاری', journeyOnly: true },
   { id: 'preview', label: 'پیش‌نمایش و انتشار' },
 ] as const;
 
 export type EditorStepId = (typeof EDITOR_STEPS)[number]['id'];
 
+/** The steps an activity of this type walks through. */
+export const stepsFor = (type: ActivityType) =>
+  EDITOR_STEPS.filter((step) => !('journeyOnly' in step) || type === 'journey');
+
 /** The step whose fields an error path belongs to, so a failed save can open it. */
 export function stepOfPath(path: string): EditorStepId {
   if (path.startsWith('type')) return 'type';
+  if (path.startsWith('definition.journey.rewards')) return 'xp';
+  if (path.startsWith('definition.journey.questionsPerDay')) return 'details';
+  if (path.startsWith('definition.journey.motions')) return 'questions';
+  if (path.startsWith('definition.journey.dayEnd') || path.startsWith('definition.journey.result')) return 'sharing';
+  if (path.startsWith('definition.journey')) return 'schedule';
   if (path.startsWith('audience')) return 'audience';
   if (path.startsWith('startsAt') || path.startsWith('endsAt')) return 'schedule';
   if (path.startsWith('definition.xp')) return 'xp';

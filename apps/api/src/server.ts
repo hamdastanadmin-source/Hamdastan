@@ -13,6 +13,7 @@ import {
 import {
   createConsoleSmsSender,
   createKavenegarSmsSender,
+  createLocalMediaStorage,
   type SmsSender,
 } from './integrations';
 import { setAdminRepository, sqlAdminRepository } from './modules/admin';
@@ -23,6 +24,7 @@ import {
   setMaintenanceRepository,
   sqlMaintenanceRepository,
 } from './modules/maintenance';
+import { setMediaRepository, setMediaStorage, sqlMediaRepository } from './modules/media';
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
@@ -74,9 +76,10 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setProgressRepository(sqlProgressRepository);
   setAdminRepository(sqlAdminRepository);
   setEngagementRepository(sqlEngagementRepository);
+  setMediaRepository(sqlMediaRepository);
   setMaintenanceRepository(sqlMaintenanceRepository);
 
-  log('database connected — users, auth, onboarding, progress, admin and engagement repositories bound');
+  log('database connected — users, auth, onboarding, progress, admin, engagement and media repositories bound');
 }
 
 /**
@@ -117,6 +120,10 @@ async function main(): Promise<void> {
         .then(() => process.exit(0));
     });
   }
+
+  // The media library's files: the API's `api-media` volume in production.
+  setMediaStorage(createLocalMediaStorage(env.MEDIA_DIR));
+  app.log.info({ directory: env.MEDIA_DIR }, 'media storage bound');
 
   const smsSender = chooseSmsSender(app.log);
   setSmsSender(smsSender);

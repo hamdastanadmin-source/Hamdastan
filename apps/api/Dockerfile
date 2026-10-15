@@ -44,6 +44,9 @@ COPY --chown=api:nodejs packages ./packages
 # The migration runner reads database/migrations/*.sql at run time, so the
 # schema ships with the image rather than being applied from a workstation.
 COPY --chown=api:nodejs database ./database
+# The media library's files. docker-compose mounts the `api-media` volume
+# here; a new volume copies this directory's ownership, so the API can write.
+RUN mkdir -p /app/storage/media && chown -R api:nodejs /app/storage
 
 USER api
 

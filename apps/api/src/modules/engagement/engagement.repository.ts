@@ -31,6 +31,10 @@ import type {
   AdminActivityRecord,
   AuditRow,
   GrantRow,
+  JourneyAnswerResult,
+  JourneyAnswerWrite,
+  JourneyProgressRecord,
+  JourneyResultRecord,
   ParticipationRecord,
   ResponseFilter,
   ResponseRow,
@@ -95,6 +99,24 @@ export interface EngagementRepository {
   submit(write: SubmissionWrite): Promise<SubmissionOutcome | { status: 'key_mismatch' }>;
   /** What an idempotency key recorded, if anything — read before any work. */
   findSubmission(ref: IdempotencyRef): Promise<StoredIdempotency<SubmissionOutcome> | null>;
+
+  // ─── Journey ───────────────────────────────────────────────────
+  /** One person's answers and finished days. */
+  findJourneyProgress(activityId: string, userId: string): Promise<JourneyProgressRecord>;
+  /**
+   * Records one answer, and — in the same transaction — pays what it earns,
+   * finishes the day (writing its response) and the journey when that was
+   * the last answer they needed. An answer already given is never replaced.
+   */
+  answerJourney(write: JourneyAnswerWrite): Promise<JourneyAnswerResult>;
+  findJourneyResult(activityId: string, userId: string): Promise<JourneyResultRecord | null>;
+  /** Keeps a result; one already kept stays, and is what this answers with. */
+  saveJourneyResult(
+    activityId: string,
+    userId: string,
+    versionId: string,
+    result: Omit<JourneyResultRecord, 'createdAt'>
+  ): Promise<JourneyResultRecord>;
 }
 
 const slot = createRepositorySlot<EngagementRepository>('engagement');
@@ -133,8 +155,9 @@ const STATS_COLUMNS = `
   (SELECT count(*) FROM v2_engagement_participations p WHERE p.activity_id = a.id)::int AS started,
   (SELECT count(*) FROM v2_engagement_participations p
     WHERE p.activity_id = a.id AND p.completed_at IS NOT NULL)::int AS completed,
-  (SELECT count(*) FROM v2_engagement_responses r
-    WHERE r.activity_id = a.id AND r.review_status <> 'rejected')::int AS responses,
+  ((SELECT count(*) FROM v2_engagement_responses r
+     WHERE r.activity_id = a.id AND r.review_status <> 'rejected')
+   + (SELECT count(*) FROM v2_journey_day_completions c WHERE c.activity_id = a.id))::int AS responses,
   (SELECT count(*) FROM v2_engagement_responses r
     WHERE r.activity_id = a.id AND r.review_status = 'pending')::int AS pending_reviews,
   (SELECT COALESCE(sum(t.xp_amount), 0) FROM v2_xp_transactions t WHERE t.activity_id = a.id)::int AS xp_awarded,
@@ -505,13 +528,26 @@ export const sqlEngagementRepository: EngagementRepository = {
       name: string | null;
       phone: string | null;
     }>(
-      `SELECT r.id, r.version_id, r.answers, r.result, r.score, r.passed, r.submitted_at,
+      // A journey's finished day reads as one response: that day's answers, at the moment it was finished.
+      `WITH r AS (
+         SELECT id::text, version_id, answers, result, score, passed, submitted_at, user_id
+           FROM v2_engagement_responses
+          WHERE activity_id = $1 AND review_status <> 'rejected'
+         UNION ALL
+         SELECT concat_ws(':', c.user_id, c.day_id), (array_agg(ja.version_id ORDER BY ja.answered_at DESC))[1],
+                COALESCE(jsonb_object_agg(ja.question_id, ja.value) FILTER (WHERE ja.value IS NOT NULL), '{}'),
+                NULL, NULL, NULL, c.completed_at, c.user_id
+           FROM v2_journey_day_completions c
+           JOIN v2_journey_answers ja
+             ON ja.activity_id = c.activity_id AND ja.user_id = c.user_id AND ja.day_id = c.day_id
+          WHERE c.activity_id = $1
+       GROUP BY c.user_id, c.day_id, c.completed_at
+       )
+       SELECT r.id, r.version_id, r.answers, r.result, r.score, r.passed, r.submitted_at,
               u.id AS user_id, ${PERSON_NAME} AS name, u.phone
-         FROM v2_engagement_responses r
+         FROM r
     LEFT JOIN v2_users u ON u.id = r.user_id
-        WHERE r.activity_id = $1
-          AND r.review_status <> 'rejected'
-          AND ($2::timestamptz IS NULL OR r.submitted_at >= $2)
+        WHERE ($2::timestamptz IS NULL OR r.submitted_at >= $2)
           AND ($3::timestamptz IS NULL OR r.submitted_at < $3)
           AND ($4::text IS NULL OR EXISTS (
                 SELECT 1 FROM v2_user_interests i WHERE i.user_id = r.user_id AND i.category_id = $4))
@@ -851,5 +887,150 @@ export const sqlEngagementRepository: EngagementRepository = {
         : 0;
       return finish({ status: 'submitted', xpAwarded, completes: write.completes, result: write.visibleResult });
     });
+  },
+
+  async findJourneyProgress(activityId, userId) {
+    // One statement, so the answers and the finished days are read from one snapshot:
+    // a day's last answer and its completion are committed together, and seen together.
+    const rows = await query<{
+      question_id: string | null;
+      value: JourneyProgressRecord['answers'][string];
+      day_id: string | null;
+      completed_at: Date | null;
+      source_id: string | null;
+      xp: number | null;
+    }>(
+      `SELECT question_id, value, NULL::varchar AS day_id, NULL::timestamptz AS completed_at,
+              NULL::varchar AS source_id, NULL::int AS xp
+         FROM v2_journey_answers WHERE activity_id = $1 AND user_id = $2
+       UNION ALL
+       SELECT NULL, NULL, day_id, completed_at, NULL, NULL
+         FROM v2_journey_day_completions WHERE activity_id = $1 AND user_id = $2
+       UNION ALL
+       -- What each grant still pays: its amount, less its reversal if it has one.
+       SELECT NULL, NULL, NULL, NULL, t.source_id, (t.xp_amount + COALESCE(r.xp_amount, 0))::int
+         FROM v2_xp_transactions t
+    LEFT JOIN v2_xp_transactions r ON r.reverses_id = t.id
+        WHERE t.activity_id = $1 AND t.user_id = $2 AND t.source_type = 'engagement'`,
+      [activityId, userId]
+    );
+    const progress: JourneyProgressRecord = { answers: {}, completedDays: new Map(), xp: new Map() };
+    for (const row of rows) {
+      if (row.question_id) progress.answers[row.question_id] = row.value;
+      else if (row.day_id && row.completed_at) progress.completedDays.set(row.day_id, row.completed_at);
+      else if (row.source_id) progress.xp.set(row.source_id, row.xp ?? 0);
+    }
+    return progress;
+  },
+
+  async answerJourney(write) {
+    return withTransaction(async (client): Promise<JourneyAnswerResult> => {
+      const { activityId, versionId, userId, dayId, questionId, rewards } = write;
+
+      // The person's journey row, created by their first answer and locked
+      // for every one after: their answers, and what those pay, take turns.
+      await client.query(
+        `INSERT INTO v2_engagement_participations (activity_id, user_id) VALUES ($1, $2)
+         ON CONFLICT (activity_id, user_id) DO NOTHING`,
+        [activityId, userId]
+      );
+      const { rows: participation } = await client.query<{ xp_awards: number; completed_at: Date | null }>(
+        `SELECT xp_awards, completed_at FROM v2_engagement_participations
+          WHERE activity_id = $1 AND user_id = $2 FOR UPDATE`,
+        [activityId, userId]
+      );
+
+      // The primary key is the guard: a second answer to the same question inserts nothing.
+      // Serialised by hand: pg would send a JavaScript array as a Postgres array, not JSON.
+      const inserted = await client.query(
+        `INSERT INTO v2_journey_answers (activity_id, user_id, question_id, day_id, version_id, value)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+         ON CONFLICT (activity_id, user_id, question_id) DO NOTHING`,
+        [activityId, userId, questionId, dayId, versionId, write.value === null ? null : JSON.stringify(write.value)]
+      );
+      if (!inserted.rowCount) {
+        const { rows } = await client.query<{ value: JourneyProgressRecord['answers'][string] }>(
+          `SELECT value FROM v2_journey_answers WHERE activity_id = $1 AND user_id = $2 AND question_id = $3`,
+          [activityId, userId, questionId]
+        );
+        return { status: 'already_answered', value: rows[0].value };
+      }
+
+      const grant = async (sourceId: string, reward: { xp: number; reason: string } | null) => {
+        if (!reward || reward.xp <= 0) return 0;
+        const granted = await grantWithin(client, userId, {
+          sourceType: 'engagement',
+          sourceId,
+          xp: reward.xp,
+          activityId,
+          activityVersionId: versionId,
+          reason: reward.reason,
+        });
+        return granted ? reward.xp : 0;
+      };
+
+      const xpAwarded = { question: await grant(`${activityId}:q:${questionId}`, rewards.question), day: 0, journey: 0 };
+
+      const { rows: answered } = await client.query<{ count: number }>(
+        `SELECT count(*)::int AS count FROM v2_journey_answers
+          WHERE activity_id = $1 AND user_id = $2 AND question_id = ANY($3::text[])`,
+        [activityId, userId, write.dayQuestionIds]
+      );
+      if (answered[0].count < write.dayQuestionIds.length) {
+        return { status: 'recorded', xpAwarded, dayCompleted: false, journeyCompleted: false };
+      }
+
+      const finishedDay = await client.query(
+        `INSERT INTO v2_journey_day_completions (activity_id, user_id, day_id) VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [activityId, userId, dayId]
+      );
+      const dayCompleted = Boolean(finishedDay.rowCount);
+      if (dayCompleted) xpAwarded.day = await grant(`${activityId}:d:${dayId}`, rewards.day);
+
+      const { rows: finished } = await client.query<{ count: number }>(
+        `SELECT count(*)::int AS count FROM v2_journey_day_completions
+          WHERE activity_id = $1 AND user_id = $2 AND day_id = ANY($3::text[])`,
+        [activityId, userId, write.requiredDayIds]
+      );
+      const journeyCompleted = !participation[0].completed_at && finished[0].count >= write.requiredDayIds.length;
+      if (journeyCompleted) {
+        await client.query(
+          `UPDATE v2_engagement_participations
+              SET status = 'completed', submissions = 1, completed_at = now(), updated_at = now()
+            WHERE activity_id = $1 AND user_id = $2`,
+          [activityId, userId]
+        );
+        xpAwarded.journey = await payReward(
+          client,
+          activityId,
+          versionId,
+          userId,
+          participation[0].xp_awards,
+          rewards.journey && { ...rewards.journey, maxAwards: 1 }
+        );
+      }
+      return { status: 'recorded', xpAwarded, dayCompleted, journeyCompleted };
+    });
+  },
+
+  async findJourneyResult(activityId, userId) {
+    const row = await queryOne<{ character: JourneyResultRecord['character']; traits: JourneyResultRecord['traits']; created_at: Date }>(
+      `SELECT character, traits, created_at FROM v2_journey_results WHERE activity_id = $1 AND user_id = $2`,
+      [activityId, userId]
+    );
+    return row ? { character: row.character, traits: row.traits, createdAt: row.created_at } : null;
+  },
+
+  async saveJourneyResult(activityId, userId, versionId, result) {
+    // Serialised by hand: pg would send the traits array as a Postgres array, not JSON.
+    await query(
+      `INSERT INTO v2_journey_results (activity_id, user_id, version_id, character, traits)
+       VALUES ($1, $2, $3, $4, $5::jsonb)
+       ON CONFLICT (activity_id, user_id) DO NOTHING`,
+      [activityId, userId, versionId, result.character, JSON.stringify(result.traits)]
+    );
+    // Whatever is kept now — this one, or one a concurrent request kept first.
+    return (await this.findJourneyResult(activityId, userId))!;
   },
 };

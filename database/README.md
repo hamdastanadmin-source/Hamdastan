@@ -30,6 +30,11 @@ only. Production migrates itself when the API boots.
 
 ## Backup and restore
 
+The media library's files are not in the database: they live on the API's
+`api-media` Docker volume, and a `pg_dump` does not include them. Back the
+volume up beside every dump — `docs/deploy-runbook.md` §2 has the command —
+since a restored database without its files shows every image as missing.
+
 A backup is a plain-SQL `pg_dump` of the whole database — every `v2_` table,
 its rows and the `v2_migrations` ledger. Because the ledger travels with it,
 the restored database already counts as migrated and the API boots straight
@@ -135,6 +140,9 @@ until they agree.
 | `0012` | `v2_idempotency_keys`: a retryable write's key, request hash and recorded outcome, kept 30 days. Additive |
 | `0013` | Session lifetimes and management: `v2_sessions.absolute_expires_at`, `last_seen_at`, `user_agent`, `ip`, `revoked_reason` (all nullable — an existing session gets its absolute end at its next refresh); `v2_admin_sessions.last_seen_at` for the idle timeout (default now, so no one is signed out). Additive |
 | `0014` | Admin roles: `v2_admin_role` (`SYSTEM_ADMIN`, `CONTENT_MANAGER`, `MISSION_REVIEWER`) and `v2_admin_users.role`, every existing admin `SYSTEM_ADMIN`. Additive |
+| `0015` | The multi-day journey: `journey` added to `v2_activity_type`; `v2_journey_answers` (one row per answer, never replaced) and `v2_journey_day_completions` (one row per finished day); `v2_xp_transactions.source_id` widened to 100 characters. Additive |
+| `0016` | The media & motion library: `v2_media_kind` and `v2_media_assets` (one row per file; the bytes are on the API's `api-media` volume, not in the database). Additive |
+| `0017` | A journey's final result: `v2_journey_results` (the character a person came out as, kept once and never recomputed). Additive |
 
 Rows that can never be used again — expired tokens, codes, idempotency keys,
 and sessions long ended — are deleted by the API's hourly cleanup

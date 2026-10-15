@@ -1,12 +1,15 @@
 import type { ActivityTypeId } from '@hamdastan/config';
 
+import type { MotionSetting, PlayerMedia } from './media';
+
 /**
  * Engagement Studio's wire contract — the activities the admin panel designs
- * (surveys, missions, assessments) and the product plays.
+ * (surveys, missions, assessments, journeys) and the product plays.
  *
- * One engine for all three: an activity is a versioned `ActivityDefinition`
+ * One engine for all four: an activity is a versioned `ActivityDefinition`
  * of steps and questions, plus the few settings only one type uses. A survey
- * or an assessment is a single step; a mission is several.
+ * or an assessment is a single step; a mission is several; a journey is one
+ * step per day, unlocked day by day.
  */
 
 export type ActivityType = ActivityTypeId;
@@ -26,7 +29,11 @@ export type ChoiceOption = {
   correct?: boolean;
   /** Personality assessment: points toward the question's dimension. Never sent to the product. */
   score?: number;
+  /** Journey: points this option gives each trait, by trait id. Never sent to the product. */
+  traits?: Record<string, number>;
 };
+
+export type QuestionImagePosition = 'above' | 'below';
 
 type QuestionBase = {
   id: string;
@@ -37,6 +44,12 @@ type QuestionBase = {
   dimensionId?: string;
   /** Personality assessment: a reverse-keyed item — its value counts from the other end. */
   reverse?: boolean;
+  /** An image from the media library, shown with the question. */
+  imageId?: string;
+  /** Where the image goes: above the question's text (the default), or between it and the answers. */
+  imagePosition?: QuestionImagePosition;
+  /** Journey: the motion after this question's answer, over the day's and the journey's. */
+  motion?: MotionSetting;
 };
 
 export type ChoiceQuestion = QuestionBase & {
@@ -62,12 +75,38 @@ export type ScaleQuestion = QuestionBase & {
 
 export type ActivityQuestion = ChoiceQuestion | TextQuestion | RatingQuestion | ScaleQuestion;
 
+/** How a journey day's cover comes in. */
+export type CoverEntryEffect = 'none' | 'fade' | 'slide_up' | 'zoom';
+
+/**
+ * The screen a journey day opens on, before its first question. Every day
+ * may have its own; its images and mascot come from the media library.
+ */
+export type DailyCover = {
+  /** The short, exciting line: «آماده‌ای امروز بریم سراغ رازهای هاگوارتز؟» */
+  headline: string;
+  text: string;
+  /** The start button: «بزن بریم!» */
+  buttonLabel: string;
+  /** The admin's own colour for this day's cover, `#rrggbb`; null keeps the app's surface. */
+  background: string | null;
+  entryEffect: CoverEntryEffect;
+  /** An image from the library behind everything; null for none. */
+  backgroundImageId: string | null;
+  /** The mascot in the middle: an image or a motion, in any of the motion modes. */
+  mascot: MotionSetting;
+};
+
 export type ActivityStep = {
   id: string;
-  /** Mission steps carry a title; a survey's single step leaves it empty. */
+  /** Mission steps and journey days carry a title; a survey's single step leaves it empty. */
   title: string;
   description: string;
   questions: ActivityQuestion[];
+  /** Journey only: the day's start screen. Absent keeps the default one. */
+  cover?: DailyCover;
+  /** Journey only: the motion after an answer on this day, over the journey's. */
+  answerMotion?: MotionSetting;
 };
 
 export type AssessmentMode = 'personality' | 'knowledge';
@@ -96,6 +135,122 @@ export type XpSettings = {
   requirePass: boolean;
 };
 
+/**
+ * How a journey's days open. A journey is a campaign: it starts at the
+ * activity's `startsAt` (required) and ends at midnight after its last
+ * calendar day — the API derives `endsAt` from the start and the day count.
+ *
+ * `calendar_day`: day n opens at local midnight, n − 1 days after the
+ * campaign's first day, in `timezone`; day 1 opens at the start.
+ * `rolling_24h`: day n opens 24 hours after the person finished day n − 1.
+ */
+export type JourneyUnlockMode = 'calendar_day' | 'rolling_24h';
+
+export type JourneySettings = {
+  unlockMode: JourneyUnlockMode;
+  /** An IANA zone; the day boundaries are its midnights. */
+  timezone: string;
+  /**
+   * `catch_up` (default): an earlier day stays open until the campaign
+   * ends, for whoever wants to go back to it. `lock`: once the next day
+   * opens, it is missed for good. Calendar mode only.
+   */
+  missedDays: 'catch_up' | 'lock';
+  /** Calendar mode: a day opens only once the one before it is finished (or missed). Off by default. */
+  requirePreviousDay: boolean;
+  /** Whether a finished day can be opened again to read back. */
+  allowReview: boolean;
+  /** The builder's target per day. Not enforced. */
+  questionsPerDay: number;
+  /**
+   * XP for each answer and for each finished day. The reward for finishing
+   * the whole journey is `xp.amount`; `xp.enabled` switches all three.
+   */
+  rewards: { perQuestion: number; perDay: number };
+  /**
+   * The journey's motions: after an answer (a day or a question may set its
+   * own), after a day's last answer, and after the last day's.
+   */
+  motions: { answer: MotionSetting; dayComplete: MotionSetting; journeyComplete: MotionSetting };
+  /** The page after a day's last answer, and the invitation on it. */
+  dayEnd: JourneyDayEnd;
+  /** The character card a finished journey ends on. */
+  result: JourneyResultSettings;
+};
+
+/** Something an answer can show more of: «شجاعت», «هوش», «وفاداری»… */
+export type JourneyTrait = { id: string; title: string };
+
+/** A character a finished journey can come out as. */
+export type JourneyCharacter = {
+  id: string;
+  name: string;
+  /** A line under the name: «جادوگر کنجکاو». */
+  title: string;
+  description: string;
+  /** Its picture, from the library. */
+  imageId: string | null;
+  /** The trait it stands for: the person whose top trait this is gets it. */
+  traitId: string | null;
+};
+
+/** How the shareable card looks. */
+export type ResultCardStyle = {
+  brandName: string;
+  /** A logo from the library; null shows the product's own. */
+  logoId: string | null;
+  /** The card's colour, `#rrggbb`; null keeps the product's surface. */
+  background: string | null;
+  /** Whether the person's first name may be printed on it. */
+  showUserName: boolean;
+};
+
+/**
+ * The final result. Each choice option may give points to traits; once the
+ * journey is finished they are added up, and the character of the top trait
+ * is the result (ties go to the trait listed first). With no points — or no
+ * character for the top trait — the default character is. It is worked out
+ * once, on the server, and kept: a refresh, an edit or a new version never
+ * changes it.
+ */
+export type JourneyResultSettings = {
+  enabled: boolean;
+  traits: JourneyTrait[];
+  characters: JourneyCharacter[];
+  defaultCharacterId: string | null;
+  card: ResultCardStyle;
+};
+
+/** A person's result, as kept when it was worked out. */
+export type PlayerJourneyResult = {
+  character: Pick<JourneyCharacter, 'id' | 'name' | 'title' | 'description' | 'imageId'>;
+  /** Each trait's total, in the order the admin listed them. */
+  traits: { id: string; title: string; score: number }[];
+  card: ResultCardStyle;
+  createdAt: string;
+};
+
+/**
+ * The page a finished day ends on. `title` and `message` may say `{name}`
+ * (the person's first name, or nothing), `{day}` (the day just finished)
+ * and `{days}` (how many there are).
+ */
+export type JourneyDayEnd = {
+  title: string;
+  message: string;
+  /** An image or a mascot on the page; its motion is the day's end motion. */
+  mascot: MotionSetting;
+  invite: {
+    enabled: boolean;
+    /** The line above the button: «دوستات هم می‌تونن وارد این ماجراجویی بشن…» */
+    text: string;
+    /** «دعوت از دوستان». */
+    button: string;
+    /** What the share sheet sends, before the link. */
+    shareMessage: string;
+  };
+};
+
 export type ActivityDefinition = {
   steps: ActivityStep[];
   estimatedMinutes: number;
@@ -107,6 +262,8 @@ export type ActivityDefinition = {
   review: 'auto' | 'manual';
   /** Assessment only. */
   assessment: AssessmentSettings | null;
+  /** Journey only. */
+  journey: JourneySettings | null;
   xp: XpSettings;
 };
 
@@ -310,6 +467,50 @@ export type AssessmentResult = {
   outcome: { title: string; description: string } | null;
 };
 
+/**
+ * A day as the person sees it, decided by the API on every read.
+ * `missed` is a day that closed unfinished under `missedDays: 'lock'`.
+ */
+export type JourneyDayStatus = 'locked' | 'available' | 'in_progress' | 'completed' | 'missed';
+
+export type PlayerJourneyDay = {
+  /** The step's id. */
+  id: string;
+  /** 1-based. */
+  number: number;
+  /** Null while the day is locked: nothing of a locked day is sent. */
+  title: string | null;
+  status: JourneyDayStatus;
+  /** Why a locked day is locked: its time has not come, or the day before is unfinished. */
+  lockReason: 'schedule' | 'previous_day' | null;
+  /** When it opens (or opened); null while that depends on something not done yet. */
+  unlocksAt: string | null;
+  /** When a day under `missedDays: 'lock'` stops taking answers. */
+  closesAt: string | null;
+  questionCount: number;
+  answeredCount: number;
+  completedAt: string | null;
+  /** Net XP this day has paid the person: its answers and its finish. */
+  xpEarned: number;
+};
+
+export type PlayerJourney = {
+  days: PlayerJourneyDay[];
+  completedDays: number;
+  /** The next day still to open, if its time is known. */
+  nextUnlockAt: string | null;
+  /** Answers already given on the days the person may open; a skipped question is null. */
+  answers: Record<string, ActivityAnswerValue | null>;
+  /** What each answer, each day and the whole journey pay — null when XP is off. */
+  rewards: { perQuestion: number; perDay: number; completion: number } | null;
+  completedAt: string | null;
+  /** The journey's own motions; a day's and a question's overrides travel with them. */
+  motions: JourneySettings['motions'];
+  dayEnd: JourneyDayEnd;
+  /** The person's character card, once the journey is finished and results are on. */
+  result: PlayerJourneyResult | null;
+};
+
 export type PlayerActivity = ActivityCard & {
   instructions: string;
   versionId: string;
@@ -322,6 +523,31 @@ export type PlayerActivity = ActivityCard & {
   draft: ActivityAnswers | null;
   /** The latest result, when the assessment shows one. */
   lastResult: AssessmentResult | null;
+  /**
+   * Journey only. Its `steps` carry only the days the person may open (or,
+   * if allowed, read back); a locked day is not sent at all — its number,
+   * status and opening time are in `journey.days`.
+   */
+  journey: PlayerJourney | null;
+  /** Every library file the sent content refers to, by id. A missing id is a file since deleted. */
+  media: Record<string, PlayerMedia>;
+};
+
+/** `POST /me/activities/:id/answers` — one journey answer; null skips an optional question. */
+export type JourneyAnswerInput = { questionId: string; value: ActivityAnswerValue | null };
+
+export type JourneyAnswerOutcome = {
+  /** `already_answered`: the same answer arrived before — nothing was written or paid twice. */
+  status: 'recorded' | 'already_answered';
+  /** What this answer added to the ledger, by reason; all zero on a repeat. */
+  xpAwarded: { question: number; day: number; journey: number };
+  dayCompleted: boolean;
+  journeyCompleted: boolean;
+  xpTotal: number;
+  /** The journey after this answer. */
+  journey: PlayerJourney;
+  /** The files its result shows, once there is one — the page did not have them. */
+  media: Record<string, PlayerMedia>;
 };
 
 /** `POST /me/activities/:id/submit`. */
@@ -334,6 +560,14 @@ export type ActivitySubmission = {
   result: AssessmentResult | null;
 };
 
+/**
+ * `GET /admin/engagement/activities/:id/preview` — a journey as the player
+ * would get it, every day open and nothing answered, with the full
+ * definition so the preview can simulate answers and results. Nothing the
+ * preview does is sent back: no answer, no XP.
+ */
+export type JourneyPreview = { activity: PlayerActivity; definition: ActivityDefinition };
+
 /** The stable `code` values both apps switch on. */
 export const ENGAGEMENT_ERROR_CODES = {
   ACTIVITY_CLOSED: 'ACTIVITY_CLOSED',
@@ -344,4 +578,7 @@ export const ENGAGEMENT_ERROR_CODES = {
   ACTIVITY_ARCHIVED: 'ACTIVITY_ARCHIVED',
   SUBMISSION_ALREADY_REVIEWED: 'SUBMISSION_ALREADY_REVIEWED',
   XP_ALREADY_REVOKED: 'XP_ALREADY_REVOKED',
+  JOURNEY_DAY_LOCKED: 'JOURNEY_DAY_LOCKED',
+  JOURNEY_ALREADY_ANSWERED: 'JOURNEY_ALREADY_ANSWERED',
+  JOURNEY_ANSWER_ONLY: 'JOURNEY_ANSWER_ONLY',
 } as const;

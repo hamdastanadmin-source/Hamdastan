@@ -18,6 +18,7 @@ export function can(role: AdminRole, permission: AdminPermission): boolean {
 export const SECTIONS = [
   { href: '/users', label: 'مدیریت کاربران', permission: 'admins.manage' },
   { href: '/engagement', label: 'استودیو', permission: 'activities.read' },
+  { href: '/media', label: 'کتابخانه‌ی رسانه', permission: 'activities.read' },
   { href: '/sessions', label: 'نشست‌های کاربران', permission: 'sessions.manage' },
 ] as const satisfies ReadonlyArray<{ href: string; label: string; permission: AdminPermission }>;
 

@@ -183,3 +183,6 @@ backups/
 
 # Vercel
 .vercel
+
+# The media library's files in development (MEDIA_DIR)
+/storage/

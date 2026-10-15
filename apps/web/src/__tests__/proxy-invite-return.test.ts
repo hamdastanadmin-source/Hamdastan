@@ -1,0 +1,72 @@
+import { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { SESSION } from '@hamdastan/config';
+
+/**
+ * An invitation is a link to a journey. Someone who must first sign in, or
+ * finish their profile and onboarding, is brought back to it afterwards —
+ * once, from home or the door, and only ever to an activity's own address.
+ */
+
+const JOURNEY = '/activities/8f14e45f-ceea-467a-9f2b-1c3d5e7f9a0b';
+const signedIn = `${SESSION.ACCESS_COOKIE}=a; ${SESSION.REFRESH_COOKIE}=r`;
+
+const session = (nextStep: string) => ({
+  user: { id: 'u1', phone: '09120000000', firstName: 'سارا', lastName: 'احمدی', birthDate: '1996-09-05', gender: 'female', displayName: 'سارا', role: 'USER' },
+  nextStep,
+});
+
+let step = 'home';
+
+beforeEach(() => {
+  step = 'home';
+  vi.resetModules();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify({ ok: true, data: session(step) }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+  );
+});
+
+afterEach(() => vi.unstubAllGlobals());
+
+async function run(path: string, cookie = '') {
+  const { proxy } = await import('@/proxy');
+  return proxy(new NextRequest(`http://localhost${path}`, { headers: cookie ? { cookie } : {} }));
+}
+
+const location = (response: Response) => new URL(response.headers.get('location') ?? 'http://localhost/').pathname;
+const returnCookie = (response: Response) => response.headers.getSetCookie().find((c) => c.startsWith('hd_return_to='));
+
+describe('the way back from an invitation', () => {
+  it('remembers the journey when a stranger is sent to the door', async () => {
+    const response = await run(JOURNEY);
+    expect(location(response)).toBe('/welcome');
+    expect(decodeURIComponent(returnCookie(response) ?? '')).toContain(`hd_return_to=${JOURNEY}`);
+    expect(returnCookie(response)).toContain('HttpOnly');
+  });
+
+  it('remembers it for an account sent to finish onboarding', async () => {
+    step = 'onboarding';
+    const response = await run(JOURNEY, signedIn);
+    expect(location(response)).toBe('/onboarding');
+    expect(returnCookie(response)).toBeDefined();
+  });
+
+  it('brings a finished account from home to the journey, once', async () => {
+    const response = await run('/', `${signedIn}; hd_return_to=${JOURNEY}`);
+    expect(location(response)).toBe(JOURNEY);
+    expect(returnCookie(response)).toMatch(/hd_return_to=;|Max-Age=0|Expires=Thu, 01 Jan 1970/);
+  });
+
+  it('does not take someone off a page they chose', async () => {
+    const response = await run('/profile', `${signedIn}; hd_return_to=${JOURNEY}`);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('never remembers or follows anything but an activity’s address', async () => {
+    expect(returnCookie(await run('/profile'))).toBeUndefined();
+    const response = await run('/', `${signedIn}; hd_return_to=https://evil.example`);
+    expect(response.headers.get('location')).toBeNull();
+  });
+});

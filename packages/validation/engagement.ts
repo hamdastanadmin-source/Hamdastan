@@ -12,9 +12,15 @@ import {
   ACTIVITY_TYPES,
   ENGAGEMENT_LIMITS as L,
   ENGAGEMENT_PAGE_SIZE,
+  COVER_ENTRY_EFFECTS,
   INTEREST_CATEGORIES,
+  JOURNEY_LIMITS as J,
+  JOURNEY_DAY_END_DEFAULTS as DAY_END,
+  MOTION_DURATION,
+  RESULT_CARD,
 } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
+import { isTimeZone, zonedMidnight } from '@hamdastan/shared/time-zone';
 import type {
   ActivityAnswers,
   ActivityAnswerValue,
@@ -26,6 +32,7 @@ import type {
 import { z } from 'zod';
 
 import { phoneSchema } from './auth';
+import { mediaIdSchema, motionOff, motionSettingSchema } from './media';
 
 const fa = (n: number) => toPersianDigits(n);
 
@@ -64,6 +71,7 @@ const optionSchema = z.object({
   label: line(L.OPTION_LABEL_MAX, 'متن گزینه رو بنویس'),
   correct: z.boolean().optional(),
   score: z.number().int().min(-10).max(10).optional(),
+  traits: z.record(keySchema, z.number().int().min(-J.TRAIT_POINTS_MAX).max(J.TRAIT_POINTS_MAX)).optional(),
 });
 
 const questionBase = {
@@ -73,6 +81,9 @@ const questionBase = {
   required: z.boolean(),
   dimensionId: keySchema.optional(),
   reverse: z.boolean().optional(),
+  imageId: mediaIdSchema.optional(),
+  imagePosition: z.enum(['above', 'below']).optional(),
+  motion: motionSettingSchema.optional(),
 };
 
 const choiceFields = {
@@ -103,11 +114,27 @@ export const activityQuestionSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
+const coverSchema = z.object({
+  headline: line(J.COVER_HEADLINE_MAX, null),
+  text: paragraph(J.COVER_TEXT_MAX),
+  buttonLabel: line(J.COVER_BUTTON_MAX, 'متن دکمه‌ی شروع رو بنویس'),
+  background: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { error: 'رنگ معتبر نیست' })
+    .transform((value) => value.toLowerCase())
+    .nullable(),
+  entryEffect: z.enum(COVER_ENTRY_EFFECTS),
+  backgroundImageId: mediaIdSchema.nullable().default(null),
+  mascot: motionSettingSchema.default(() => motionOff()),
+});
+
 const stepSchema = z.object({
   id: keySchema,
   title: line(L.TITLE_MAX, null),
   description: paragraph(L.DESCRIPTION_MAX).default(''),
   questions: z.array(activityQuestionSchema).min(1, { error: 'حداقل یک سؤال لازمه' }),
+  cover: coverSchema.optional(),
+  answerMotion: motionSettingSchema.optional(),
 });
 
 const xpSchema = z.object({
@@ -137,16 +164,86 @@ const assessmentSchema = z.object({
   showResult: z.boolean(),
 });
 
+const stepXp = z
+  .number({ error: 'مقدار XP رو وارد کن' })
+  .int({ error: 'XP باید عدد صحیح باشه' })
+  .min(0, { error: 'XP نمی‌تونه منفی باشه' })
+  .max(J.STEP_XP_MAX, { error: `حداکثر ${fa(J.STEP_XP_MAX)} XP` });
+
+const journeySchema = z.object({
+  unlockMode: z.enum(['calendar_day', 'rolling_24h']),
+  timezone: z.string().max(60).refine(isTimeZone, { error: 'منطقه‌ی زمانی معتبر نیست' }),
+  missedDays: z.enum(['catch_up', 'lock']),
+  requirePreviousDay: z.boolean(),
+  allowReview: z.boolean(),
+  questionsPerDay: z.number().int().min(1).max(J.QUESTIONS_PER_DAY_MAX),
+  rewards: z.object({ perQuestion: stepXp, perDay: stepXp }),
+  // Absent on a journey saved before the day-end page existed.
+  dayEnd: z
+    .object({
+      title: line(J.DAY_END_TITLE_MAX, 'متن تبریک رو بنویس'),
+      message: paragraph(J.DAY_END_MESSAGE_MAX),
+      mascot: motionSettingSchema,
+      invite: z.object({
+        enabled: z.boolean(),
+        text: paragraph(J.DAY_END_MESSAGE_MAX),
+        button: line(J.COVER_BUTTON_MAX, 'متن دکمه‌ی دعوت رو بنویس'),
+        shareMessage: paragraph(J.SHARE_MESSAGE_MAX),
+      }),
+    })
+    .default(() => journeyDayEndDefaults()),
+  // Absent on a journey saved before results existed.
+  result: z
+    .object({
+      enabled: z.boolean(),
+      traits: z
+        .array(z.object({ id: keySchema, title: line(J.CHARACTER_NAME_MAX, 'نام ویژگی رو بنویس') }))
+        .max(J.TRAITS_MAX, { error: `حداکثر ${fa(J.TRAITS_MAX)} ویژگی` }),
+      characters: z
+        .array(
+          z.object({
+            id: keySchema,
+            name: line(J.CHARACTER_NAME_MAX, 'نام شخصیت رو بنویس'),
+            title: line(L.TITLE_MAX, null),
+            description: paragraph(J.CHARACTER_DESCRIPTION_MAX),
+            imageId: mediaIdSchema.nullable(),
+            traitId: keySchema.nullable(),
+          })
+        )
+        .max(J.CHARACTERS_MAX, { error: `حداکثر ${fa(J.CHARACTERS_MAX)} شخصیت` }),
+      defaultCharacterId: keySchema.nullable(),
+      card: z.object({
+        brandName: line(J.BRAND_NAME_MAX, null),
+        logoId: mediaIdSchema.nullable(),
+        background: z
+          .string()
+          .regex(/^#[0-9a-fA-F]{6}$/, { error: 'رنگ معتبر نیست' })
+          .transform((value) => value.toLowerCase())
+          .nullable(),
+        showUserName: z.boolean(),
+      }),
+    })
+    .default(() => journeyResultDefaults()),
+  // Absent on a journey saved before motions existed.
+  motions: z
+    .object({ answer: motionSettingSchema, dayComplete: motionSettingSchema, journeyComplete: motionSettingSchema })
+    .default(() => ({
+      answer: motionOff(MOTION_DURATION.ANSWER_MS),
+      dayComplete: motionOff(MOTION_DURATION.DAY_COMPLETE_MS),
+      journeyComplete: motionOff(MOTION_DURATION.JOURNEY_COMPLETE_MS),
+    })),
+});
+
 const definitionSchema = z.object({
-  steps: z
-    .array(stepSchema)
-    .min(1, { error: 'حداقل یک مرحله لازمه' })
-    .max(L.STEPS_MAX, { error: `حداکثر ${fa(L.STEPS_MAX)} مرحله` }),
+  // The cap depends on the type — a journey runs longer — so it is checked in `checkDefinition`.
+  steps: z.array(stepSchema).min(1, { error: 'حداقل یک مرحله لازمه' }),
   estimatedMinutes: z.number().int().min(1).max(L.ESTIMATED_MINUTES_MAX),
   maxSubmissions: z.number().int().min(1).max(L.REPEAT_MAX),
   anonymous: z.boolean(),
   review: z.enum(['auto', 'manual']),
   assessment: assessmentSchema.nullable(),
+  // Absent on every version stored before journeys existed.
+  journey: journeySchema.nullable().default(null),
   xp: xpSchema,
 });
 
@@ -160,15 +257,35 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     definition.assessment?.mode === 'knowledge' &&
     definition.assessment.passingScore !== null;
 
+  const journey = type === 'journey';
+  // A journey is taken once, answer by answer; there is no second submission to pay.
+  const maxSubmissions = journey ? 1 : definition.maxSubmissions;
+
   return {
     ...definition,
-    steps: type === 'mission' ? definition.steps : definition.steps.slice(0, 1),
+    // A cover, the motions and trait points are a journey's; any other type drops them. A question image stays.
+    steps: (type === 'mission' || journey ? definition.steps : definition.steps.slice(0, 1)).map((step) =>
+      journey
+        ? step
+        : {
+            ...step,
+            cover: undefined,
+            answerMotion: undefined,
+            questions: step.questions.map((question) =>
+              'options' in question
+                ? { ...question, motion: undefined, options: question.options.map((option) => ({ ...option, traits: undefined })) }
+                : { ...question, motion: undefined }
+            ),
+          }
+    ),
+    maxSubmissions,
     anonymous: type === 'survey' && definition.anonymous,
     review: type === 'mission' ? definition.review : 'auto',
     assessment: type === 'assessment' ? definition.assessment : null,
+    journey: journey ? definition.journey : null,
     xp: {
       ...definition.xp,
-      maxAwards: Math.min(definition.xp.maxAwards, definition.maxSubmissions),
+      maxAwards: Math.min(definition.xp.maxAwards, maxSubmissions),
       requirePass: knowledgePassMark && definition.xp.requirePass,
     },
   };
@@ -179,12 +296,21 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
   const issue = (path: (string | number)[], message: string) =>
     ctx.addIssue({ code: 'custom', path: ['definition', ...path], message });
 
+  const journey = type === 'journey';
+  const stepsMax = journey ? J.DAYS_MAX : L.STEPS_MAX;
+  const questionsMax = journey ? J.QUESTIONS_MAX : L.QUESTIONS_MAX;
   const questions = definition.steps.flatMap((step) => step.questions);
-  if (questions.length > L.QUESTIONS_MAX) issue(['steps'], `حداکثر ${fa(L.QUESTIONS_MAX)} سؤال`);
+  if (definition.steps.length > stepsMax) {
+    issue(['steps'], journey ? `حداکثر ${fa(stepsMax)} روز` : `حداکثر ${fa(stepsMax)} مرحله`);
+  }
+  if (questions.length > questionsMax) issue(['steps'], `حداکثر ${fa(questionsMax)} سؤال`);
+  if (journey && !definition.journey) issue(['journey'], 'تنظیمات بازشدن روزها رو کامل کن');
+  if (journey && definition.journey) checkResult(definition, issue);
 
   const ids = new Set<string>();
   definition.steps.forEach((step, s) => {
     if (type === 'mission' && !step.title) issue(['steps', s, 'title'], 'عنوان مرحله رو بنویس');
+    if (journey && !step.title) issue(['steps', s, 'title'], 'عنوان روز رو بنویس');
 
     step.questions.forEach((question, q) => {
       const at = ['steps', s, 'questions', q];
@@ -243,6 +369,73 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
   }
 }
 
+/**
+ * A journey campaign ends at midnight after its last calendar day, in its
+ * own zone: a 7-day journey starting on Saturday ends as Friday does.
+ */
+function journeyEnd(input: { type: ActivityType; startsAt: string | null; definition: ActivityDefinition }): string | null {
+  const { journey, steps } = input.definition;
+  if (input.type !== 'journey' || !journey || !input.startsAt) return null;
+  return zonedMidnight(new Date(input.startsAt), journey.timezone, steps.length).toISOString();
+}
+
+/** The day-end page a journey starts with. */
+export function journeyDayEndDefaults() {
+  return {
+    title: DAY_END.TITLE,
+    message: DAY_END.MESSAGE,
+    mascot: motionOff(MOTION_DURATION.DAY_COMPLETE_MS),
+    invite: {
+      enabled: true,
+      text: DAY_END.INVITE_TEXT,
+      button: DAY_END.INVITE_BUTTON,
+      shareMessage: DAY_END.SHARE_MESSAGE,
+    },
+  };
+}
+
+/** A journey's results: characters to come out as, a default, and points only for traits that exist. */
+function checkResult(definition: ActivityDefinition, issue: (path: (string | number)[], message: string) => void) {
+  const result = definition.journey!.result;
+  if (!result?.enabled) return;
+  const at = ['journey', 'result'];
+  const traitIds = new Set(result.traits.map((trait) => trait.id));
+
+  if (traitIds.size !== result.traits.length) issue([...at, 'traits'], 'شناسه‌ی ویژگی تکراریه');
+  if (result.characters.length === 0) issue([...at, 'characters'], 'حداقل یک شخصیت تعریف کن');
+  if (!result.characters.some((character) => character.id === result.defaultCharacterId)) {
+    issue([...at, 'defaultCharacterId'], 'نتیجه‌ی پیش‌فرض رو انتخاب کن');
+  }
+  const claimed = new Set<string>();
+  result.characters.forEach((character, c) => {
+    if (!character.traitId) return;
+    if (!traitIds.has(character.traitId)) issue([...at, 'characters', c, 'traitId'], 'این ویژگی دیگه وجود نداره');
+    else if (claimed.has(character.traitId)) issue([...at, 'characters', c, 'traitId'], 'هر ویژگی فقط به یک شخصیت می‌رسه');
+    claimed.add(character.traitId);
+  });
+  definition.steps.forEach((step, s) =>
+    step.questions.forEach((question, q) => {
+      if (!('options' in question)) return;
+      question.options.forEach((option, o) => {
+        if (Object.keys(option.traits ?? {}).some((id) => !traitIds.has(id))) {
+          issue(['steps', s, 'questions', q, 'options', o, 'traits'], 'امتیاز برای ویژگی‌ای که وجود نداره');
+        }
+      });
+    })
+  );
+}
+
+/** A journey's results, before the admin sets any: off, with the product's card. */
+export function journeyResultDefaults() {
+  return {
+    enabled: false,
+    traits: [],
+    characters: [],
+    defaultCharacterId: null,
+    card: { brandName: RESULT_CARD.BRAND, logoId: null, background: null, showUserName: true },
+  };
+}
+
 // ─── Audience ────────────────────────────────────────────────────────────────
 
 const CATEGORY_IDS = INTEREST_CATEGORIES.map((category) => category.id) as [string, ...string[]];
@@ -284,11 +477,19 @@ export const activityInputSchema = z
   })
   .superRefine((input, ctx) => {
     checkDefinition(input.type, input.definition, ctx);
-    if (input.startsAt && input.endsAt && new Date(input.endsAt) <= new Date(input.startsAt)) {
+    if (input.type === 'journey' && !input.startsAt) {
+      ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'زمان شروع کمپین رو مشخص کن' });
+    }
+    // A journey's end is derived from its start, so only the others are checked.
+    if (input.type !== 'journey' && input.startsAt && input.endsAt && new Date(input.endsAt) <= new Date(input.startsAt)) {
       ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'پایان باید بعد از شروع باشه' });
     }
   })
-  .transform((input) => ({ ...input, definition: forType(input.type, input.definition) }));
+  .transform((input) => ({
+    ...input,
+    definition: forType(input.type, input.definition),
+    endsAt: journeyEnd(input) ?? input.endsAt,
+  }));
 
 export const activityListQuerySchema = z.object({
   status: z.enum(['draft', 'scheduled', 'published', 'paused', 'closed', 'archived']).optional(),
@@ -337,6 +538,15 @@ const answersSchema = z.record(keySchema, answerValueSchema);
 
 /** `PUT /me/activities/:id/draft`. Shapes only: a draft may be half-done. */
 export const activityDraftSchema = z.object({ answers: answersSchema });
+
+/**
+ * `POST /me/activities/:id/answers` — one answer to a journey question.
+ * `null` skips an optional question; the API checks it against the question.
+ */
+export const journeyAnswerSchema = z.object({
+  questionId: keySchema,
+  value: answerValueSchema.nullable(),
+});
 
 /** `POST /me/activities/:id/submit`. Checked against the definition by `validateAnswers`. */
 export const activitySubmitSchema = z.object({

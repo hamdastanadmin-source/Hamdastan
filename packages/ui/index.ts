@@ -20,3 +20,4 @@ export * from './components';
 export * from './icons';
 export * from './patterns/IconBadge';
 export * from './patterns/SectionHeader';
+export { useReducedMotion } from './hooks/use-reduced-motion';

@@ -3,4 +3,5 @@ export { adminAuthService } from './admin-auth.service';
 export { adminUsersService } from './admin-users.service';
 export { adminEngagementService } from './admin-engagement.service';
 export { adminSessionsService } from './admin-sessions.service';
+export { adminMediaService } from './admin-media.service';
 export { HttpError } from '@hamdastan/shared';

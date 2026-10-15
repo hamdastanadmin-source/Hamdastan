@@ -43,5 +43,12 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   `http://localhost:${DEFAULT_PORTS.api}`;
 
+/**
+ * The product's public address, for the panel to link into it (the full
+ * journey preview). Baked in at build time; empty means the same origin,
+ * which is what production is.
+ */
+export const WEB_BASE_URL = process.env.NEXT_PUBLIC_WEB_BASE_URL ?? '';
+
 /** Prefix every backend route is mounted under. */
 export const API_PREFIX = '/api/v1';

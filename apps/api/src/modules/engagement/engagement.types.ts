@@ -1,4 +1,5 @@
 import type {
+  ActivityAnswerValue,
   ActivityAnswers,
   ActivityAudience,
   ActivityDefinition,
@@ -172,3 +173,53 @@ export type AuditRow = {
   details: Record<string, unknown>;
   createdAt: Date;
 };
+
+// ─── Journey ─────────────────────────────────────────────────────────────────
+
+/** A person's kept result. */
+export type JourneyResultRecord = {
+  character: { id: string; name: string; title: string; description: string; imageId: string | null };
+  traits: { id: string; title: string; score: number }[];
+  createdAt: Date;
+};
+
+/** One person's journey, as stored: every answer they gave, and the days they finished. */
+export type JourneyProgressRecord = {
+  /** By question id; null for a skipped optional question. */
+  answers: Record<string, ActivityAnswerValue | null>;
+  /** By day id. */
+  completedDays: Map<string, Date>;
+  /** Net XP by ledger source id (`<activity>:q:<question>`, `<activity>:d:<day>`), reversals taken off. */
+  xp: Map<string, number>;
+};
+
+type Reward = { xp: number; reason: string } | null;
+
+/** One journey answer, every decision about it already made by the service. */
+export type JourneyAnswerWrite = {
+  activityId: string;
+  versionId: string;
+  userId: string;
+  dayId: string;
+  /** Every question the day has now: it is finished once each has an answer. */
+  dayQuestionIds: string[];
+  questionId: string;
+  /** Null records a skipped optional question. */
+  value: ActivityAnswerValue | null;
+  /**
+   * The days that must be finished for the journey to be: every day, less
+   * any already missed for good.
+   */
+  requiredDayIds: string[];
+  rewards: { question: Reward; day: Reward; journey: Reward };
+};
+
+export type JourneyAnswerResult =
+  | {
+      status: 'recorded';
+      xpAwarded: { question: number; day: number; journey: number };
+      dayCompleted: boolean;
+      journeyCompleted: boolean;
+    }
+  /** The question already had an answer; it is returned, and nothing was written. */
+  | { status: 'already_answered'; value: ActivityAnswerValue | null };

@@ -1,6 +1,19 @@
 'use client';
 
-import { ArrowDown, ArrowUp, Calculator, Copy, FileSpreadsheet, Flag, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowLeftRight,
+  ArrowUp,
+  Calculator,
+  CalendarDays,
+  Clapperboard,
+  Copy,
+  FileSpreadsheet,
+  Flag,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 
 import { QUESTION_KIND_LABELS } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
@@ -12,19 +25,28 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@hamdastan/ui';
 
 import { QUESTION_KIND_UI } from '../../utils/question-kinds';
 
 /** What the editing panel shows. */
-export type Selection = { kind: 'question'; id: string } | { kind: 'step'; id: string } | { kind: 'scoring' };
+export type Selection =
+  | { kind: 'question'; id: string }
+  | { kind: 'step'; id: string }
+  | { kind: 'scoring' }
+  | { kind: 'motions' };
 
 /** The actions a row's «⋯» offers; null leaves one out. */
 type RowActions = {
   onMoveUp: (() => void) | null;
   onMoveDown: (() => void) | null;
   onDuplicate?: (() => void) | null;
+  /** A journey question: the other days it can move to. */
+  moveTo?: { label: string; onSelect: () => void }[];
   onRemove: (() => void) | null;
 };
 
@@ -55,6 +77,21 @@ function RowMenu({ label, actions }: { label: string; actions: RowActions }) {
             تکثیر
           </DropdownMenuItem>
         )}
+        {actions.moveTo && actions.moveTo.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <ArrowLeftRight aria-hidden="true" />
+              انتقال به روز…
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+              {actions.moveTo.map((target) => (
+                <DropdownMenuItem key={target.label} onSelect={target.onSelect}>
+                  {target.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" disabled={!actions.onRemove} onSelect={() => actions.onRemove?.()}>
           <Trash2 aria-hidden="true" />
@@ -69,7 +106,9 @@ function RowMenu({ label, actions }: { label: string; actions: RowActions }) {
  * The builder's question list (Porsline's left — here right — rail): every
  * question numbered, with its kind's icon, its text or a muted placeholder,
  * and a dot when it has something to fix. A mission groups them under its
- * steps; an assessment opens with its scoring. Choosing a row opens it in
+ * steps; a journey shows one day at a time (`visibleSteps`), numbered from 1
+ * within it, under a row that opens the day's settings; an assessment opens
+ * with its scoring. Choosing a row opens it in
  * the editing panel; «⋯» moves, duplicates or removes it.
  */
 export function QuestionOutline({
@@ -85,9 +124,12 @@ export function QuestionOutline({
   onImport,
   canAddQuestion,
   canAddStep,
+  visibleSteps,
 }: {
   type: ActivityType;
   steps: ActivityStep[];
+  /** The steps to list, by index; all of them when absent. */
+  visibleSteps?: number[];
   selection: Selection;
   errors: Record<string, string>;
   onSelect: (selection: Selection) => void;
@@ -100,9 +142,16 @@ export function QuestionOutline({
   canAddStep: boolean;
 }) {
   const mission = type === 'mission';
+  const journey = type === 'journey';
+  const grouped = mission || journey;
   const hasError = (prefix: string) => Object.keys(errors).some((path) => path.startsWith(prefix));
-  // Questions are numbered straight through, across a mission's steps.
-  const firstNumber = steps.map((_, s) => steps.slice(0, s).reduce((sum, step) => sum + step.questions.length, 0) + 1);
+  // Numbered straight through a mission's steps; from 1 again on each journey day.
+  const firstNumber = steps.map((_, s) =>
+    journey ? 1 : steps.slice(0, s).reduce((sum, step) => sum + step.questions.length, 0) + 1
+  );
+  const shown = visibleSteps ?? steps.map((_, s) => s);
+  const StepIcon = journey ? CalendarDays : Flag;
+  const stepName = (s: number) => `${journey ? 'روز' : 'مرحله‌ی'} ${toPersianDigits(s + 1)}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -125,56 +174,76 @@ export function QuestionOutline({
             </li>
           )}
 
-          {steps.map((step, s) => (
-            <li key={step.id} className={cn(mission && s > 0 && 'mt-2 border-t pt-2')}>
-              {mission && (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className={cn(ROW, 'text-muted-foreground data-[active=true]:text-foreground')}
-                    data-active={selection.kind === 'step' && selection.id === step.id}
-                    onClick={() => onSelect({ kind: 'step', id: step.id })}
-                  >
-                    <Flag aria-hidden="true" className="size-4 shrink-0" />
-                    <span className="flex-1 truncate">
-                      مرحله‌ی {toPersianDigits(s + 1)}
-                      {step.title && `: ${step.title}`}
-                    </span>
-                    {hasError(`definition.steps.${s}.title`) && <ErrorDot />}
-                  </button>
-                  <RowMenu label={`مرحله‌ی ${toPersianDigits(s + 1)}`} actions={stepActions(s)} />
-                </div>
-              )}
-              <ul className={cn('flex flex-col gap-0.5', mission && 'ps-3')}>
-                {step.questions.map((question, q) => {
-                  const number = firstNumber[s] + q;
-                  const Icon = QUESTION_KIND_UI[question.kind].icon;
-                  const active = selection.kind === 'question' && selection.id === question.id;
-                  return (
-                    <li key={question.id} className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        className={ROW}
-                        data-active={active}
-                        aria-current={active ? 'true' : undefined}
-                        onClick={() => onSelect({ kind: 'question', id: question.id })}
-                      >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-xs tabular-nums">
-                          {toPersianDigits(number)}
-                        </span>
-                        <Icon aria-label={QUESTION_KIND_LABELS[question.kind]} className="size-4 shrink-0 text-muted-foreground" />
-                        <span className={cn('flex-1 truncate', !question.title && 'font-normal text-muted-foreground')}>
-                          {question.title || 'سؤال بدون متن'}
-                        </span>
-                        {hasError(`definition.steps.${s}.questions.${q}.`) && <ErrorDot />}
-                      </button>
-                      <RowMenu label={`سؤال ${toPersianDigits(number)}`} actions={questionActions(s, q)} />
-                    </li>
-                  );
-                })}
-              </ul>
+          {journey && (
+            <li className="mb-2 border-b pb-2">
+              <button
+                type="button"
+                className={ROW}
+                data-active={selection.kind === 'motions'}
+                onClick={() => onSelect({ kind: 'motions' })}
+              >
+                <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted">
+                  <Clapperboard aria-hidden="true" className="size-3.5" />
+                </span>
+                <span className="flex-1 truncate">موشن‌های چالش</span>
+                {hasError('definition.journey.motions') && <ErrorDot />}
+              </button>
             </li>
-          ))}
+          )}
+
+          {shown.map((s) => {
+            const step = steps[s];
+            return (
+              <li key={step.id} className={cn(mission && s > 0 && 'mt-2 border-t pt-2')}>
+                {grouped && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className={cn(ROW, 'text-muted-foreground data-[active=true]:text-foreground')}
+                      data-active={selection.kind === 'step' && selection.id === step.id}
+                      onClick={() => onSelect({ kind: 'step', id: step.id })}
+                    >
+                      <StepIcon aria-hidden="true" className="size-4 shrink-0" />
+                      <span className="flex-1 truncate">
+                        {journey ? 'تنظیمات و کاور روز' : stepName(s)}
+                        {!journey && step.title && `: ${step.title}`}
+                      </span>
+                      {(hasError(`definition.steps.${s}.title`) || hasError(`definition.steps.${s}.cover`)) && <ErrorDot />}
+                    </button>
+                    <RowMenu label={stepName(s)} actions={stepActions(s)} />
+                  </div>
+                )}
+                <ul className={cn('flex flex-col gap-0.5', grouped && 'ps-3')}>
+                  {step.questions.map((question, q) => {
+                    const number = firstNumber[s] + q;
+                    const Icon = QUESTION_KIND_UI[question.kind].icon;
+                    const active = selection.kind === 'question' && selection.id === question.id;
+                    return (
+                      <li key={question.id} className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          className={ROW}
+                          data-active={active}
+                          aria-current={active ? 'true' : undefined}
+                          onClick={() => onSelect({ kind: 'question', id: question.id })}
+                        >
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-xs tabular-nums">
+                            {toPersianDigits(number)}
+                          </span>
+                          <Icon aria-label={QUESTION_KIND_LABELS[question.kind]} className="size-4 shrink-0 text-muted-foreground" />
+                          <span className={cn('flex-1 truncate', !question.title && 'font-normal text-muted-foreground')}>
+                            {question.title || 'سؤال بدون متن'}
+                          </span>
+                          {hasError(`definition.steps.${s}.questions.${q}.`) && <ErrorDot />}
+                        </button>
+                        <RowMenu label={`سؤال ${toPersianDigits(number)}`} actions={questionActions(s, q)} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

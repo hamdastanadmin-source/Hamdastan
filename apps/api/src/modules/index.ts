@@ -8,6 +8,7 @@ import { communityRoutes } from './community';
 import { contentRoutes } from './content';
 import { engagementAdminRoutes, engagementRoutes } from './engagement';
 import { eventsRoutes } from './events';
+import { mediaAdminRoutes, mediaRoutes } from './media';
 import { missionsRoutes } from './missions';
 import { notificationsRoutes } from './notifications';
 import { onboardingRoutes } from './onboarding';
@@ -50,4 +51,7 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/admin', routes: adminRoutes },
   // Engagement Studio: designing, publishing and reviewing activities.
   { prefix: '/admin/engagement', routes: engagementAdminRoutes },
+  // The media & motion library, and the files it serves to both apps.
+  { prefix: '/admin/media', routes: mediaAdminRoutes },
+  { prefix: '/media', routes: mediaRoutes },
 ];

@@ -2,10 +2,15 @@
 
 import { Copy, Plus, Trash2, X } from 'lucide-react';
 
-import { ENGAGEMENT_LIMITS, QUESTION_KIND_LABELS, QUESTION_KINDS } from '@hamdastan/config';
+import { ENGAGEMENT_LIMITS, MOTION_DURATION, QUESTION_KIND_LABELS, QUESTION_KINDS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityQuestion, AssessmentSettings, ChoiceOption } from '@hamdastan/types';
+import type { ActivityQuestion, AssessmentSettings, ChoiceOption, JourneyTrait } from '@hamdastan/types';
+import { motionOff } from '@hamdastan/validation';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Badge,
   Button,
   Checkbox,
@@ -17,11 +22,19 @@ import {
   SelectValue,
   Switch,
   Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@hamdastan/ui';
+
+import { MediaField, MotionSettingField } from '@/features/media';
 
 import { emptyQuestion, newKey } from '../../utils/draft';
 import { QUESTION_KIND_UI } from '../../utils/question-kinds';
-import { Field, invalid, NEUTRAL_CHECKBOX } from './Field';
+import { Field, invalid, motionErrors, NEUTRAL_CHECKBOX, SwitchRow } from './Field';
+import { OptionTraitPoints } from './OptionTraitPoints';
+
+/** The chosen position is told by a foreground border — never the brand colour. */
+const POSITION = 'px-3 data-[state=on]:border-foreground data-[state=on]:bg-accent';
 
 type QuestionEditorProps = {
   question: ActivityQuestion;
@@ -33,6 +46,10 @@ type QuestionEditorProps = {
   assessment: AssessmentSettings | null;
   /** Mission: the step it belongs to, shown above it. */
   stepTitle?: string;
+  /** A journey question can set its own motion after an answer. */
+  journey?: boolean;
+  /** A journey with a character card: the traits its options can give points to. */
+  traits?: JourneyTrait[];
   onChange: (question: ActivityQuestion) => void;
   onDuplicate: (() => void) | null;
   onRemove: (() => void) | null;
@@ -55,6 +72,8 @@ export function QuestionEditor({
   errors,
   assessment,
   stepTitle,
+  journey = false,
+  traits = [],
   onChange,
   onDuplicate,
   onRemove,
@@ -134,6 +153,44 @@ export function QuestionEditor({
           پاسخ الزامی
         </label>
       </div>
+
+        <Field label="تصویر سؤال (اختیاری)" error={error('imageId')} hint="کامل نشون داده می‌شه، بدون برش یا کشیدگی.">
+          <MediaField
+            value={question.imageId}
+            onChange={(imageId) =>
+              // Without an image there is no position to keep.
+              onChange({ ...question, imageId: imageId ?? undefined, imagePosition: imageId ? question.imagePosition : undefined })
+            }
+            kind="image"
+            category="question"
+            pickerTitle="تصویر سؤال"
+            invalid={Boolean(error('imageId'))}
+          />
+          {question.imageId && (
+            <div className="flex flex-wrap items-center gap-3">
+              <span id={`${id}-image-position`} className="text-sm text-muted-foreground">
+                جای تصویر
+              </span>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={question.imagePosition ?? 'above'}
+                onValueChange={(value) =>
+                  value && onChange({ ...question, imagePosition: value === 'below' ? 'below' : undefined })
+                }
+                aria-labelledby={`${id}-image-position`}
+              >
+                <ToggleGroupItem value="above" className={POSITION}>
+                  بالای متن سؤال
+                </ToggleGroupItem>
+                <ToggleGroupItem value="below" className={POSITION}>
+                  زیر متن، بالای گزینه‌ها
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          )}
+        </Field>
 
         <Field label="متن سؤال" htmlFor={`${id}-title`} error={error('title')}>
           <Input
@@ -230,6 +287,9 @@ export function QuestionEditor({
                 <p className="text-xs text-muted-foreground">عدد کنار هر گزینه، امتیاز اون گزینه برای بُعدِ این سؤاله.</p>
               )}
             </div>
+            {traits.length > 0 && (
+              <OptionTraitPoints options={question.options} traits={traits} errors={errors} path={path} onChange={setOptions} />
+            )}
           </Field>
         )}
 
@@ -343,6 +403,32 @@ export function QuestionEditor({
             </label>
           </div>
         )}
+      {journey && (
+        <Accordion type="single" collapsible defaultValue={question.motion ? 'motion' : undefined} className="rounded-lg border px-4">
+          <AccordionItem value="motion" className="border-b-0">
+            <AccordionTrigger>موشن بعد از پاسخ این سؤال</AccordionTrigger>
+            <AccordionContent className="flex flex-col gap-4">
+              <SwitchRow id={`${id}-own-motion`} label="موشن اختصاصی این سؤال" hint="خاموش باشه، موشنِ روز (یا موشن عمومی چالش) پخش می‌شه.">
+                <Switch
+                  id={`${id}-own-motion`}
+                  checked={Boolean(question.motion)}
+                  onCheckedChange={(on) =>
+                    onChange({ ...question, motion: on ? motionOff(MOTION_DURATION.ANSWER_MS) : undefined })
+                  }
+                />
+              </SwitchRow>
+              {question.motion && (
+                <MotionSettingField
+                  id={`${id}-motion`}
+                  value={question.motion}
+                  onChange={(motion) => onChange({ ...question, motion })}
+                  errors={motionErrors(errors, `${path}.motion`)}
+                />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
     </div>
   );
 }

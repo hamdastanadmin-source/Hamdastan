@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import { ADMIN_SESSION, SESSION } from '@hamdastan/config';
 import { z } from '@hamdastan/validation';
 
@@ -199,6 +201,15 @@ const envSchema = z.object({
    * second message.
    */
   SMS_TIMEOUT_MS: z.coerce.number().int().min(500).default(5_000),
+
+  // ─── Media library ──────────────────────────────────────────
+  /**
+   * Where uploaded images and motions are kept. Defaults to `storage/media`
+   * at the repository root — `/app/storage/media` in the container, which
+   * docker-compose mounts as the `api-media` volume so files outlive a
+   * rebuild.
+   */
+  MEDIA_DIR: z.string().min(1).default(fileURLToPath(new URL('../../../../storage/media', import.meta.url))),
 });
 
 const parsed = envSchema.safeParse(process.env);

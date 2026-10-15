@@ -37,6 +37,19 @@ export function Field({
   );
 }
 
+/** A motion setting's problems, by its own field, from the errors filed under `path`. */
+export function motionErrors(errors: Record<string, string>, path: string): Record<string, string | undefined> {
+  const under = (field: string) =>
+    Object.entries(errors).find(([key]) => key === `${path}.${field}` || key.startsWith(`${path}.${field}.`))?.[1];
+  // A file the library no longer has is filed under the setting itself.
+  return {
+    assetId: under('assetId') ?? errors[path],
+    assetIds: under('assetIds'),
+    durationMs: under('durationMs'),
+    caption: under('caption'),
+  };
+}
+
 /** Props that mark a control invalid when its path has an error. */
 export const invalid = (error: string | undefined) => (error ? { 'aria-invalid': true as const } : {});
 

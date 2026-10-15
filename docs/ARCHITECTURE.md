@@ -57,6 +57,7 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | A validation rule both sides apply | `packages/validation` |
 | A number both sides must agree on (a timeout, an age limit) | `packages/config/app` |
 | An outbound call to somebody else's service | `apps/api/src/integrations` |
+| Where uploaded files are kept | the `MediaStorage` port in `apps/api/src/integrations/storage`; only the `media` module uses it |
 | A rate-limit policy for a route | `rateLimits` in `apps/api/src/middleware/rate-limit.ts`, named in the route's `config.rateLimit` |
 | A permission an admin route needs | `ADMIN_PERMISSIONS` / `ADMIN_ROLE_PERMISSIONS` in `packages/types/admin.ts`, guarded with `requireAdminPermission` |
 | Making a write safe to retry | an `Idempotency-Key` claimed through `apps/api/src/data/idempotency.ts`, on the write's own transaction |
@@ -115,6 +116,11 @@ page, which makes it the only place a fifteen-minute access token can be
 refreshed without the visitor noticing. A server component reads the session;
 `proxy.ts` is what keeps it fresh.
 
+It also brings an invitee back: a visitor sent to the door (or to their
+profile or onboarding) from an activity's address has that address kept in
+the `hd_return_to` cookie, and is taken there — once — the first time the
+account reaches home. Only `/activities/<uuid>` is ever kept.
+
 The decision is always the server's: the proxy reads `nextStep` out of
 `GET /me` and obeys it. It never infers "this profile looks complete" from the
 user object, because then the browser would be deciding.
@@ -128,8 +134,21 @@ features/
 ```
 
 `activities` is Engagement Studio's product side: the cards on home and
-`/activities`, and the player at `/activities/:id`. It collects answers and
-shows what the API answered — it decides nothing about access or XP.
+`/activities`, and the player at `/activities/:id` — `ActivityPlayer` for a
+survey, mission or assessment, `JourneyPlayer` (`components/journey/`) for a
+multi-day journey. It collects answers and shows what the API answered — it
+decides nothing about access or XP; which day is open, what an answer paid
+and when the next day opens all come back from the API. Library files are
+loaded from the API (`activitiesService.mediaUrl`, `.lottie`); Lottie is
+drawn with `lottie-web`'s light build, as in the panel. `useReducedMotion`
+(`@hamdastan/ui`) is how both apps hold a motion still. The character card is
+drawn by `@hamdastan/ui/result-card` (a canvas, 1080 × 1920), shared by the
+product's export and the panel's preview so both draw the same pixels; the
+rule that picks the character is `traitScores`/`pickCharacter` in
+`@hamdastan/validation`, applied by the API and simulated by the preview.
+`/preview/activities/:id` is the admin's full journey preview: the proxy
+lets it through without a product session, and the API decides by the
+admin session it carries.
 
 A feature grows the directories it needs and no others:
 
@@ -167,9 +186,14 @@ Like `apps/web`, the admin root layout wraps everything in
 `Tabs` — and on portalled overlays, and without the provider it writes
 `ltr`: a toggle group of cards then lays out and punctuates left-to-right
 inside an RTL page.
-There are three: `users` (the admin allow-list and roles), `engagement`
-(Engagement Studio — the builder, the list and the results dashboard) and
-`sessions` (a product account's live sessions, ended one or all at once).
+There are four: `users` (the admin allow-list and roles), `engagement`
+(Engagement Studio — the builder, the list and the results dashboard),
+`media` (the media & motion library, and the fields the builder picks files
+with — `MediaField`, `MotionSettingField`, imported by `engagement` through
+`@/features/media`) and `sessions` (a product account's live sessions, ended
+one or all at once). Lottie motions are drawn with `lottie-web`'s *light*
+build — SVG only, without the expression engine, so an uploaded animation
+never runs `eval`.
 
 **What an admin sees follows their role.** `src/lib/access.ts` holds the
 sections and `can(role, permission)`, read from the same
@@ -329,7 +353,7 @@ src/
 
 `auth`, `users`, `onboarding`, `account`, `worlds`, `content`, `missions`,
 `trivia`, `community`, `progress`, `events`, `commerce`, `notifications`,
-`search`, `admin`, `engagement` — each with the same seven files — and
+`search`, `admin`, `engagement`, `media` — each with the same seven files — and
 `maintenance`, which has no HTTP surface (below):
 
 ```
@@ -367,8 +391,9 @@ A module may add files beside the seven when a service delegates a pure
 computation: `onboarding` keeps its questionnaire scoring in
 `onboarding.scoring.ts` and the result card in `onboarding.result.ts`;
 `engagement` keeps assessment scoring and the XP rule in
-`engagement.scoring.ts`, and the dashboard figures and the CSV in
-`engagement.results.ts`. They import no repository and no HTTP, so they are
+`engagement.scoring.ts`, the dashboard figures and the CSV in
+`engagement.results.ts`, and the journey clock — which day is open, in
+which time zone — in `engagement.journey.ts`. They import no repository and no HTTP, so they are
 tested as plain functions.
 
 **`maintenance`** is the cleanup job, and the one module with no routes,
@@ -500,7 +525,10 @@ lookup; the admin session's idle limit is `last_seen_at`, checked by
 Each is a port plus one implementation per provider — `SmsSender` with a
 console adapter for development and a Kaveh-Negar adapter for production —
 bound once in `server.ts`. A service depends on the capability and never on
-the vendor, which is the same rule as the repositories.
+the vendor, which is the same rule as the repositories. `MediaStorage` is
+the same shape for files: a local-directory adapter today (`MEDIA_DIR`, the
+`api-media` volume in Docker), and object storage later would be a second
+adapter bound in `server.ts`, nothing else.
 
 ### The data layer seam
 
@@ -591,6 +619,14 @@ they never need to relay a client address — and could not forge one.
 overlay that removes the published ports, adds nginx, and builds the browser
 bundle against the public URL. `scripts/deploy.sh` runs both against the
 server over SSH.
+
+**Uploaded files** (the media library) are kept by the API on a named Docker
+volume, `api-media`, mounted at `/app/storage/media` (`MEDIA_DIR`); the image
+creates that directory for the API's user, so a new volume is writable. A
+rebuild or a redeploy keeps it, `scripts/deploy.sh` never syncs a local
+`storage/`, and a `pg_dump` does not include it — the runbook backs it up
+beside the database. Files are at most 250 KB, so the nginx and API body
+limits (1 MB, the file travelling base64 in JSON) already cover an upload.
 
 `NEXT_PUBLIC_` variables are substituted into the browser bundle at **build**
 time, which is why the public URL is a Docker build argument and not only a

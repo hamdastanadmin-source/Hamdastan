@@ -23,6 +23,18 @@ export function formatDate(iso: string | null): string {
   return iso ? dateOnly.format(new Date(iso)) : '—';
 }
 
+/** Weekday, Jalali date and time in a given zone — a journey's days are its zone's. */
+export function formatDayTimeIn(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat(APP_LOCALE, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
+  }).format(new Date(iso));
+}
+
 /** A count in Persian digits, with thousands grouped. */
 export function formatCount(value: number): string {
   return toPersianDigits(value.toLocaleString('en-US')).replace(/,/g, '٬');

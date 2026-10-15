@@ -18,6 +18,7 @@ import { HttpError } from '@/services';
 import { useActivityPlayer } from '../hooks/use-activity-player';
 import { minutesLabel, STATUS_LABELS } from '../utils/activity';
 import { QuestionField } from './QuestionField';
+import { QuestionImage } from './QuestionImage';
 import { ResultCard } from './ResultCard';
 
 /** The progress line in foreground — progress is not the primary action. */
@@ -97,6 +98,7 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
   if (player.phase === 'question' && player.current) {
     const { question, step } = player.current;
     const showStep = activity.steps.length > 1 && step.title;
+    const image = question.imageId ? activity.media[question.imageId] : undefined;
     return (
       <Screen>
         <ScreenHeader className="flex-col items-stretch gap-2 pb-2">
@@ -119,6 +121,7 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
               )}
             </div>
           )}
+          {image && question.imagePosition !== 'below' && <QuestionImage key={image.id} media={image} />}
           <div id={titleId}>
             <ScreenTitle
               size="prompt"
@@ -131,6 +134,7 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
               description={question.description}
             />
           </div>
+          {image && question.imagePosition === 'below' && <QuestionImage key={image.id} media={image} />}
           <QuestionField
             key={question.id}
             question={question}

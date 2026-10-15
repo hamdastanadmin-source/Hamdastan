@@ -41,6 +41,10 @@ export const engagementController = {
     return reply.send(ok(await service.changeStatus(currentAdmin(request), id, action)));
   },
 
+  async preview(request: FastifyRequest, reply: FastifyReply) {
+    return reply.send(ok(await service.preview(idOf(request))));
+  },
+
   async duplicate(request: FastifyRequest, reply: FastifyReply) {
     return reply.status(201).send(ok(await service.duplicate(currentAdmin(request), idOf(request))));
   },
@@ -99,6 +103,12 @@ export const engagementController = {
     const id = idOf(request);
     const { answers } = parseBody(schemas.draft.body, request.body);
     return reply.send(ok(await service.saveDraft(currentUser(request), id, answers)));
+  },
+
+  async answerJourney(request: FastifyRequest, reply: FastifyReply) {
+    const id = idOf(request);
+    const input = parseBody(schemas.answer.body, request.body);
+    return reply.send(ok(await service.answerJourney(currentUser(request), id, input)));
   },
 
   async submit(request: FastifyRequest, reply: FastifyReply) {
