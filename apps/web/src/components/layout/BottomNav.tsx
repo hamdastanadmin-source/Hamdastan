@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { House, UserRound, type LucideIcon } from 'lucide-react';
+import { CalendarDays, House, UserRound, type LucideIcon } from 'lucide-react';
 
 import { cn } from '@hamdastan/shared/cn';
 
@@ -10,8 +10,9 @@ import { cn } from '@hamdastan/shared/cn';
  * The bar at the bottom of the top-level screens — and only those: a screen
  * one step down (edit profile, settings) has a back control instead.
  *
- * Two destinations, because two exist. A tab for a section that is not built
- * would be a promise the product cannot keep yet.
+ * Three destinations, because three exist. A tab for a section that is not
+ * built would be a promise the product cannot keep yet. A tab is current on
+ * its own page and the pages under it.
  *
  * Sticky, like `ScreenFooter` and for the same reason: a fixed bar spans the
  * browser on a laptop instead of the column. The current tab is told apart
@@ -21,6 +22,7 @@ import { cn } from '@hamdastan/shared/cn';
 
 const ITEMS: ReadonlyArray<{ href: string; label: string; icon: LucideIcon }> = [
   { href: '/', label: 'خانه', icon: House },
+  { href: '/events', label: 'رویدادها', icon: CalendarDays },
   { href: '/profile', label: 'پروفایل', icon: UserRound },
 ];
 
@@ -35,7 +37,7 @@ export function BottomNav() {
     >
       <ul className="flex">
         {ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
           return (
             <li key={href} className="flex-1">
               <Link

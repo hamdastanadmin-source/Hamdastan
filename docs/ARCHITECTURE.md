@@ -63,6 +63,7 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | Making a write safe to retry | an `Idempotency-Key` claimed through `apps/api/src/data/idempotency.ts`, on the write's own transaction |
 | A job that runs on a timer | `apps/api/src/modules/maintenance`, started from `server.ts` |
 | How a front-end client retries and times out | `packages/shared/http.ts` (the rule); the numbers in `packages/config/app/http.config.ts` |
+| A hook two features of one app use | `apps/<app>/src/hooks` |
 | A helper one feature uses | that feature's `utils/` |
 | A helper genuinely shared | `packages/shared` |
 | A colour, spacing or radius value | `packages/ui/tokens` |
@@ -119,7 +120,8 @@ refreshed without the visitor noticing. A server component reads the session;
 It also brings an invitee back: a visitor sent to the door (or to their
 profile or onboarding) from an activity's address has that address kept in
 the `hd_return_to` cookie, and is taken there — once — the first time the
-account reaches home. Only `/activities/<uuid>` is ever kept.
+account reaches home. Only `/activities/<uuid>` and `/events/<slug>` are
+ever kept.
 
 The decision is always the server's: the proxy reads `nextStep` out of
 `GET /me` and obeys it. It never infers "this profile looks complete" from the
@@ -278,8 +280,9 @@ one from beside it:
   reader came from, which in an RTL product is rightwards.
 
 **`BottomNav`** (`components/layout/BottomNav.tsx`) ends the top-level
-screens — home and the profile — in place of a `ScreenFooter`: sticky for
-the same reason, with the current tab told by weight rather than colour.
+screens — home, events and the profile — in place of a `ScreenFooter`:
+sticky for the same reason, with the current tab told by weight rather than
+colour. A tab is current on its own page and the pages under it.
 A screen one level down has `ScreenBack` instead and no bottom nav.
 
 **`XpAmount`** (`components/xp/`) is the app's one way to write an amount
@@ -555,7 +558,7 @@ Until a module's implementation is bound with `setUsersRepository(...)` in
 than returning fake data, so an unimplemented endpoint cannot pass for a
 working one.
 
-Beside the pool, the data layer has two helpers a repository may use:
+Beside the pool, the data layer has three helpers a repository may use:
 
 - **`idempotency.ts`** — `v2_idempotency_keys`, which no module owns.
   `claimIdempotency` runs on the caller's transaction (like `grantWithin`),
@@ -564,6 +567,10 @@ Beside the pool, the data layer has two helpers a repository may use:
   `engagement`'s submit is the worked example.
 - **`deleteInBatches`** — for the cleanup job: a large backlog deleted a
   batch at a time instead of in one long-locking statement.
+- **`audience.ts`** — `audienceMatch`, the SQL for «is this person in this
+  audience» (the `ActivityAudience` shape). Engagement Studio's activities
+  and restricted events both filter with it, so the rule has one
+  definition; the query must have the person as `u`.
 
 Every pooled statement is bounded by `DATABASE_STATEMENT_TIMEOUT_MS`
 (server-side, with a client-side timeout a little later); the migration

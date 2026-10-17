@@ -12,7 +12,7 @@ import {
 } from '@hamdastan/types';
 
 import type { MediaStorage } from '../../integrations';
-import { AppError, NotFoundError } from '../../shared/errors';
+import { AppError, NotFoundError, ValidationError } from '../../shared/errors';
 import type { AdminRecord } from '../admin';
 
 import { mediaRepository } from './media.repository';
@@ -142,12 +142,12 @@ export const mediaService = {
     return this.get(id);
   },
 
-  /** Only a file nothing refers to — in any version of any activity — can go. */
+  /** Only a file nothing refers to — in any version of any activity, or any event or world — can go. */
   async remove(id: string): Promise<{ deleted: true }> {
     const outcome = await mediaRepository().remove(id);
     if (outcome.status !== 'deleted') {
       if (outcome.status === 'not_found') throw notFound();
-      throw new AppError(409, CODES.MEDIA_IN_USE, 'این فایل توی فعالیت‌ها استفاده شده و حذف نمی‌شه');
+      throw new AppError(409, CODES.MEDIA_IN_USE, 'این فایل جایی استفاده شده و حذف نمی‌شه');
     }
     await store().remove(storageKey(outcome.record));
     return { deleted: true };
@@ -193,5 +193,21 @@ export const mediaService = {
     if (ids.length === 0) return new Map();
     const records = await mediaRepository().findMany([...new Set(ids)]);
     return new Map(records.map((record) => [record.id, record.kind]));
+  },
+
+  /**
+   * Refuses, field by field, any reference that is not an image in the
+   * library. `refs` maps a field path to an id; nulls are skipped.
+   */
+  async requireImages(refs: Record<string, string | null>): Promise<void> {
+    const entries = Object.entries(refs).filter((entry): entry is [string, string] => Boolean(entry[1]));
+    const kinds = await this.kinds(entries.map(([, id]) => id));
+    const fields: Record<string, string> = {};
+    for (const [path, id] of entries) {
+      const kind = kinds.get(id);
+      if (!kind) fields[path] = 'این فایل توی کتابخانه نیست؛ دوباره انتخابش کن';
+      else if (kind !== 'image') fields[path] = 'اینجا فقط تصویر می‌شه گذاشت';
+    }
+    if (Object.keys(fields).length > 0) throw new ValidationError(Object.values(fields)[0], { fields });
   },
 };

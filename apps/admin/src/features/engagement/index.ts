@@ -6,4 +6,5 @@
 export { ActivitiesScreen } from './components/ActivitiesScreen';
 export { ActivityEditor } from './components/ActivityEditor';
 export { ActivityResultsScreen } from './components/ActivityResultsScreen';
+export { AudienceField } from './components/editor/AudienceField';
 export { EDITOR_STEPS, type EditorStepId } from './utils/draft';

@@ -4,9 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SESSION } from '@hamdastan/config';
 
 /**
- * An invitation is a link to a journey. Someone who must first sign in, or
- * finish their profile and onboarding, is brought back to it afterwards —
- * once, from home or the door, and only ever to an activity's own address.
+ * An invitation is a link to a journey or an event. Someone who must first
+ * sign in, or finish their profile and onboarding, is brought back to it
+ * afterwards — once, from home or the door, and only ever to an activity's
+ * or an event's own address.
  */
 
 const JOURNEY = '/activities/8f14e45f-ceea-467a-9f2b-1c3d5e7f9a0b';
@@ -64,8 +65,15 @@ describe('the way back from an invitation', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
-  it('never remembers or follows anything but an activity’s address', async () => {
+  it('remembers an event’s page the same way', async () => {
+    const response = await run('/events/hogwarts-music-night');
+    expect(location(response)).toBe('/welcome');
+    expect(decodeURIComponent(returnCookie(response) ?? '')).toContain('hd_return_to=/events/hogwarts-music-night');
+  });
+
+  it('never remembers or follows anything but an activity’s or an event’s address', async () => {
     expect(returnCookie(await run('/profile'))).toBeUndefined();
+    expect(returnCookie(await run('/events/../profile'))).toBeUndefined();
     const response = await run('/', `${signedIn}; hd_return_to=https://evil.example`);
     expect(response.headers.get('location')).toBeNull();
   });

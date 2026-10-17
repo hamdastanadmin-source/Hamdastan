@@ -7,3 +7,4 @@ export * from './account.config';
 export * from './admin.config';
 export * from './engagement.config';
 export * from './http.config';
+export * from './events.config';

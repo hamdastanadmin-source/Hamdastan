@@ -11,3 +11,4 @@ export {
   decodeSessionHandoff,
   encodeSessionHandoff,
 } from './session-handoff';
+export { shareInvite, type ShareOutcome } from './share';

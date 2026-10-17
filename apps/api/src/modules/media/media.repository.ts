@@ -11,8 +11,8 @@ import type { MediaFile, MediaListQuery, MediaListRecord, MediaRecord } from './
  * here — the service keeps them through the `MediaStorage` integration.
  *
  * Whether a file is in use is read from the activity definitions, every
- * version of them: a response keeps the version it answered, and that
- * version may still be drawn.
+ * version of them (a response keeps the version it answered, and that
+ * version may still be drawn), and from what events and worlds point at.
  */
 export interface MediaRepository {
   list(query: MediaListQuery): Promise<{ items: MediaListRecord[]; total: number }>;
@@ -39,9 +39,18 @@ export const setMediaRepository = slot.set;
 
 const COLUMNS = `m.id, m.kind, m.format, m.category, m.name, m.size_bytes, m.sha256, m.version, m.created_at, m.updated_at`;
 
-/** Activities whose definitions — in any version — name this file. */
-const USAGE = `(SELECT count(DISTINCT v.activity_id) FROM v2_engagement_versions v
-                 WHERE strpos(v.definition::text, m.id::text) > 0)::int`;
+/**
+ * Places that use this file: activities whose definitions — in any version —
+ * name it, and events (cover, organizer logo, gallery), event categories and
+ * worlds that point at it.
+ */
+const USAGE = `(
+    (SELECT count(DISTINCT v.activity_id) FROM v2_engagement_versions v
+      WHERE strpos(v.definition::text, m.id::text) > 0)
+  + (SELECT count(*) FROM v2_events e WHERE m.id IN (e.cover_media_id, e.organizer_logo_media_id))
+  + (SELECT count(*) FROM v2_event_media g WHERE g.media_id = m.id)
+  + (SELECT count(*) FROM v2_event_categories c WHERE c.image_media_id = m.id)
+  + (SELECT count(*) FROM v2_worlds w WHERE w.cover_media_id = m.id))::int`;
 
 type Row = {
   id: string;

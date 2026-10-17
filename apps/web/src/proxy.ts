@@ -47,16 +47,17 @@ const SIGNED_IN_EXITS = new Set([...PUBLIC_PATHS, '/auth/basic-info']);
 const DEFERRABLE_ONBOARDING = '/onboarding/questionnaire';
 
 /**
- * An invitation is a link to a journey. A visitor who must first sign in,
+ * An invitation is a link to a journey or an event. A visitor who must first sign in,
  * or finish their profile and onboarding, is brought back to it afterwards:
  * the page they asked for is remembered in this cookie, and the first time
  * the account is free to go anywhere, it goes there instead of home.
  *
- * Only an activity's own address is remembered, never anything a link could
- * point elsewhere with — so it cannot be used to send anyone off the site.
+ * Only an activity's or an event's own address is remembered, never anything
+ * a link could point elsewhere with — so it cannot be used to send anyone off
+ * the site.
  */
 const RETURN_COOKIE = 'hd_return_to';
-const RETURNABLE = /^\/activities\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const RETURNABLE = /^\/(activities\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|events\/[a-z0-9]+(-[a-z0-9]+)*)$/;
 const RETURN_MAX_AGE_SECONDS = 60 * 60 * 24;
 
 function remember(response: NextResponse, pathname: string): NextResponse {

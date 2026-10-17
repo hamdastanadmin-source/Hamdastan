@@ -32,34 +32,10 @@ import type {
 import { z } from 'zod';
 
 import { phoneSchema } from './auth';
+import { cleanText, line, paragraph } from './common';
 import { mediaIdSchema, motionOff, motionSettingSchema } from './media';
 
 const fa = (n: number) => toPersianDigits(n);
-
-// ─── Text ────────────────────────────────────────────────────────────────────
-
-/**
- * Free text as an admin types it: Arabic ي/ك become Persian, and the ends
- * are trimmed. Digits are left as typed — this is copy, not a value to
- * compare. A single line also has its runs of whitespace collapsed.
- */
-function cleanText(value: string, multiline: boolean): string {
-  const letters = value.replace(/ي/g, 'ی').replace(/ك/g, 'ک');
-  return (multiline ? letters.replace(/\r\n/g, '\n') : letters.replace(/\s+/g, ' ')).trim();
-}
-
-const line = (max: number, required: string | null) =>
-  z
-    .string()
-    .transform((value) => cleanText(value, false))
-    .refine((value) => (required ? value.length > 0 : true), { error: required ?? '' })
-    .refine((value) => value.length <= max, { error: `حداکثر ${fa(max)} کاراکتر` });
-
-const paragraph = (max: number) =>
-  z
-    .string()
-    .transform((value) => cleanText(value, true))
-    .refine((value) => value.length <= max, { error: `حداکثر ${fa(max)} کاراکتر` });
 
 /** Ids are minted by the builder; the API only checks they are tame. */
 const keySchema = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, { error: 'شناسه معتبر نیست' });

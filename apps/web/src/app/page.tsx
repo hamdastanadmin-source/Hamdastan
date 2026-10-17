@@ -6,6 +6,8 @@ import { DEFAULT_AVATAR } from '@hamdastan/config';
 
 import { BottomNav, RoleCharacter, Screen, ScreenBody, ScreenHeader } from '@/components';
 import { ActivitiesSection } from '@/features/activities';
+import { SoonEventsSection, UpcomingEventsSection } from '@/features/events';
+import { getSoonEvents, getUpcomingEvents } from '@/features/events/server';
 import { getMyActivities } from '@/features/activities/server';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
 import { getAccountOverview } from '@/features/profile/server';
@@ -25,7 +27,7 @@ const WORLD_BANNERS = [
  *
  * Reached only by an account the API reports as complete. It carries the
  * person's next step, then their open activities from Engagement Studio,
- * then the story-world picker. Until the questionnaire is
+ * the next few events, then the story-world picker. Until the questionnaire is
  * done, the first thing on the screen is the offer to do it
  * — the screen's one primary action. Once it is done that card is gone, and a
  * quiet line points to the result instead.
@@ -33,7 +35,12 @@ const WORLD_BANNERS = [
  * Signing out is not here; it lives in the profile's settings.
  */
 export default async function HomePage() {
-  const [{ profile, socialProfile }, activities] = await Promise.all([getAccountOverview(), getMyActivities()]);
+  const [{ profile, socialProfile }, activities, events, soon] = await Promise.all([
+    getAccountOverview(),
+    getMyActivities(),
+    getUpcomingEvents(),
+    getSoonEvents(),
+  ]);
 
   return (
     <Screen>
@@ -77,7 +84,11 @@ export default async function HomePage() {
           />
         )}
 
+        <SoonEventsSection events={soon} />
+
         <ActivitiesSection cards={activities} />
+
+        <UpcomingEventsSection events={events} without={soon} />
 
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold leading-tight">دنیای داستانی‌ات رو انتخاب کن</h2>

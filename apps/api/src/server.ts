@@ -19,6 +19,7 @@ import {
 import { setAdminRepository, sqlAdminRepository } from './modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
 import { setEngagementRepository, sqlEngagementRepository } from './modules/engagement';
+import { setEventsRepository, sqlEventsRepository } from './modules/events';
 import {
   maintenanceService,
   setMaintenanceRepository,
@@ -28,6 +29,7 @@ import { setMediaRepository, setMediaStorage, sqlMediaRepository } from './modul
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
+import { setWorldsRepository, sqlWorldsRepository } from './modules/worlds';
 
 /**
  * Process entry point: build the server, listen, and shut down cleanly.
@@ -77,6 +79,8 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setAdminRepository(sqlAdminRepository);
   setEngagementRepository(sqlEngagementRepository);
   setMediaRepository(sqlMediaRepository);
+  setEventsRepository(sqlEventsRepository);
+  setWorldsRepository(sqlWorldsRepository);
   setMaintenanceRepository(sqlMaintenanceRepository);
 
   log('database connected — users, auth, onboarding, progress, admin, engagement and media repositories bound');

@@ -19,7 +19,7 @@ export type MediaAsset = {
   sizeBytes: number;
   /** Goes up by one each time the file is replaced. */
   version: number;
-  /** How many activities refer to it, in any of their versions. One in use cannot be deleted. */
+  /** How many places use it: activities (any version), events, event categories, worlds. One in use cannot be deleted. */
   usage: number;
   createdAt: string;
   updatedAt: string;

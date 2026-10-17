@@ -7,7 +7,7 @@ import { commerceRoutes } from './commerce';
 import { communityRoutes } from './community';
 import { contentRoutes } from './content';
 import { engagementAdminRoutes, engagementRoutes } from './engagement';
-import { eventsRoutes } from './events';
+import { eventsAdminRoutes, eventsRoutes, myEventsRoutes } from './events';
 import { mediaAdminRoutes, mediaRoutes } from './media';
 import { missionsRoutes } from './missions';
 import { notificationsRoutes } from './notifications';
@@ -16,7 +16,7 @@ import { progressRoutes } from './progress';
 import { searchRoutes } from './search';
 import { triviaRoutes } from './trivia';
 import { usersRoutes } from './users';
-import { worldsRoutes } from './worlds';
+import { worldsAdminRoutes, worldsRoutes } from './worlds';
 
 /**
  * The API's route table: every module and the path it answers on.
@@ -37,6 +37,8 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/me', routes: accountRoutes },
   // Engagement Studio activities, as the current user plays them.
   { prefix: '/me/activities', routes: engagementRoutes },
+  // «رویدادهای من» — interest and bookings, beside the activities.
+  { prefix: '/me/events', routes: myEventsRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
   { prefix: '/content', routes: contentRoutes },
   { prefix: '/missions', routes: missionsRoutes },
@@ -53,5 +55,8 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/admin/engagement', routes: engagementAdminRoutes },
   // The media & motion library, and the files it serves to both apps.
   { prefix: '/admin/media', routes: mediaAdminRoutes },
+  // Events, their categories and bookings; the world list they are filed under.
+  { prefix: '/admin/events', routes: eventsAdminRoutes },
+  { prefix: '/admin/worlds', routes: worldsAdminRoutes },
   { prefix: '/media', routes: mediaRoutes },
 ];

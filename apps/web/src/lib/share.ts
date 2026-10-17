@@ -1,6 +1,6 @@
 /**
- * Sharing an invitation: the system's own share sheet where the device has
- * one, the clipboard where it does not. Neither is a network call — the
+ * Sharing a link — a journey invitation, an event: the system's own share
+ * sheet where the device has one, the clipboard where it does not. Neither is a network call — the
  * link is to this site, and nothing is sent anywhere by us.
  */
 export type ShareOutcome = 'shared' | 'copied' | 'cancelled' | 'failed';

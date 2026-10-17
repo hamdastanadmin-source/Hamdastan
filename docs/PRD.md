@@ -2,7 +2,7 @@
 
 **Product:** هم‌داستان (Hamdastan)
 **Version:** 1.0
-**Last Updated:** 2026-10-09
+**Last Updated:** 2026-10-17
 **Status:** Active Development
 
 ---
@@ -411,7 +411,7 @@ bump the version:
 `/`. The worlds are not open yet, so home carries the person's next step.
 The header is their avatar (see «Where the avatar comes from», §4.4) and
 `@username` (their display name only if an older account has none), linking
-to the profile — no greeting line; the bottom nav holds خانه and پروفایل. Signing out is not on home.
+to the profile — no greeting line; the bottom nav holds خانه, رویدادها and پروفایل. Signing out is not on home.
 
 - **Questionnaire not done:** the first thing on the screen is a card —
   «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
@@ -424,7 +424,11 @@ to the profile — no greeting line; the bottom nav holds خانه and پروف�
   screen keeps one primary action), and «همه» → `/activities`. The section is
   absent when there is nothing to do, and home never fails because of it — if
   the activities cannot be read, there are none.
-- Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). Neither links anywhere yet.
+- Then «رویدادهای پیش‌رو» (§4.9): up to three events the person can still
+  attend — not ended, not cancelled, not sold out — each a whole-card link,
+  and «همه» → `/events`. Absent when there are none; home never fails
+  because of it.
+- Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). They are pictures, not links — a world's events are not shown from here (§4.10).
 
 ### 4.4 Account — حساب من
 
@@ -549,7 +553,8 @@ profile, and who sees it.
 
 ### 4.5 Worlds, Play, Community, …
 
-Skeletons. Each has a directory under `apps/web/src/features` and a module
+Worlds have a minimal list today (§4.10) — no membership, follow or world
+page content beyond its events. Play, community and the rest are skeletons. Each has a directory under `apps/web/src/features` and a module
 under `apps/api/src/modules`, and each returns 501 until its repository is
 bound.
 
@@ -611,6 +616,10 @@ reads the same table only to hide what would be refused.
 | `results.export` — the CSV | ✓ | | |
 | `submissions.review` | ✓ | | ✓ |
 | `xp.revoke` | ✓ | | |
+| `events.read` — events, categories, bookings, history | ✓ | ✓ | |
+| `events.write` — create, edit, duplicate; categories; record a booking's outcome | ✓ | ✓ | |
+| `events.publish` — publish, schedule, unpublish, cancel, archive | ✓ | ✓ | |
+| `worlds.manage` — the world list | ✓ | ✓ | |
 
 - Every admin who existed before roles became `system_admin` (migration
   `0014`), so no one lost access.
@@ -623,8 +632,8 @@ reads the same table only to hide what would be refused.
 
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
 start), with the panel's name at the top, the sections the admin's role opens
-— مدیریت کاربران, استودیو (Engagement Studio, §4.7), کتابخانه‌ی رسانه (§4.8)
-and نشست‌های کاربران — and
+— مدیریت کاربران, استودیو (Engagement Studio, §4.7), رویدادها (§4.9),
+دنیاها (§4.10), کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
 the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
@@ -759,7 +768,7 @@ duplicate (a new draft, «(کپی)», no dates), and the status moves.
   onboarding stage 1, the product's only groups today (a person is in if any
   of their picks is in one of the chosen categories); کاربران منتخب — a list
   of mobile numbers. Only `ACTIVE` accounts count. «شرکت‌کنندگان رویداد» is
-  shown disabled until the events module exists.
+  shown disabled until events can be an audience (§4.9).
 - **Results — `/engagement/:id`.** Eight figures (کاربران هدف, شروع‌کننده,
   تکمیل‌کننده, نرخ تکمیل, پاسخ معتبر, در انتظار تأیید, مجموع XP اعطاشده,
   دریافت‌کنندگان XP), then tabs: per-question statistics (option counts,
@@ -1015,13 +1024,13 @@ Schema: migration `0016`.
 - **The section — «کتابخانه‌ی رسانه», `/media`** (`activities.read`; changes
   need `activities.write`). A grid of files — preview (a motion plays; held
   still for anyone whose system asks for reduced motion), name, shelf,
-  format, size, and «در n فعالیت» or «استفاده‌نشده». Filters: name, shelf
+  format, size, and «در n جا» (activities in any version, events, event categories, worlds) or «استفاده‌نشده». Filters: name, shelf
   (مسکات، کاور، تصویر سؤال، موشن پاسخ، جشن و پایان، کارت نتیجه، سایر), kind.
   «بارگذاری فایل» (name, shelf, a local preview first); on a file, «ویرایش
   نام و دسته», «جایگزینی فایل» — the same id, so the new file shows
   everywhere it is used; an image stays an image (`409 MEDIA_KIND_CHANGED`)
-  — and «حذف», only for a file no activity uses, in any of its versions
-  (`409 MEDIA_IN_USE`).
+  — and «حذف», only for a file nothing uses — no activity in any of its
+  versions, no event, event category or world (`409 MEDIA_IN_USE`).
 - **Choosing in the builder.** A file field opens the library as a picker
   (choose, or upload and it is chosen), then shows the file with «جایگزینی»
   and «حذف». On save, the API checks every id the definition names exists,
@@ -1036,10 +1045,264 @@ Schema: migration `0016`.
 **Not built yet:** image/file upload as mission proof (proof is text today;
 the media library's storage could carry it), notifying people of a new
 activity (no notifications module), an event's participants as an audience
-(no events module), recording who joined through a journey invitation and
+(the events module exists, §4.9; not wired to audiences), recording who joined through a journey invitation and
 rewarding it (needs its own migration), conditional questions, ready-made
 templates, advanced reports, and Jalali date pickers in the builder (the
 browser's own date-time input is used, and dates are shown in Jalali).
+
+### 4.9 Events — رویدادها
+
+**Purpose:** let operators publish events — workshops, shows, fan meetups,
+online sessions — and let people discover them, mark interest, register or
+buy tickets, and keep track of them. Code in `apps/api/src/modules/events`;
+schema: migration `0018`. The V1 ticketing path is the PRD's: Fidibo Art,
+by handoff to its page (no Fidibo API is documented, so none is called).
+
+**Built:** the API (phase 1), the admin screens (phase 2), the product's
+discovery, detail, world and home screens (phase 3), and booking, interest,
+reminders and «رویدادهای من» (phase 4) — everything below unless marked
+otherwise. **Planned (phase 5):** end-to-end tests and polish.
+
+**The product screens** (`apps/web/src/features/events`):
+
+- **`/events`** — a top-level screen (it has a tab). Search (title,
+  summary, venue, city, organizer — applied as typing pauses), category
+  chips from the API (several at once; a chosen chip keeps its icon and takes the violet stroke), a
+  and the filters button, a bottom sheet
+  with type, world, city, price, «هنوز می‌شه شرکت کرد» and «فقط
+  علاقه‌مندی‌های من» — its button reads «نمایش n رویداد», the API's count
+  for that choice. The filters button (an icon) starts the row of days,
+  violet with a count while any sheet filter is on, followed by «همه» and
+  the next fourteen days in Jalali; choosing a day narrows the list to the
+  events overlapping it, multi-day ones included. There is no visible title
+  (the tab names the screen; an `sr-only` h1 remains) and no month
+  calendar in the product for now — `GET /events/calendar` stays in the
+  API for later. Everything is in the address (`?category=&type=&world=&city=
+  &price=&available=&interested=&date=&page=`), read by the
+  server, so a filtered list can be shared and reloaded and the list, the
+  and the count come from one source. Empty, no-results and
+  could-not-load states; pages of 20. There is no sort control for now:
+  the list is newest first (the API's `sort=newest`), as is a world's;
+  home's «رویدادهای پیش‌رو» stays soonest first. The API keeps its other
+  orders for later.
+- **The card** — one component for discovery, a world, related events and
+  home: cover (a quiet placeholder when there is none or it fails), one
+  state badge when there is something to say (لغو شد، برگزار شد، در حال
+  برگزاری، تکمیل ظرفیت، ظرفیت محدود), the first category, title, summary,
+  when («شنبه ۲۵ مهر، ساعت ۱۸:۰۰», or «۱ آبان تا ۳ آبان»), where (or
+  «آنلاین») and the price («از ۴۵۰٬۰۰۰ تومان» / «رایگان»; nothing when
+  unknown). The whole card is the link. No «·» next to digits: beside
+  Persian numerals it reads as a zero.
+- **`/events/:slug`** — back to «رویدادها» and share (the system sheet, or
+  the link copied); cover and gallery; badges, title, summary and its
+  worlds (as text); when, with the registration deadline; the venue
+  with «مسیریابی» (a map route by coordinates, or by address); online
+  instructions, and the join link only when the API sends it; the
+  organizer; the description (folded behind «ادامه‌ی توضیحات» when long);
+  the tickets; related events. An event the person may not see is the 404
+  page. A signed-out visitor who opens one is brought back to it after
+  signing in (the proxy's `hd_return_to`, as for journey invitations).
+- **Taking part** (the bottom of `/events/:slug`, phase 4) — a bookmark
+  button «علاقه‌مندم» (violet when on) beside the one action the API's
+  `cta` offers: «ثبت‌نام رایگان», «خرید بلیت» (with the starting price) or
+  «دریافت بلیت»; «لغو ثبت‌نام» (after a confirmation) once registered; a
+  line saying why there is nothing to do when the event is informational,
+  sold out, closed, ended or cancelled. Above it, the person's booking:
+  «ثبت‌نامت قطعی شده», «خرید بلیتت تأیید شده», «خریدت در فیدیبو آرت ثبت شده
+  و در انتظار تأییده» (with «دوباره رفتن به فیدیبو آرت») or «خرید قبلیت
+  ناموفق بود». The action opens a bottom sheet: ticket type (violet when
+  chosen; sold-out ones disabled), quantity 1–10, and a summary — date,
+  ticket × quantity, amount — then «تأیید ثبت‌نام» (confirmed by the API at
+  once) or «ادامه در فیدیبو آرت», which records the pending booking and
+  opens Fidibo's page in the same tab, so back returns to the event. The
+  page is read again after every action; interest and the reminder show
+  the change at once and step back if the API refuses it.
+- **Reminders** — once interested, a card on the page: «توی اپ» (on by
+  default; the event appears under «یادت نره» on home and in «رویدادهای من»
+  the day before), and «اعلان گوشی» and «پیامک» shown as «به‌زودی». Home's
+  «یادت نره» lists interested-with-reminder or confirmed events starting
+  within 24 hours; «رویدادهای پیش‌رو» below it leaves those out.
+- **`/events/mine`** — «رویدادهای من», reached from the profile's «رویدادها»
+  group only (not from the events screen); its back control is an arrow
+  alone and returns to the profile. «یادت نره» on top, then three equal
+  tabs: علاقه‌مندی‌ها، ثبت‌نام‌ها، گذشته. Every card carries the booking's own
+  badge — «ثبت‌نام قطعی», «در انتظار تأیید», «خرید ناموفق» — so interest
+  is never taken for a place.
+- **`/preview/events/:id`** — the admin's preview, opened from the
+  editor's «پیش‌نمایش در محصول» (which saves first): the same page in any
+  status, with a banner saying where the event stands; it needs only the
+  admin session.
+
+**The admin screens** (`apps/admin/src/features/events`, `/events`;
+`events.read` to open, `events.write` to change, `events.publish` for
+status moves):
+
+- **`/events`** — a table of events, newest change first, 20 per page:
+  title and type, status (with visibility and, when scheduled, its time),
+  worlds and categories, start, organizer, interested / booked. Search
+  (title, slug, organizer); filters for status, visibility, world and
+  category; sort by last change or start. A row's menu: edit, bookings,
+  duplicate (a draft copy), and the status moves its status allows —
+  «انتشار» asks when (now, or a time that schedules it); «لغو انتشار»,
+  «لغو رویداد» and «بایگانی» say what they take away first. A move the
+  API refuses (an incomplete event) offers to open the editor. Skeleton
+  rows, an error with «تلاش دوباره», and empty states.
+- **The editor** (`/events/new`, `/events/:id/edit`) — eight tabs on one
+  screen: اطلاعات پایه (title, slug, summary, description, type, up to five
+  categories), رسانه (cover and alt text, gallery from the media library),
+  دنیا و مخاطب (worlds; visibility; the audience for a restricted event —
+  the Studio's own audience control and count; and «بعد از انتشار کجا دیده
+  می‌شه», the surfaces it will reach), زمان (start, end, registration
+  deadline — the browser's date-time input, read back in Jalali), مکان
+  (venue for physical, link and instructions for online, both for hybrid),
+  برگزارکننده, بلیت و ثبت‌نام (booking mode, Fidibo link and reference,
+  capacity, ticket types), and انتشار (the publish checklist — the API's
+  own `eventPublishProblems`, each item linking to its tab — publish now or
+  at a time, the moves back, and the history). «ذخیره» saves a draft
+  however incomplete; a problem opens the tab it is in. Once saved, a
+  «رزروها» tab lists the bookings: a pending Fidibo handoff is confirmed
+  or marked failed by an operator, with Fidibo's reference; a confirmed one
+  can be cancelled. An archived event opens read-only.
+- **`/events/categories`** — the categories with their icon or image,
+  slug, event count and status; add and edit in a dialog (name, slug,
+  description, icon from `EVENT_CATEGORY_ICONS`, optional image, on/off);
+  order with up/down; delete only when no event uses one.
+- **Image sizes** — every image field in events and worlds names the size
+  the product draws it at (`IMAGE_FRAMES`: event cover and gallery
+  1280×720, 16:9; organizer logo 256×256; world cover 1290×430, 3:1). Once a
+  file is chosen it is previewed cropped exactly as the product will show
+  it, with a warning when its proportions are more than 8% off (the edges
+  will be cut) or it is under three quarters of the width (it will look
+  soft).
+
+**One event, four independent questions.**
+
+| Question | Where | Values |
+|---|---|---|
+| Where is it in its life? | `status` | draft → published → unpublished / cancelled / archived. «scheduled» is a published event whose `publish_at` is still ahead — read off the clock, no job |
+| Where may it appear? | `visibility` | `public` — global discovery and its worlds; `world` — only inside the worlds it is linked to (never in global discovery or search); `restricted` — only to the people its `audience` covers |
+| Which worlds is it filed under? | `v2_event_world_links` | none, one or many — independent of visibility: a public event may belong to worlds |
+| How does a person take part? | `booking_mode` | `none` (informational), `free_registration` (in Hamdastan), `external` (Fidibo Art) |
+
+«ended» is read from `end_at`; room left (available / limited / sold out)
+from the ticket options and confirmed bookings; a person's booking has its
+own status (pending / confirmed / failed / cancelled).
+
+**Who sees what — enforced in SQL, not in the client.** Every product read
+(list, search, calendar days, counts, related events, «رویدادهای من», the
+detail page) goes through one rule in `events.repository.ts`: published or
+cancelled, `publish_at` reached, and — for `restricted` — the person is in
+the audience (`audienceMatch`, the same rule as Engagement Studio). Global
+discovery also leaves out `world` events; a world's list (`?world=`) lets
+them in. A deep link to a world-only event opens for any signed-in person —
+world-only is not members-only. Anything a person may not see is a plain
+404, never a 403. A restricted event's cover is served like every library
+file — public, by unguessable id.
+
+**Audience of a restricted event:** Engagement Studio's shape — everyone,
+a list of mobile numbers, or interest categories — with the same «how many
+people» preview. «Members of a world» waits for membership.
+
+**Categories** (`v2_event_categories`) are rows, not code: slug (the stable
+identity), name, description, an icon from `EVENT_CATEGORY_ICONS`, an
+optional image from the media library, order, on/off. Twelve are seeded
+(کارگاه، نمایش، گالری و نمایشگاه، موسیقی، کتاب و ادبیات، بازی و گیم، ورزش،
+علم و فناوری، خانواده، خرید و سرگرمی، گردهمایی هواداری، سایر). An event has
+one to five. A category in use cannot be deleted (`409
+EVENT_CATEGORY_IN_USE`) — switch it off instead.
+
+**Event fields** (`EventInput`): title, slug (Latin, unique; generated as
+`event-xxxxxxxx` when left empty; `mine`, `calendar`, `categories`, `new`
+are reserved), summary, description (a small Markdown subset, rendered to
+elements — never HTML), type (حضوری / آنلاین / حضوری و آنلاین), categories,
+cover and its alt text, gallery (up to 12 images; cover and gallery are
+drawn 16:9, so 1280×720 is recommended), visibility, worlds,
+audience, start, end (after the start), time zone (Asia/Tehran by default),
+registration deadline (not after the end), venue, city, address,
+coordinates (both or neither), online link and instructions, organizer
+name, logo and contact, booking mode, Fidibo link and reference, capacity,
+and up to ten ticket options (title, description, price in toman,
+capacity, benefits, availability, partner id). A draft needs only a title.
+
+**Publishing** checks completeness (`eventPublishProblems`, shared with the
+editor): cover, description, a category, start and end; venue, city and
+address unless online; an online link or instructions unless physical; a
+Fidibo link for external booking; no paid ticket on a free registration; a
+world for world-only; an audience for restricted. Otherwise `400
+EVENT_INCOMPLETE` with the problems by field. A published or cancelled
+event stays complete: an edit that would break it is refused the same way.
+`publish` takes an optional `publishAt` (scheduling); the event's own dates
+are separate. Publish from draft, unpublished or published (re-scheduling);
+unpublish and cancel from published; archive from anything but archived —
+otherwise `409 EVENT_INVALID_TRANSITION`. A cancelled event stays visible,
+labelled, with no way to book. Every write and transition is in
+`v2_event_audit_log`.
+
+**Discovery** (`GET /events`): search (title, summary, venue, city,
+organizer), category, type, world, date range (Tehran days; a range shows
+what overlaps it, ended or not — without one, what has not ended), city,
+free / paid, «still open» (not over, room left, registration open), «my
+interested»; sort by soonest, newest, most popular (people interested —
+labelled «محبوب», not «پیشنهادی»), cheapest, or relevance when searching.
+«Followed worlds» waits for following. The calendar (`GET
+/events/calendar`, up to 62 days) answers the days with events matching the
+same filters; a multi-day event marks every day it covers.
+
+**The detail page's one action** (`cta`) is decided by the API: cancelled,
+ended, none (informational), registered, registration closed, sold out,
+register, or external (with whether it is free). The online link is sent
+only to someone who may join — an informational event, or a confirmed
+booking.
+
+**Registration** (`free_registration`) is confirmed at once, inside the
+room left (the event's capacity and the ticket's), with the event row
+locked so two people cannot take the last place; asking again answers with
+the one already held. It can be cancelled.
+
+**Fidibo Art handoff** (`external`): the API records a `pending` booking
+(ticket, quantity, total) and answers the Fidibo link; the browser goes
+there. **Coming back proves nothing** — the booking stays «pending» (shown
+as «در انتظار تأیید») until an operator records what Fidibo reported
+(`POST /admin/events/bookings/:id`: confirmed, failed or cancelled, with
+Fidibo's reference). One open handoff per person and event.
+
+**Interest and reminders.** «علاقه‌مندم» is separate from any booking, with
+an in-app reminder switch (on by default). Reminders are in-app only:
+«به‌زودی» (`/me/events?tab=soon`) lists interested-with-reminder or
+confirmed events starting within 24 hours, read live — so a cancellation
+or a new time shows at once. Nothing is pushed or texted: there is no
+notifications module, no push, and no SMS provider for it, and the product
+never says otherwise.
+
+**«رویدادهای من»** (`GET /me/events`): interested, booked (pending or
+confirmed), past, soon. Each card carries the person's booking status, so
+interest and a verified booking are never confused.
+
+**Related events:** visible ones that have not ended, ranked by shared
+worlds (×2) and shared categories, then the soonest; a world-only event
+appears only through a shared world.
+
+**Not built:** ratings and reviews (there is no feedback backend, and none
+is invented), sessions inside one event, the Fidibo API, push and SMS
+reminders, world managers scoped to their worlds (needs admins assigned to
+worlds), an event's participants as an audience.
+
+### 4.10 Worlds — the minimal list — دنیاها
+
+The worlds events are filed under: `v2_worlds` (slug, name, summary,
+optional cover from the media library, order, on/off), kept by an admin
+with `worlds.manage`. The four on home are seeded (`hogwarts`, `gta`,
+`game-of-thrones`, `liverpool`). `GET /worlds` lists the active ones;
+`GET /worlds/:slug` answers one. Switching a world off hides it from the
+product without touching its events; one with events cannot be deleted
+(`409 WORLD_IN_USE`). Membership and following are not built — they need
+their own migration. Code in `apps/api/src/modules/worlds` and
+`apps/admin/src/features/worlds`: the panel's «دنیاها» (`/worlds`) lists
+them with cover, slug, event count and status, adds and edits in a dialog,
+orders them with up/down, and deletes only one without events. The
+product has no world page: the home banners are not links, and an event's
+page names its worlds as text. A world's events — including its
+world-only ones — are found through the «دنیا» filter on `/events`.
 
 ---
 
@@ -1192,6 +1455,20 @@ v2_engagement_participations --1:N-- v2_journey_answers          (one per questi
 
 Media library (0016): v2_media_assets — activities name a file by id
 inside their definition; the bytes are on the api-media volume.
+
+Events and worlds (0018):
+
++---------------------+       +-------------------------+       +-------------+
+|      v2_worlds      |--1:N--|  v2_event_world_links   |--N:1--|             |
++---------------------+       +-------------------------+       |  v2_events  |
+| v2_event_categories |--1:N--| v2_event_category_links |--N:1--|             |
++---------------------+       +-------------------------+       +-------------+
+                                                                   |--1:N-- v2_event_media          (gallery)
+                                                                   |--1:N-- v2_event_ticket_options
+                                                                   |--1:N-- v2_event_interests      (user, event)
+                                                                   └--1:N-- v2_event_bookings       (user; ticket option)
+v2_event_audit_log — events, categories, worlds and bookings, by entity id.
+Covers, logos, category images and gallery items point at v2_media_assets.
 ```
 
 ### 6.2 Key relationships and why they are shaped that way
@@ -1313,6 +1590,22 @@ inside their definition; the bytes are on the api-media volume.
   replacement). The bytes are on the `api-media` volume. Activities refer to
   a file by id inside their definition; usage is read from there.
 
+- **`v2_events` (0018)** — one event. `status` (draft / published /
+  unpublished / cancelled / archived), `publish_at`, `visibility` (public /
+  world / restricted) and `booking_mode` are separate columns on purpose;
+  `audience` (jsonb, the `ActivityAudience` shape) is set only for
+  restricted. The fields publishing requires are nullable so a draft may be
+  incomplete; `CHECK`s keep the end after the start and require
+  `publish_at` once an event has left draft. Worlds and categories are link
+  tables, many to many. Indexed for discovery `(status, visibility,
+  start_at)`, `end_at`, `lower(city)`, and each link's other side.
+- **`v2_event_bookings` (0018)** — a person's registration (`internal`,
+  confirmed at once) or Fidibo handoff (`external`, `pending` until an
+  operator records the outcome). Partial unique indexes allow one confirmed
+  registration and one open handoff per person and event.
+- **`v2_event_interests` (0018)** — (user, event), with `remind_in_app`.
+- **`v2_worlds` (0018)** — the minimal world list; no membership yet.
+
 - **`v2_admin_users`** — the admin panel's allow-list: `phone` (unique,
   normalised like `v2_users.phone`), `first_name`, `last_name`, `status`
   (`ACTIVE` / `INACTIVE`), `last_login_at`. Deliberately separate from
@@ -1327,7 +1620,8 @@ The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 `0002_user_interests.sql`, `0004_social_questionnaire.sql`,
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
 everyone who finished it before XP existed), `0009_admin_users.sql`,
-`0010_engagement_studio.sql` and `0015_engagement_journeys.sql`.
+`0010_engagement_studio.sql`, `0015_engagement_journeys.sql` and
+`0018_events.sql`.
 
 ---
 
@@ -1421,6 +1715,40 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | DELETE | `/admin/media/:id` | — | `{ deleted: true }`; 409 `MEDIA_IN_USE` |
 | GET | `/media/:id` | — (public) | the file, with its type; `ETag`, 304 |
 | GET | `/media/:id/lottie` | — (public) | a Lottie motion's animation data |
+| GET | `/admin/events` | `?search=&status=&visibility=&world=&category=&sort=updated\|start&page=&pageSize=` | `Paginated<AdminEventSummary>` — `events.read` |
+| POST | `/admin/events` | `EventInput` | `AdminEventDetail` (201), a draft; 409 `EVENT_SLUG_TAKEN` — `events.write` |
+| GET | `/admin/events/:id` | — | `AdminEventDetail` — `events.read` |
+| PUT | `/admin/events/:id` | `EventInput` | `AdminEventDetail`; 400 `EVENT_INCOMPLETE` when a live event would become incomplete — `events.write` |
+| POST | `/admin/events/:id/status` | `{ action: publish \| unpublish \| cancel \| archive, publishAt? }` | `AdminEventDetail`; 400 `EVENT_INCOMPLETE`, 409 `EVENT_INVALID_TRANSITION` — `events.publish` |
+| POST | `/admin/events/:id/duplicate` | — | `AdminEventDetail` (201), a draft — `events.write` |
+| GET | `/admin/events/:id/preview` | — | `EventDetail` with `preview` — any status, nothing recorded — `events.read` |
+| GET | `/admin/events/:id/history` | — | `AdminEventHistoryEntry[]` (latest 100) — `events.read` |
+| GET | `/admin/events/:id/bookings` | `?page=&pageSize=` | `Paginated<AdminEventBooking>` — `events.read` |
+| POST | `/admin/events/bookings/:id` | `{ status: confirmed \| failed \| cancelled, externalRef }` | `{ updated: true }`; 409 unless pending (or confirmed → cancelled) — `events.write` |
+| POST | `/admin/events/audience/preview` | `{ audience }` | `{ eligible }` — `events.read` |
+| GET | `/admin/events/categories` | — | `AdminEventCategory[]` — `events.read` |
+| POST | `/admin/events/categories` | `EventCategoryInput` | `AdminEventCategory` (201); 409 `EVENT_CATEGORY_SLUG_TAKEN` — `events.write` |
+| PUT | `/admin/events/categories/order` | `{ ids }` | `AdminEventCategory[]` — `events.write` |
+| PUT | `/admin/events/categories/:id` | `EventCategoryInput` | `AdminEventCategory` — `events.write` |
+| DELETE | `/admin/events/categories/:id` | — | `{ deleted: true }`; 409 `EVENT_CATEGORY_IN_USE` — `events.write` |
+| GET | `/admin/worlds` | — | `AdminWorld[]` — `events.read` |
+| POST | `/admin/worlds` | `WorldInput` | `AdminWorld` (201); 409 `WORLD_SLUG_TAKEN` — `worlds.manage` |
+| PUT | `/admin/worlds/order` | `{ ids }` | `AdminWorld[]` — `worlds.manage` |
+| PUT | `/admin/worlds/:id` | `WorldInput` | `AdminWorld` — `worlds.manage` |
+| DELETE | `/admin/worlds/:id` | — | `{ deleted: true }`; 409 `WORLD_IN_USE` — `worlds.manage` |
+| GET | `/worlds` | — | `World[]` (active) |
+| GET | `/worlds/:slug` | — | `World`; 404 when switched off |
+| GET | `/events` | `?q=&category=a,b&type=&world=&from=&to=&city=&price=free\|paid&available=&interested=&sort=&page=&pageSize=` | `Paginated<EventCard>` |
+| GET | `/events/calendar` | the same filters; `from` and `to` required (≤ 62 days) | `EventCalendarDay[]` |
+| GET | `/events/categories` | — | `EventCategory[]` (active) |
+| GET | `/events/:slug` | — | `EventDetail`; 404 when the person may not see it |
+| GET | `/events/:slug/related` | — | `EventCard[]` (≤ 6) |
+| PUT | `/events/:id/interest` | `{ remindInApp }` | `{ remindInApp }` |
+| DELETE | `/events/:id/interest` | — | `{ removed: true }` |
+| POST | `/events/:id/registrations` | `{ ticketOptionId, quantity }` | `MyEventBooking` (201), confirmed; 409 `EVENT_SOLD_OUT`, `EVENT_BOOKING_CLOSED` |
+| DELETE | `/events/:id/registrations` | — | `{ cancelled: true }` |
+| POST | `/events/:id/booking-handoff` | `{ ticketOptionId, quantity }` | `EventHandoff`: `{ booking (pending), url }`; 409 `EVENT_SOLD_OUT`, `EVENT_BOOKING_CLOSED` |
+| GET | `/me/events` | `?tab=interested\|booked\|past\|soon` | `EventCard[]` (≤ 50) |
 | GET | `/me/activities` | — | `ActivityCard[]` |
 | GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
 | PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
@@ -1444,7 +1772,8 @@ header and `details.retryAfter` in seconds (§10). Every response carries
 Error codes the UI switches on: `OTP_RATE_LIMITED`, `OTP_NOT_FOUND`,
 `OTP_EXPIRED`, `OTP_INVALID`, `OTP_LOCKED`, `VALIDATION_ERROR`,
 `UNAUTHORIZED`, `RATE_LIMITED`, `IDEMPOTENCY_KEY_REUSED`,
-`ADMIN_PERMISSION_DENIED`.
+`ADMIN_PERMISSION_DENIED`, `EVENT_INCOMPLETE`, `EVENT_SOLD_OUT`,
+`EVENT_BOOKING_CLOSED`.
 
 ### 7.1 Server Actions (RPC)
 
@@ -1456,7 +1785,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`, `engagement.ts`); the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`, `engagement.ts`, `media.ts`, `events.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -1519,10 +1848,13 @@ not used for surfaces, cards, headers, borders, focus rings, tabs, chips,
 selected states, icons, progress or XP bars, badges or glows. Everything
 around it is neutral: charcoal surfaces, white text, grey secondary text,
 hairline borders; a selected item is a foreground border, a lifted surface
-and a check. Success is green, destructive red, warning amber. (Two exceptions:
+and a check. Success is green, destructive red, warning amber. (Three exceptions:
 onboarding stage 1 — its checkboxes, selected chips and selected cards are
-violet by product decision — and the questionnaire's selected answers,
-which predate this rule and still use a brand tint.) Basic info's gender
+violet by product decision — the questionnaire's selected answers, which
+predate this rule and still use a brand tint, and events discovery
+(2026-10-17, product decision): its selected category chips, day in the
+strip and an active filters button take a
+violet stroke and text on a faint violet fill, `bg-primary/10`.) Basic info's gender
 segments follow the rule: the chosen one takes a foreground border and a
 check. Secondary links and buttons («ویرایش شماره», «ارسال دوباره‌ی کد») are
 foreground, not violet.
@@ -1569,7 +1901,7 @@ foreground, not violet.
   on a wrong code and the
   200ms `Accordion` open/close (`animate-accordion-down` / `-up`).
   Everything honours `prefers-reduced-motion`.
-- Top-level screens (home, profile) end in `BottomNav` — خانه and پروفایل —
+- Top-level screens (home, events, profile) end in `BottomNav` — خانه, رویدادها and پروفایل —
   instead of a footer; a screen one step down has a back control instead.
   The current tab is weight and full-strength text, not colour.
 - A sticky footer holds the primary action, inside the column and clear of the
@@ -1696,6 +2028,13 @@ app background; re-export them all when the master changes.
 | Media & motion library | Done — apply `0016` | Upload, sniffed formats, 250 KB, replace, safe delete, picker, motion settings — §4.8. The API's `api-media` volume must be backed up with the database |
 | Image / file proof for missions | Medium | The media library's `MediaStorage` can carry it; proof is text today |
 | Notify people of a new activity | Medium | Needs the notifications module |
-| Event participants as an audience | Medium | Needs the events module |
+| Events — API (phase 1) | Done — `0018` applied on dev; production gets it on the next deploy | Events, categories, the minimal world list, visibility in SQL, publish checks and scheduling, calendar, registration, Fidibo handoff (pending until an operator confirms), interest, «رویدادهای من», audit — §4.9, §4.10 |
+| Events — admin screens (phase 2) | Done | Event list, editor (eight sections, publish checklist, scheduling), bookings with operator confirmation, categories, worlds — §4.9, §4.10. The visual preview of the detail page comes with phase 3 |
+| Events — product screens (phase 3) | Done | Discovery with search, chips, the filters sheet and the Jalali day strip (no month calendar for now); detail; home section; admin preview — §4.3, §4.9, §4.10. No world page: the home banners are not links |
+| Events — booking, «رویدادهای من», reminders (phase 4) | Done | Booking bar and sheet with summary, free registration, Fidibo handoff kept pending until an operator confirms, interest and its in-app reminder, «یادت نره» on home, «رویدادهای من» — §4.9 |
+| Events — e2e tests and polish (phase 5) | High | Playwright specs for discovery, detail, booking and «رویدادهای من» at 390×844 and 1440×900 |
+| Event participants as an audience | Medium | The events module exists; audiences do not read it yet |
+| World membership and following | Medium | Unlocks «members of a world» audiences, the «followed worlds» filter and world-scoped admins |
+| Event ratings and reviews | Low | No feedback backend exists; not built |
 | Conditional questions, templates, advanced reports | Low | Phase 4 of Engagement Studio |
 | Levels, badges, leaderboard from activity XP | Low | The ledger already carries what they need; not built on request |

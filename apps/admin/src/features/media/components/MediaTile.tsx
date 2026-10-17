@@ -54,7 +54,7 @@ export function MediaTile({
           <Badge variant="outline">{FORMAT_LABELS[asset.format]}</Badge>
         </div>
         <span className="text-xs text-muted-foreground">
-          {formatSize(asset.sizeBytes)} · {asset.usage > 0 ? `در ${toPersianDigits(asset.usage)} فعالیت` : 'استفاده‌نشده'}
+          {formatSize(asset.sizeBytes)} · {asset.usage > 0 ? `در ${toPersianDigits(asset.usage)} جا` : 'استفاده‌نشده'}
         </span>
       </div>
     </>

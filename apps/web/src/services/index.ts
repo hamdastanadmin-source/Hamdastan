@@ -10,5 +10,6 @@ export { accountService } from './account.service';
 export { activitiesService } from './activities.service';
 export { apiClient } from './api-client';
 export { authService, refreshSession } from './auth.service';
+export { eventsService } from './events.service';
 export { onboardingService } from './onboarding.service';
 export { HttpError } from '@hamdastan/shared';

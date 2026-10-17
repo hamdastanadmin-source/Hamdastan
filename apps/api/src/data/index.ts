@@ -24,5 +24,6 @@ export {
   type IdempotencyRef,
   type StoredIdempotency,
 } from './idempotency';
+export { audienceMatch } from './audience';
 export { hasDrift, runMigrations, type MigrationOutcome } from './migrate';
 export { describeDrift, diffSchema, readSchema, readSnapshot } from './schema-check';

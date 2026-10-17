@@ -8,10 +8,10 @@ import type { PlayerActivity, PlayerJourney, PlayerMedia } from '@hamdastan/type
 import { Button, Progress } from '@hamdastan/ui';
 
 import { Screen, ScreenBody, ScreenFooter, ScreenHeader, XpAmount } from '@/components';
+import { shareInvite } from '@/lib';
 
 import type { DayEndReport } from '../../hooks/use-journey-player';
 import { fillTemplate, inviteUrl, opensLabel } from '../../utils/journey';
-import { shareInvite } from '../../utils/share';
 import { MotionDisplay } from './MotionDisplay';
 
 /** The progress line in foreground — progress is not the primary action. */

@@ -16,14 +16,16 @@ import { Button } from '@hamdastan/ui';
  */
 export function ScreenBack({
   label = 'بازگشت',
+  iconOnly = false,
   ...target
-}: { label?: string } & ({ href: string } | { onClick: () => void })) {
+}: { label?: string; iconOnly?: boolean } & ({ href: string } | { onClick: () => void })) {
   const content = (
     <>
       {/* rtl-ok: "back" is rightwards in an RTL layout, so this is the
           direction itself rather than a physical edge to be mirrored. */}
       <ArrowRight aria-hidden="true" />
-      {label}
+      {/* Icon only: the label is still read out. */}
+      <span className={iconOnly ? 'sr-only' : undefined}>{label}</span>
     </>
   );
 

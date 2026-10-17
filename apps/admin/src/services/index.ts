@@ -5,3 +5,5 @@ export { adminEngagementService } from './admin-engagement.service';
 export { adminSessionsService } from './admin-sessions.service';
 export { adminMediaService } from './admin-media.service';
 export { HttpError } from '@hamdastan/shared';
+export { adminEventsService } from './admin-events.service';
+export { adminWorldsService } from './admin-worlds.service';

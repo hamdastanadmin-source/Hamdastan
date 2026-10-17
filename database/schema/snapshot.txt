@@ -66,6 +66,90 @@ column v2_engagement_versions.created_by uuid nullable=YES default=
 column v2_engagement_versions.definition jsonb nullable=NO default=
 column v2_engagement_versions.id uuid nullable=NO default=gen_random_uuid()
 column v2_engagement_versions.version integer nullable=NO default=
+column v2_event_audit_log.action character varying nullable=NO default=
+column v2_event_audit_log.admin_id uuid nullable=YES default=
+column v2_event_audit_log.created_at timestamp with time zone nullable=NO default=now()
+column v2_event_audit_log.details jsonb nullable=NO default='{}'::jsonb
+column v2_event_audit_log.entity character varying nullable=NO default=
+column v2_event_audit_log.entity_id uuid nullable=NO default=
+column v2_event_audit_log.id bigint nullable=NO default=
+column v2_event_bookings.created_at timestamp with time zone nullable=NO default=now()
+column v2_event_bookings.event_id uuid nullable=NO default=
+column v2_event_bookings.external_ref character varying nullable=NO default=''::character varying
+column v2_event_bookings.id uuid nullable=NO default=gen_random_uuid()
+column v2_event_bookings.quantity integer nullable=NO default=
+column v2_event_bookings.source USER-DEFINED nullable=NO default=
+column v2_event_bookings.status USER-DEFINED nullable=NO default=
+column v2_event_bookings.ticket_option_id uuid nullable=YES default=
+column v2_event_bookings.total_toman integer nullable=NO default=0
+column v2_event_bookings.updated_at timestamp with time zone nullable=NO default=now()
+column v2_event_bookings.user_id uuid nullable=NO default=
+column v2_event_categories.created_at timestamp with time zone nullable=NO default=now()
+column v2_event_categories.description character varying nullable=NO default=''::character varying
+column v2_event_categories.icon character varying nullable=NO default='sparkles'::character varying
+column v2_event_categories.id uuid nullable=NO default=gen_random_uuid()
+column v2_event_categories.image_media_id uuid nullable=YES default=
+column v2_event_categories.is_active boolean nullable=NO default=true
+column v2_event_categories.name character varying nullable=NO default=
+column v2_event_categories.position integer nullable=NO default=0
+column v2_event_categories.slug character varying nullable=NO default=
+column v2_event_categories.updated_at timestamp with time zone nullable=NO default=now()
+column v2_event_category_links.category_id uuid nullable=NO default=
+column v2_event_category_links.event_id uuid nullable=NO default=
+column v2_event_interests.created_at timestamp with time zone nullable=NO default=now()
+column v2_event_interests.event_id uuid nullable=NO default=
+column v2_event_interests.remind_in_app boolean nullable=NO default=true
+column v2_event_interests.user_id uuid nullable=NO default=
+column v2_event_media.alt character varying nullable=NO default=''::character varying
+column v2_event_media.event_id uuid nullable=NO default=
+column v2_event_media.media_id uuid nullable=NO default=
+column v2_event_media.position integer nullable=NO default=
+column v2_event_ticket_options.availability USER-DEFINED nullable=NO default='available'::v2_ticket_availability
+column v2_event_ticket_options.benefits ARRAY nullable=NO default='{}'::text[]
+column v2_event_ticket_options.capacity integer nullable=YES default=
+column v2_event_ticket_options.description character varying nullable=NO default=''::character varying
+column v2_event_ticket_options.event_id uuid nullable=NO default=
+column v2_event_ticket_options.external_id character varying nullable=NO default=''::character varying
+column v2_event_ticket_options.id uuid nullable=NO default=gen_random_uuid()
+column v2_event_ticket_options.position integer nullable=NO default=0
+column v2_event_ticket_options.price_toman integer nullable=NO default=
+column v2_event_ticket_options.title character varying nullable=NO default=
+column v2_event_world_links.event_id uuid nullable=NO default=
+column v2_event_world_links.world_id uuid nullable=NO default=
+column v2_events.address character varying nullable=NO default=''::character varying
+column v2_events.audience jsonb nullable=YES default=
+column v2_events.booking_mode USER-DEFINED nullable=NO default='none'::v2_event_booking_mode
+column v2_events.capacity integer nullable=YES default=
+column v2_events.city character varying nullable=NO default=''::character varying
+column v2_events.cover_alt character varying nullable=NO default=''::character varying
+column v2_events.cover_media_id uuid nullable=YES default=
+column v2_events.created_at timestamp with time zone nullable=NO default=now()
+column v2_events.created_by uuid nullable=YES default=
+column v2_events.description text nullable=NO default=''::text
+column v2_events.end_at timestamp with time zone nullable=YES default=
+column v2_events.event_type USER-DEFINED nullable=NO default='physical'::v2_event_type
+column v2_events.external_booking_url character varying nullable=YES default=
+column v2_events.id uuid nullable=NO default=gen_random_uuid()
+column v2_events.latitude numeric nullable=YES default=
+column v2_events.longitude numeric nullable=YES default=
+column v2_events.online_instructions character varying nullable=NO default=''::character varying
+column v2_events.online_url character varying nullable=YES default=
+column v2_events.organizer_contact character varying nullable=NO default=''::character varying
+column v2_events.organizer_logo_media_id uuid nullable=YES default=
+column v2_events.organizer_name character varying nullable=NO default=''::character varying
+column v2_events.partner_ref character varying nullable=NO default=''::character varying
+column v2_events.publish_at timestamp with time zone nullable=YES default=
+column v2_events.registration_deadline timestamp with time zone nullable=YES default=
+column v2_events.slug character varying nullable=NO default=
+column v2_events.start_at timestamp with time zone nullable=YES default=
+column v2_events.status USER-DEFINED nullable=NO default='draft'::v2_event_status
+column v2_events.summary character varying nullable=NO default=''::character varying
+column v2_events.time_zone character varying nullable=NO default='Asia/Tehran'::character varying
+column v2_events.title character varying nullable=NO default=
+column v2_events.updated_at timestamp with time zone nullable=NO default=now()
+column v2_events.updated_by uuid nullable=YES default=
+column v2_events.venue_name character varying nullable=NO default=''::character varying
+column v2_events.visibility USER-DEFINED nullable=NO default='public'::v2_event_visibility
 column v2_idempotency_keys.created_at timestamp with time zone nullable=NO default=now()
 column v2_idempotency_keys.expires_at timestamp with time zone nullable=NO default=
 column v2_idempotency_keys.idem_key character varying nullable=NO default=
@@ -208,6 +292,15 @@ column v2_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_user_status
 column v2_users.telegram character varying nullable=YES default=
 column v2_users.updated_at timestamp with time zone nullable=NO default=now()
 column v2_users.username character varying nullable=YES default=
+column v2_worlds.cover_media_id uuid nullable=YES default=
+column v2_worlds.created_at timestamp with time zone nullable=NO default=now()
+column v2_worlds.id uuid nullable=NO default=gen_random_uuid()
+column v2_worlds.is_active boolean nullable=NO default=true
+column v2_worlds.name character varying nullable=NO default=
+column v2_worlds.position integer nullable=NO default=0
+column v2_worlds.slug character varying nullable=NO default=
+column v2_worlds.summary character varying nullable=NO default=''::character varying
+column v2_worlds.updated_at timestamp with time zone nullable=NO default=now()
 column v2_xp_transactions.activity_id uuid nullable=YES default=
 column v2_xp_transactions.activity_version_id uuid nullable=YES default=
 column v2_xp_transactions.created_at timestamp with time zone nullable=NO default=now()
@@ -249,6 +342,48 @@ constraint v2_engagement_versions v2_engagement_versions_created_by_fkey FOREIGN
 constraint v2_engagement_versions v2_engagement_versions_once UNIQUE (activity_id, version)
 constraint v2_engagement_versions v2_engagement_versions_pkey PRIMARY KEY (id)
 constraint v2_engagement_versions v2_engagement_versions_positive CHECK ((version > 0))
+constraint v2_event_audit_log v2_event_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_event_audit_log v2_event_audit_log_entity CHECK (((entity)::text = ANY ((ARRAY['event'::character varying, 'category'::character varying, 'world'::character varying, 'booking'::character varying])::text[])))
+constraint v2_event_audit_log v2_event_audit_log_pkey PRIMARY KEY (id)
+constraint v2_event_bookings v2_event_bookings_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_event_bookings v2_event_bookings_pkey PRIMARY KEY (id)
+constraint v2_event_bookings v2_event_bookings_quantity CHECK (((quantity >= 1) AND (quantity <= 10)))
+constraint v2_event_bookings v2_event_bookings_ticket_option_id_fkey FOREIGN KEY (ticket_option_id) REFERENCES v2_event_ticket_options(id) ON DELETE SET NULL
+constraint v2_event_bookings v2_event_bookings_total CHECK ((total_toman >= 0))
+constraint v2_event_bookings v2_event_bookings_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_event_categories v2_event_categories_image_media_id_fkey FOREIGN KEY (image_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_event_categories v2_event_categories_pkey PRIMARY KEY (id)
+constraint v2_event_categories v2_event_categories_slug_format CHECK (((slug)::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
+constraint v2_event_categories v2_event_categories_slug_unique UNIQUE (slug)
+constraint v2_event_category_links v2_event_category_links_category_id_fkey FOREIGN KEY (category_id) REFERENCES v2_event_categories(id) ON DELETE RESTRICT
+constraint v2_event_category_links v2_event_category_links_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_event_category_links v2_event_category_links_pkey PRIMARY KEY (event_id, category_id)
+constraint v2_event_interests v2_event_interests_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_event_interests v2_event_interests_pkey PRIMARY KEY (user_id, event_id)
+constraint v2_event_interests v2_event_interests_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_event_media v2_event_media_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_event_media v2_event_media_media_id_fkey FOREIGN KEY (media_id) REFERENCES v2_media_assets(id) ON DELETE RESTRICT
+constraint v2_event_media v2_event_media_pkey PRIMARY KEY (event_id, media_id)
+constraint v2_event_ticket_options v2_event_ticket_options_capacity CHECK ((capacity > 0))
+constraint v2_event_ticket_options v2_event_ticket_options_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_event_ticket_options v2_event_ticket_options_pkey PRIMARY KEY (id)
+constraint v2_event_ticket_options v2_event_ticket_options_price CHECK ((price_toman >= 0))
+constraint v2_event_world_links v2_event_world_links_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_event_world_links v2_event_world_links_pkey PRIMARY KEY (event_id, world_id)
+constraint v2_event_world_links v2_event_world_links_world_id_fkey FOREIGN KEY (world_id) REFERENCES v2_worlds(id) ON DELETE RESTRICT
+constraint v2_events v2_events_capacity CHECK ((capacity > 0))
+constraint v2_events v2_events_cover_media_id_fkey FOREIGN KEY (cover_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_events v2_events_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_events v2_events_description_length CHECK ((char_length(description) <= 10000))
+constraint v2_events v2_events_latitude CHECK (((latitude >= ('-90'::integer)::numeric) AND (latitude <= (90)::numeric)))
+constraint v2_events v2_events_longitude CHECK (((longitude >= ('-180'::integer)::numeric) AND (longitude <= (180)::numeric)))
+constraint v2_events v2_events_organizer_logo_media_id_fkey FOREIGN KEY (organizer_logo_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_events v2_events_pkey PRIMARY KEY (id)
+constraint v2_events v2_events_published_at CHECK (((status = ANY (ARRAY['draft'::v2_event_status, 'archived'::v2_event_status])) OR (publish_at IS NOT NULL)))
+constraint v2_events v2_events_slug_format CHECK (((slug)::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
+constraint v2_events v2_events_slug_unique UNIQUE (slug)
+constraint v2_events v2_events_time_order CHECK (((end_at IS NULL) OR (start_at IS NULL) OR (end_at > start_at)))
+constraint v2_events v2_events_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_idempotency_keys v2_idempotency_keys_pkey PRIMARY KEY (scope, owner_id, idem_key)
 constraint v2_journey_answers v2_journey_answers_participation FOREIGN KEY (activity_id, user_id) REFERENCES v2_engagement_participations(activity_id, user_id) ON DELETE CASCADE
 constraint v2_journey_answers v2_journey_answers_pkey PRIMARY KEY (activity_id, user_id, question_id)
@@ -295,6 +430,10 @@ constraint v2_users v2_users_onboarding_stage_range CHECK (((onboarding_stage >=
 constraint v2_users v2_users_phone_key UNIQUE (phone)
 constraint v2_users v2_users_pkey PRIMARY KEY (id)
 constraint v2_users v2_users_username_lower CHECK (((username)::text = lower((username)::text)))
+constraint v2_worlds v2_worlds_cover_media_id_fkey FOREIGN KEY (cover_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_worlds v2_worlds_pkey PRIMARY KEY (id)
+constraint v2_worlds v2_worlds_slug_format CHECK (((slug)::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
+constraint v2_worlds v2_worlds_slug_unique UNIQUE (slug)
 constraint v2_xp_transactions v2_xp_transactions_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES v2_engagement_activities(id)
 constraint v2_xp_transactions v2_xp_transactions_activity_version_id_fkey FOREIGN KEY (activity_version_id) REFERENCES v2_engagement_versions(id)
 constraint v2_xp_transactions v2_xp_transactions_created_by_admin_id_fkey FOREIGN KEY (created_by_admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
@@ -310,11 +449,18 @@ enum v2_activity_status draft,published,paused,closed,archived
 enum v2_activity_type survey,mission,assessment,journey
 enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER
 enum v2_admin_status ACTIVE,INACTIVE
+enum v2_event_booking_mode none,free_registration,external
+enum v2_event_booking_source internal,external
+enum v2_event_booking_status pending,confirmed,failed,cancelled
+enum v2_event_status draft,published,unpublished,cancelled,archived
+enum v2_event_type physical,online,hybrid
+enum v2_event_visibility public,world,restricted
 enum v2_gender MALE,FEMALE
 enum v2_media_kind image,motion
 enum v2_onboarding_step basic_info,onboarding,done
 enum v2_participation_status in_progress,pending_review,completed,rejected
 enum v2_review_status none,pending,approved,rejected
+enum v2_ticket_availability available,limited,sold_out
 enum v2_user_role USER,ADMIN
 enum v2_user_status ACTIVE,SUSPENDED
 index v2_access_tokens_expires_at CREATE INDEX v2_access_tokens_expires_at ON public.v2_access_tokens USING btree (expires_at)
@@ -337,6 +483,32 @@ index v2_engagement_responses_pkey CREATE UNIQUE INDEX v2_engagement_responses_p
 index v2_engagement_responses_user CREATE INDEX v2_engagement_responses_user ON public.v2_engagement_responses USING btree (user_id) WHERE (user_id IS NOT NULL)
 index v2_engagement_versions_once CREATE UNIQUE INDEX v2_engagement_versions_once ON public.v2_engagement_versions USING btree (activity_id, version)
 index v2_engagement_versions_pkey CREATE UNIQUE INDEX v2_engagement_versions_pkey ON public.v2_engagement_versions USING btree (id)
+index v2_event_audit_log_entity CREATE INDEX v2_event_audit_log_entity ON public.v2_event_audit_log USING btree (entity, entity_id, created_at DESC)
+index v2_event_audit_log_pkey CREATE UNIQUE INDEX v2_event_audit_log_pkey ON public.v2_event_audit_log USING btree (id)
+index v2_event_bookings_event CREATE INDEX v2_event_bookings_event ON public.v2_event_bookings USING btree (event_id, status)
+index v2_event_bookings_one_handoff CREATE UNIQUE INDEX v2_event_bookings_one_handoff ON public.v2_event_bookings USING btree (user_id, event_id) WHERE ((source = 'external'::v2_event_booking_source) AND (status = 'pending'::v2_event_booking_status))
+index v2_event_bookings_one_registration CREATE UNIQUE INDEX v2_event_bookings_one_registration ON public.v2_event_bookings USING btree (user_id, event_id) WHERE ((source = 'internal'::v2_event_booking_source) AND (status = 'confirmed'::v2_event_booking_status))
+index v2_event_bookings_pkey CREATE UNIQUE INDEX v2_event_bookings_pkey ON public.v2_event_bookings USING btree (id)
+index v2_event_bookings_user CREATE INDEX v2_event_bookings_user ON public.v2_event_bookings USING btree (user_id, created_at DESC)
+index v2_event_categories_order CREATE INDEX v2_event_categories_order ON public.v2_event_categories USING btree ("position", name)
+index v2_event_categories_pkey CREATE UNIQUE INDEX v2_event_categories_pkey ON public.v2_event_categories USING btree (id)
+index v2_event_categories_slug_unique CREATE UNIQUE INDEX v2_event_categories_slug_unique ON public.v2_event_categories USING btree (slug)
+index v2_event_category_links_category CREATE INDEX v2_event_category_links_category ON public.v2_event_category_links USING btree (category_id)
+index v2_event_category_links_pkey CREATE UNIQUE INDEX v2_event_category_links_pkey ON public.v2_event_category_links USING btree (event_id, category_id)
+index v2_event_interests_event CREATE INDEX v2_event_interests_event ON public.v2_event_interests USING btree (event_id)
+index v2_event_interests_pkey CREATE UNIQUE INDEX v2_event_interests_pkey ON public.v2_event_interests USING btree (user_id, event_id)
+index v2_event_media_media CREATE INDEX v2_event_media_media ON public.v2_event_media USING btree (media_id)
+index v2_event_media_pkey CREATE UNIQUE INDEX v2_event_media_pkey ON public.v2_event_media USING btree (event_id, media_id)
+index v2_event_ticket_options_event CREATE INDEX v2_event_ticket_options_event ON public.v2_event_ticket_options USING btree (event_id, "position")
+index v2_event_ticket_options_pkey CREATE UNIQUE INDEX v2_event_ticket_options_pkey ON public.v2_event_ticket_options USING btree (id)
+index v2_event_world_links_pkey CREATE UNIQUE INDEX v2_event_world_links_pkey ON public.v2_event_world_links USING btree (event_id, world_id)
+index v2_event_world_links_world CREATE INDEX v2_event_world_links_world ON public.v2_event_world_links USING btree (world_id)
+index v2_events_admin CREATE INDEX v2_events_admin ON public.v2_events USING btree (updated_at DESC)
+index v2_events_city CREATE INDEX v2_events_city ON public.v2_events USING btree (lower((city)::text))
+index v2_events_end CREATE INDEX v2_events_end ON public.v2_events USING btree (end_at)
+index v2_events_live CREATE INDEX v2_events_live ON public.v2_events USING btree (status, visibility, start_at)
+index v2_events_pkey CREATE UNIQUE INDEX v2_events_pkey ON public.v2_events USING btree (id)
+index v2_events_slug_unique CREATE UNIQUE INDEX v2_events_slug_unique ON public.v2_events USING btree (slug)
 index v2_idempotency_keys_expires_at CREATE INDEX v2_idempotency_keys_expires_at ON public.v2_idempotency_keys USING btree (expires_at)
 index v2_idempotency_keys_pkey CREATE UNIQUE INDEX v2_idempotency_keys_pkey ON public.v2_idempotency_keys USING btree (scope, owner_id, idem_key)
 index v2_journey_answers_day CREATE INDEX v2_journey_answers_day ON public.v2_journey_answers USING btree (activity_id, day_id)
@@ -368,6 +540,9 @@ index v2_user_interests_pkey CREATE UNIQUE INDEX v2_user_interests_pkey ON publi
 index v2_users_phone_key CREATE UNIQUE INDEX v2_users_phone_key ON public.v2_users USING btree (phone)
 index v2_users_pkey CREATE UNIQUE INDEX v2_users_pkey ON public.v2_users USING btree (id)
 index v2_users_username CREATE UNIQUE INDEX v2_users_username ON public.v2_users USING btree (username)
+index v2_worlds_order CREATE INDEX v2_worlds_order ON public.v2_worlds USING btree ("position", name)
+index v2_worlds_pkey CREATE UNIQUE INDEX v2_worlds_pkey ON public.v2_worlds USING btree (id)
+index v2_worlds_slug_unique CREATE UNIQUE INDEX v2_worlds_slug_unique ON public.v2_worlds USING btree (slug)
 index v2_xp_transactions_activity CREATE INDEX v2_xp_transactions_activity ON public.v2_xp_transactions USING btree (activity_id) WHERE (activity_id IS NOT NULL)
 index v2_xp_transactions_once CREATE UNIQUE INDEX v2_xp_transactions_once ON public.v2_xp_transactions USING btree (user_id, source_type, source_id)
 index v2_xp_transactions_pkey CREATE UNIQUE INDEX v2_xp_transactions_pkey ON public.v2_xp_transactions USING btree (id)

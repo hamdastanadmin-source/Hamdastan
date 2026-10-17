@@ -1,10 +1,11 @@
 /**
- * Worlds — دنیاها و ساختار آن‌ها
+ * Worlds — دنیاها: the minimal world list events are filed under. Membership
+ * and following come later, with their own migration.
  *
- * Public surface of the module. `app.ts` mounts the routes; the data layer
- * binds the repository. Nothing outside reaches past this file.
+ * Public surface of the module. `modules/index.ts` mounts the routes;
+ * `server.ts` binds the repository. Nothing outside reaches past this file.
  */
 
-export { worldsRoutes } from './worlds.routes';
+export { worldsAdminRoutes, worldsRoutes } from './worlds.routes';
 export { worldsService } from './worlds.service';
-export { setWorldsRepository, type WorldsRepository } from './worlds.repository';
+export { setWorldsRepository, sqlWorldsRepository, type WorldsRepository } from './worlds.repository';

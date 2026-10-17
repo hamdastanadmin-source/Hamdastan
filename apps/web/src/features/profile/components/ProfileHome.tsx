@@ -1,4 +1,4 @@
-import { CircleHelp, Settings, UserRoundPen } from 'lucide-react';
+import { CircleHelp, Settings, Ticket, UserRoundPen } from 'lucide-react';
 
 import type { AccountOverview } from '@hamdastan/types';
 
@@ -35,6 +35,10 @@ export function ProfileHome({ overview }: { overview: AccountOverview }) {
         <BadgesCard badges={overview.badges} />
 
         <SocialProfileSection result={overview.socialProfile} />
+
+        <ListGroup title="رویدادها">
+          <ListRow icon={Ticket} label="رویدادهای من" href="/events/mine" />
+        </ListGroup>
 
         <ListGroup title="حساب">
           <ListRow icon={UserRoundPen} label="ویرایش پروفایل" href="/profile/edit" />

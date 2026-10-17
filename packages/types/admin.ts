@@ -39,13 +39,30 @@ export const ADMIN_PERMISSIONS = [
   'submissions.review',
   /** Take back XP already granted. */
   'xp.revoke',
+  /** Events and their categories: see them, their bookings and history. */
+  'events.read',
+  /** Create, edit, duplicate events; manage categories; record a booking's outcome. */
+  'events.write',
+  /** Publish, schedule, unpublish, cancel, archive. */
+  'events.publish',
+  /** The world list: add, edit, order, switch off. */
+  'worlds.manage',
 ] as const;
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
 
 /** The whole access model. `apps/api` enforces it; `apps/admin` only hides what it would refuse. */
 export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
   system_admin: ADMIN_PERMISSIONS,
-  content_manager: ['activities.read', 'activities.write', 'activities.publish', 'results.read'],
+  content_manager: [
+    'activities.read',
+    'activities.write',
+    'activities.publish',
+    'results.read',
+    'events.read',
+    'events.write',
+    'events.publish',
+    'worlds.manage',
+  ],
   mission_reviewer: ['activities.read', 'results.read', 'results.individual', 'submissions.review'],
 };
 

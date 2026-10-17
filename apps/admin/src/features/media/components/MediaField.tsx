@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { ImagePlus, RefreshCw, X } from 'lucide-react';
 
+import type { ImageFrame } from '@hamdastan/config';
 import type { MediaCategory, MediaKind } from '@hamdastan/types';
 import { Button } from '@hamdastan/ui';
 
 import { useMediaAsset } from '../hooks/use-media-asset';
+import { FramedPreview, frameHint } from './FramedPreview';
 import { MediaPicker } from './MediaPicker';
 import { MediaPreview } from './MediaPreview';
 
@@ -21,6 +23,7 @@ export function MediaField({
   category,
   pickerTitle,
   invalid,
+  frame,
 }: {
   value: string | null | undefined;
   onChange: (id: string | null) => void;
@@ -28,6 +31,8 @@ export function MediaField({
   category?: MediaCategory;
   pickerTitle: string;
   invalid?: boolean;
+  /** The size the product draws this image at: said up front, previewed as cropped, warned about when off. */
+  frame?: ImageFrame;
 }) {
   const [picking, setPicking] = useState(false);
   const { asset, missing } = useMediaAsset(value);
@@ -55,6 +60,9 @@ export function MediaField({
           انتخاب از کتابخانه یا بارگذاری
         </Button>
       )}
+
+      {frame && !value && <p className="text-xs text-muted-foreground">{frameHint(frame)}</p>}
+      {frame && value && asset && !missing && <FramedPreview asset={asset} frame={frame} />}
 
       <MediaPicker
         open={picking}

@@ -14,3 +14,4 @@ export * from './engagement';
 export * from './media';
 export * from './journey-result';
 export * from './engagement-import';
+export * from './events';

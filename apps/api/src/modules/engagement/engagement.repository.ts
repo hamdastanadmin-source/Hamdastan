@@ -8,6 +8,7 @@ import type {
 } from '@hamdastan/types';
 
 import {
+  audienceMatch,
   claimIdempotency,
   completeIdempotency,
   findIdempotency,
@@ -128,18 +129,6 @@ export const engagementRepository = slot.get;
 export const setEngagementRepository = slot.set;
 
 // ─── PostgreSQL adapter ──────────────────────────────────────────────────────
-
-/**
- * Whether the user `u` is in the audience held in `audience` — a column or a
- * bound `jsonb` parameter. Interest categories are matched on the person's
- * stage-1 picks.
- */
-const audienceMatch = (audience: string) => `(
-     ${audience}->>'kind' = 'all'
-  OR (${audience}->>'kind' = 'users' AND ${audience}->'phones' ? u.phone)
-  OR (${audience}->>'kind' = 'interests' AND EXISTS (
-        SELECT 1 FROM v2_user_interests i
-         WHERE i.user_id = u.id AND ${audience}->'categoryIds' ? i.category_id)))`;
 
 const ACTIVITY_COLUMNS = `
   a.id, a.type, a.status, a.title, a.summary, a.instructions, a.audience,
