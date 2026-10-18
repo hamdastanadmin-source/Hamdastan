@@ -502,7 +502,7 @@ export const eventsService = {
     input: { status: 'confirmed' | 'failed' | 'cancelled'; externalRef: string }
   ): Promise<{ updated: true }> {
     if (!(await eventsRepository().reviewBooking(bookingId, input.status, input.externalRef, actor.id))) {
-      throw new AppError(409, CODES.EVENT_INVALID_TRANSITION, 'این رزرو در وضعیتی نیست که بشه تغییرش داد');
+      throw new AppError(409, CODES.EVENT_INVALID_TRANSITION, 'وضعیت فعلی این رزرو قابل تغییر نیست');
     }
     // The partner's answer, recorded by an operator, is the verified outcome — the person hears it.
     await notificationsService.bookingReviewed(bookingId, input.status);
@@ -522,7 +522,7 @@ export const eventsService = {
 
   async updateCategory(actor: AdminRecord, id: string, fields: EventCategoryInputOutput): Promise<AdminEventCategory> {
     await mediaService.requireImages({ imageId: fields.imageId });
-    if (!(await eventsRepository().updateCategory(id, fields, actor.id))) throw new NotFoundError('دسته پیدا نشد');
+    if (!(await eventsRepository().updateCategory(id, fields, actor.id))) throw new NotFoundError('دسته یافت نشد');
     return toAdminCategory((await eventsRepository().findCategory(id))!);
   },
 
@@ -534,9 +534,9 @@ export const eventsService = {
   /** Only a category no event is filed under; otherwise switch it off. */
   async removeCategory(actor: AdminRecord, id: string): Promise<{ deleted: true }> {
     const outcome = await eventsRepository().removeCategory(id, actor.id);
-    if (outcome === 'not_found') throw new NotFoundError('دسته پیدا نشد');
+    if (outcome === 'not_found') throw new NotFoundError('دسته یافت نشد');
     if (outcome === 'in_use') {
-      throw new AppError(409, CODES.EVENT_CATEGORY_IN_USE, 'رویدادهایی توی این دسته‌اند؛ به‌جای حذف، غیرفعالش کن');
+      throw new AppError(409, CODES.EVENT_CATEGORY_IN_USE, 'این دسته رویداد دارد؛ به‌جای حذف، آن را غیرفعال کنید');
     }
     return { deleted: true };
   },

@@ -77,7 +77,7 @@ export function MediaPicker({
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              {multiple ? 'چند فایل انتخاب کن؛ هر بار یکی‌شون تصادفی نشون داده می‌شه.' : 'یک فایل انتخاب کن یا فایل تازه بارگذاری کن.'}
+              {multiple ? 'چند فایل انتخاب کنید؛ هر بار یکی از آن‌ها به‌صورت تصادفی نمایش داده می‌شود.' : 'یک فایل انتخاب کنید یا فایل جدیدی بارگذاری کنید.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -106,7 +106,7 @@ export function MediaPicker({
                   ))}
                 </div>
               ) : library.data.items.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">فایلی پیدا نشد؛ یکی بارگذاری کن.</p>
+                <p className="py-10 text-center text-sm text-muted-foreground">فایلی یافت نشد؛ یک فایل بارگذاری کنید.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {library.data.items.map((asset) => (

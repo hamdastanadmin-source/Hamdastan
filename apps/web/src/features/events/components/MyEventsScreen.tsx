@@ -48,7 +48,7 @@ export function MyEventsScreen({ soon, lists }: { soon: EventCardData[]; lists: 
             return (
               <TabsContent key={tab.id} value={tab.id}>
                 {events === null ? (
-                  <EventsEmpty title="بارگذاری نشد" description="کمی بعد دوباره سر بزن." />
+                  <EventsEmpty title="این بخش باز نشد" description="کمی بعد دوباره سر بزن." />
                 ) : events.length === 0 ? (
                   <EventsEmpty title={tab.empty} description={tab.hint} />
                 ) : (

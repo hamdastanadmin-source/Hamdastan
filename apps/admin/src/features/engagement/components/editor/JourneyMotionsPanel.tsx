@@ -10,19 +10,19 @@ const MOTIONS: { key: keyof JourneySettings['motions']; title: string; hint: str
   {
     key: 'answer',
     title: 'بعد از هر پاسخ',
-    hint: 'وسط صفحه، بعد از ثبت هر پاسخ و قبل از سؤال بعد. هر روز یا هر سؤال می‌تونه موشن خودش رو داشته باشه.',
+    hint: 'در وسط صفحه، پس از ثبت هر پاسخ و پیش از سؤال بعد. هر روز یا هر سؤال می‌تواند موشن اختصاصی خود را داشته باشد.',
     category: 'answer_motion',
   },
   {
     key: 'dayComplete',
     title: 'پایان هر روز',
-    hint: 'بعد از آخرین سؤال هر روز، به‌جای موشن پاسخ — جشن تموم شدن مرحله.',
+    hint: 'پس از آخرین سؤال هر روز، به‌جای موشن پاسخ — برای جشن پایان مرحله.',
     category: 'celebration',
   },
   {
     key: 'journeyComplete',
     title: 'پایان کل چالش',
-    hint: 'بعد از آخرین سؤال آخرین روز.',
+    hint: 'پس از آخرین سؤالِ آخرین روز.',
     category: 'celebration',
   },
 ];
@@ -45,7 +45,7 @@ export function JourneyMotionsPanel({
     <div className="flex flex-col gap-6">
       <div className="border-b pb-4">
         <h3 className="text-base font-semibold">موشن‌های چالش</h3>
-        <p className="text-sm text-muted-foreground">همه‌ی فایل‌ها از کتابخانه‌ی رسانه؛ هیچ موشنی داخل کد ثابت نیست.</p>
+        <p className="text-sm text-muted-foreground">همه‌ی فایل‌ها از کتابخانه‌ی رسانه انتخاب می‌شوند.</p>
       </div>
       {MOTIONS.map(({ key, title, hint, category }) => (
         <section key={key} aria-labelledby={`motion-${key}`} className="flex flex-col gap-3 rounded-lg border p-4">

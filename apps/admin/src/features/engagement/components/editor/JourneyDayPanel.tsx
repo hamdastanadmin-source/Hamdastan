@@ -74,7 +74,7 @@ export function JourneyDayPanel({
         </Button>
       </div>
 
-      <Field label="نام روز" htmlFor="day-title" error={error('title')} hint="روی تایم‌لاین و کاور روز دیده می‌شه.">
+      <Field label="نام روز" htmlFor="day-title" error={error('title')} hint="روی تایم‌لاین و کاور روز نمایش داده می‌شود.">
         <Input
           id="day-title"
           value={day.title}
@@ -82,7 +82,7 @@ export function JourneyDayPanel({
           {...invalid(error('title'))}
         />
       </Field>
-      <Field label="توضیح روز (اختیاری)" htmlFor="day-description" hint="بالای اولین سؤالِ این روز نشون داده می‌شه.">
+      <Field label="توضیح روز (اختیاری)" htmlFor="day-description" hint="بالای اولین سؤالِ این روز نمایش داده می‌شود.">
         <Textarea
           id="day-description"
           rows={2}
@@ -95,7 +95,7 @@ export function JourneyDayPanel({
         <AccordionItem value="cover" className="border-b-0">
           <AccordionTrigger>کاور شروع روز</AccordionTrigger>
           <AccordionContent className="flex flex-col gap-5">
-            <SwitchRow id="cover-enabled" label="کاور اختصاصی" hint="خاموش باشه، روز با کاور پیش‌فرض اپ شروع می‌شه.">
+            <SwitchRow id="cover-enabled" label="کاور اختصاصی" hint="اگر خاموش باشد، روز با کاور پیش‌فرض اپلیکیشن شروع می‌شود.">
               <Switch
                 id="cover-enabled"
                 checked={Boolean(cover)}
@@ -154,7 +154,7 @@ export function JourneyDayPanel({
                       </Select>
                     </Field>
                   </div>
-                  <SwitchRow id="cover-background" label="رنگ پس‌زمینه‌ی اختصاصی" hint="خاموش باشه، رنگ زمینه‌ی خود اپ استفاده می‌شه.">
+                  <SwitchRow id="cover-background" label="رنگ پس‌زمینه‌ی اختصاصی" hint="اگر خاموش باشد، رنگ زمینه‌ی اپلیکیشن استفاده می‌شود.">
                     <div className="flex items-center gap-3">
                       {cover.background && (
                         <Input
@@ -203,7 +203,7 @@ export function JourneyDayPanel({
         <AccordionItem value="motion" className="border-b-0">
           <AccordionTrigger>موشن بعد از پاسخ در این روز</AccordionTrigger>
           <AccordionContent className="flex flex-col gap-4">
-            <SwitchRow id={`day-${day.id}-motion`} label="موشن اختصاصی این روز" hint="خاموش باشه، موشن عمومی چالش پخش می‌شه. هر سؤال هم می‌تونه موشن خودش رو داشته باشه.">
+            <SwitchRow id={`day-${day.id}-motion`} label="موشن اختصاصی این روز" hint="اگر خاموش باشد، موشن عمومی چالش پخش می‌شود. هر سؤال نیز می‌تواند موشن اختصاصی خود را داشته باشد.">
               <Switch
                 id={`day-${day.id}-motion`}
                 checked={Boolean(day.answerMotion)}

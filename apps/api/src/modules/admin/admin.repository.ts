@@ -116,7 +116,7 @@ function toDbValue(key: keyof AdminFields, value: string): string {
 /** The unique index decides, not a prior read: two admins adding one number at once cannot both pass. */
 function rethrowPhoneTaken(error: unknown): never {
   if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
-    throw new AppError(409, 'ADMIN_PHONE_TAKEN', 'این شماره قبلاً برای کاربر دیگه‌ای ثبت شده');
+    throw new AppError(409, 'ADMIN_PHONE_TAKEN', 'این شماره قبلاً برای کاربر دیگری ثبت شده است');
   }
   throw error;
 }

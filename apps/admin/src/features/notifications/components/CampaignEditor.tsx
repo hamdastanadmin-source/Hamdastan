@@ -94,7 +94,7 @@ export function CampaignEditor({ initial }: { initial: AdminCampaign | null }) {
   const onSend = async (scheduledAt: string | null) => {
     try {
       const sent = await editor.send(scheduledAt);
-      toast.success(sent.scheduledAt && new Date(sent.scheduledAt) > new Date() ? 'زمان‌بندی شد' : 'در صف ارسال قرار گرفت؛ ظرف چند ثانیه ارسال می‌شه');
+      toast.success(sent.scheduledAt && new Date(sent.scheduledAt) > new Date() ? 'زمان‌بندی شد' : 'در صف ارسال قرار گرفت؛ ظرف چند ثانیه ارسال می‌شود');
       setSending(false);
       setRefreshKey((n) => n + 1);
     } catch (caught) {
@@ -219,7 +219,7 @@ export function CampaignEditor({ initial }: { initial: AdminCampaign | null }) {
                 )}
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="با باز کردن اعلان کجا بره">
+                <Field label="مقصد پس از باز کردن اعلان">
                   <Select value={state.destination.kind} onValueChange={(kind) => update({ destination: destinationOf(kind as NotificationDestinationKind) })} disabled={!editable}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -234,7 +234,7 @@ export function CampaignEditor({ initial }: { initial: AdminCampaign | null }) {
                   </Select>
                 </Field>
                 {state.destination.kind === 'event' && (
-                  <Field label="رویداد" error={errors['destination.eventId']} hint="کسی که اجازه‌ی دیدن رویداد رو نداره، این اعلان رو نمی‌گیره.">
+                  <Field label="رویداد" error={errors['destination.eventId']} hint="کاربری که اجازه‌ی مشاهده‌ی رویداد را ندارد، این اعلان را دریافت نمی‌کند.">
                     <Select value={state.destination.eventId || undefined} onValueChange={(eventId) => update({ destination: { kind: 'event', eventId } })} disabled={!editable}>
                       <SelectTrigger className="w-full" {...invalid(errors['destination.eventId'])}>
                         <SelectValue placeholder="انتخاب رویداد" />
@@ -250,7 +250,7 @@ export function CampaignEditor({ initial }: { initial: AdminCampaign | null }) {
                   </Field>
                 )}
                 {state.destination.kind === 'activity' && (
-                  <Field label="فعالیت" error={errors['destination.activityId']} hint="کسی که در مخاطب فعالیت نیست، این اعلان رو نمی‌گیره.">
+                  <Field label="فعالیت" error={errors['destination.activityId']} hint="کاربری که جزو مخاطبان فعالیت نیست، این اعلان را دریافت نمی‌کند.">
                     <Select value={state.destination.activityId || undefined} onValueChange={(activityId) => update({ destination: { kind: 'activity', activityId } })} disabled={!editable}>
                       <SelectTrigger className="w-full" {...invalid(errors['destination.activityId'])}>
                         <SelectValue placeholder="انتخاب فعالیت" />
@@ -310,8 +310,8 @@ export function CampaignEditor({ initial }: { initial: AdminCampaign | null }) {
               </ToggleGroup>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {pushAvailable
-                  ? 'اعلان گوشی فقط به کسانی می‌رسه که روی دستگاهشون روشنش کردن و این دسته رو برای گوشی خاموش نکردن.'
-                  : 'زیرساخت اعلان گوشی (کلیدهای VAPID) روی سرور پیکربندی نشده؛ فعلاً فقط ارسال درون برنامه ممکنه.'}
+                  ? 'اعلان گوشی فقط برای کاربرانی ارسال می‌شود که آن را روی دستگاه خود فعال کرده و این دسته را برای گوشی خاموش نکرده‌اند.'
+                  : 'زیرساخت اعلان گوشی (کلیدهای VAPID) روی سرور پیکربندی نشده است؛ در حال حاضر فقط ارسال درون برنامه امکان‌پذیر است.'}
               </p>
             </CardContent>
           </Card>

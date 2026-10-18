@@ -355,8 +355,8 @@ function orderBy(sort: EventSort, q: string | undefined, add: (value: unknown) =
 
 const rethrowWrite = (error: unknown): never => {
   const code = (error as { code?: string }).code;
-  if (code === UNIQUE_VIOLATION) throw new AppError(409, 'EVENT_SLUG_TAKEN', 'این نامک برای رویداد دیگه‌ای ثبت شده');
-  if (code === FOREIGN_KEY_VIOLATION) throw new ValidationError('دسته یا دنیای انتخاب‌شده دیگه وجود نداره؛ دوباره انتخاب کن');
+  if (code === UNIQUE_VIOLATION) throw new AppError(409, 'EVENT_SLUG_TAKEN', 'این نامک قبلاً برای رویداد دیگری ثبت شده است');
+  if (code === FOREIGN_KEY_VIOLATION) throw new ValidationError('دسته یا دنیای انتخاب‌شده دیگر وجود ندارد؛ دوباره انتخاب کنید');
   throw error;
 };
 
@@ -461,7 +461,7 @@ const toCategory = (row: CategoryRow): CategoryRecord => ({
 
 const rethrowCategorySlug = (error: unknown): never => {
   if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
-    throw new AppError(409, 'EVENT_CATEGORY_SLUG_TAKEN', 'این نامک برای دسته‌ی دیگه‌ای ثبت شده');
+    throw new AppError(409, 'EVENT_CATEGORY_SLUG_TAKEN', 'این نامک قبلاً برای دسته‌ی دیگری ثبت شده است');
   }
   throw error;
 };

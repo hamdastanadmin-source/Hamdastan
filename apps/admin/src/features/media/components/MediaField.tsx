@@ -45,7 +45,7 @@ export function MediaField({
             {asset && <MediaPreview asset={asset} className="size-full p-1" />}
           </div>
           <span className="min-w-0 flex-1 truncate text-sm">
-            {missing ? <span className="text-destructive">این فایل از کتابخانه حذف شده</span> : (asset?.name ?? '…')}
+            {missing ? <span className="text-destructive">این فایل از کتابخانه حذف شده است</span> : (asset?.name ?? '…')}
           </span>
           <Button variant="ghost" size="icon-sm" onClick={() => setPicking(true)} aria-label="جایگزینی">
             <RefreshCw aria-hidden="true" />

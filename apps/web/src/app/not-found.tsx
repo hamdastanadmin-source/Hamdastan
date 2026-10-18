@@ -20,7 +20,7 @@ export default function NotFound() {
           {toPersianDigits(404)}
         </p>
         <ScreenTitle
-          title="صفحه پیدا نشد"
+          title="این صفحه پیدا نشد"
           description="صفحه‌ای که دنبالش بودی وجود نداره یا جابه‌جا شده."
         />
       </ScreenBody>

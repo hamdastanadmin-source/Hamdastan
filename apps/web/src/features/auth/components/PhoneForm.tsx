@@ -80,7 +80,7 @@ export function PhoneForm() {
           <form id="phone-form" onSubmit={onSubmit} className="flex flex-col gap-6">
             <ScreenTitle
               title="شماره موبایلت رو وارد کن"
-              description="برای ورود یا ساخت حساب جدید"
+              description="برای ورود، یا ساختن حساب جدید اگه بار اولته"
             />
 
             <FormField
@@ -137,7 +137,7 @@ export function PhoneForm() {
                       user's finger at the moment they mistyped. */}
                   <div className="min-h-5">
                     <FormDescription>
-                      یک کد {toPersianDigits(OTP.LENGTH)} رقمی برات پیامک می‌شه.
+                      یه کد {toPersianDigits(OTP.LENGTH)} رقمی برات پیامک می‌کنیم.
                     </FormDescription>
                     <FormMessage />
                   </div>
@@ -160,7 +160,7 @@ export function PhoneForm() {
           دریافت کد
         </Button>
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          با ادامه، قوانین و حریم خصوصی رو می‌پذیری
+          با ادامه دادن، قوانین و حریم خصوصی هم‌داستان رو قبول می‌کنی
         </p>
       </ScreenFooter>
     </Screen>

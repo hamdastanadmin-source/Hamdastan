@@ -52,12 +52,12 @@ const COLUMNS = 7;
 const CONFIRM: Record<Exclude<CampaignRowAction, 'duplicate'>, { title: string; body: string; button: string }> = {
   cancel: {
     title: 'لغو ارسال',
-    body: 'این کمپین ارسال نمی‌شه و دیگه نمی‌شه دوباره زمان‌بندیش کرد؛ برای ارسال بعدی، تکثیرش کن.',
+    body: 'این کمپین ارسال نمی‌شود و امکان زمان‌بندی دوباره‌ی آن وجود ندارد؛ برای ارسال بعدی، آن را تکثیر کنید.',
     button: 'لغو ارسال',
   },
   archive: {
     title: 'بایگانی',
-    body: 'از فهرست اصلی کنار می‌ره. اعلان‌هایی که قبلاً ارسال شدن سر جاشون می‌مونن.',
+    body: 'از فهرست اصلی خارج می‌شود. اعلان‌هایی که قبلاً ارسال شده‌اند حفظ می‌شوند.',
     button: 'بایگانی',
   },
 };
@@ -129,7 +129,7 @@ export function CampaignsScreen() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">اعلان‌ها</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            اعلان بنویس، مخاطبش رو انتخاب کن، پیش‌نمایش ببین و همین حالا یا در زمان دلخواه بفرستش.
+            اعلان بنویسید، مخاطب آن را انتخاب کنید، پیش‌نمایش را ببینید و همین حالا یا در زمان دلخواه ارسال کنید.
           </p>
         </div>
         {can('notifications.write') && (
@@ -160,7 +160,7 @@ export function CampaignsScreen() {
       </dl>
       {overview && overview.push.available && (
         <p className="-mt-3 text-xs text-muted-foreground">
-          «پذیرفته» یعنی سرویس پوشِ مرورگر پیام رو گرفت؛ نشون‌دادنش روی گوشی قابل تأیید نیست.
+          «پذیرفته» یعنی سرویس پوش مرورگر پیام را دریافت کرده است؛ نمایش آن روی گوشی قابل تأیید نیست.
         </p>
       )}
 
@@ -172,8 +172,8 @@ export function CampaignsScreen() {
               type="search"
               value={filters.search}
               onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-              placeholder="جستجوی عنوان یا متن"
-              aria-label="جستجوی کمپین‌ها"
+              placeholder="جست‌وجوی عنوان یا متن"
+              aria-label="جست‌وجوی کمپین‌ها"
               className="ps-9"
             />
           </div>
@@ -245,7 +245,7 @@ export function CampaignsScreen() {
                   <TableCell colSpan={COLUMNS} className="h-40 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <BellOff aria-hidden="true" className="size-8" />
-                      {filters.search || filters.status ? 'کمپینی با این مشخصات پیدا نشد' : 'هنوز اعلانی نساختی'}
+                      {filters.search || filters.status ? 'کمپینی با این مشخصات پیدا نشد' : 'هنوز اعلانی ساخته نشده است'}
                     </div>
                   </TableCell>
                 </TableRow>

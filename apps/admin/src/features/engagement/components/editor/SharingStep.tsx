@@ -45,14 +45,14 @@ export function SharingStep({ editor }: { editor: ActivityEditorApi }) {
             صفحه‌ی پایان روز
           </h3>
           <p className="text-sm text-muted-foreground">
-            بعد از جشن پایان روز نشون داده می‌شه، همراه با تعداد روزهای تکمیل‌شده، XP همون روز و زمان باز شدن روز بعد.
+            پس از جشن پایان روز نمایش داده می‌شود، همراه با تعداد روزهای تکمیل‌شده، XP همان روز و زمان باز شدن روز بعد.
           </p>
         </div>
         <Field
           label="متن تبریک"
           htmlFor="day-end-title"
           error={error('title')}
-          hint="{name} اسم کاربر، {day} شماره‌ی روز و {days} تعداد کل روزها می‌شه."
+          hint="{name} با نام کاربر، {day} با شماره‌ی روز و {days} با تعداد کل روزها جایگزین می‌شود."
         >
           <Input
             id="day-end-title"
@@ -87,7 +87,7 @@ export function SharingStep({ editor }: { editor: ActivityEditorApi }) {
         <h3 id="invite" className="text-base font-semibold">
           دعوت دوستان
         </h3>
-        <SwitchRow id="invite-enabled" label="دکمه‌ی دعوت از دوستان" hint="با Share گوشی، و جایی که نباشه، با کپی لینک.">
+        <SwitchRow id="invite-enabled" label="دکمه‌ی دعوت از دوستان" hint="با اشتراک‌گذاری گوشی، و در صورت پشتیبانی‌نشدن، با کپی لینک.">
           <Switch id="invite-enabled" checked={dayEnd.invite.enabled} onCheckedChange={(enabled) => setInvite({ enabled })} />
         </SwitchRow>
         {dayEnd.invite.enabled && (
@@ -111,7 +111,7 @@ export function SharingStep({ editor }: { editor: ActivityEditorApi }) {
                   {...invalid(error('invite.button'))}
                 />
               </Field>
-              <Field label="پیام اشتراک‌گذاری" htmlFor="invite-share" hint="لینک چالش خودکار بعد از این متن میاد." error={error('invite.shareMessage')}>
+              <Field label="پیام اشتراک‌گذاری" htmlFor="invite-share" hint="لینک چالش به‌طور خودکار پس از این متن قرار می‌گیرد." error={error('invite.shareMessage')}>
                 <Textarea
                   id="invite-share"
                   rows={2}
@@ -123,7 +123,7 @@ export function SharingStep({ editor }: { editor: ActivityEditorApi }) {
             </div>
             <Alert>
               <AlertDescription>
-                لینک دعوت آدرس همین چالشه؛ کاربر جدید بعد از ثبت‌نام مستقیم به همین چالش می‌رسه. پاداش معرفی هنوز فعال
+                لینک دعوت، نشانی همین چالش است؛ کاربر جدید پس از ثبت‌نام مستقیماً به همین چالش هدایت می‌شود. پاداش معرفی هنوز فعال
                 نیست.
               </AlertDescription>
             </Alert>

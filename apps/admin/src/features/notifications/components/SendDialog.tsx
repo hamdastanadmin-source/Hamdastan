@@ -81,10 +81,10 @@ export function SendDialog({
       <DialogContent showCloseButton={false} className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>ارسال اعلان</DialogTitle>
-          <DialogDescription>بعد از ارسال، اعلان‌ها ساخته می‌شن و قابل برگشت نیستن. همه‌چیز رو یک بار دیگه نگاه کن.</DialogDescription>
+          <DialogDescription>پس از ارسال، اعلان‌ها ساخته می‌شوند و قابل بازگشت نیستند. لطفاً همه‌ی موارد را یک بار دیگر بررسی کنید.</DialogDescription>
         </DialogHeader>
 
-        <Field label="کِی ارسال بشه">
+        <Field label="نحوه‌ی ارسال">
           <ToggleGroup type="single" value={mode} onValueChange={(next) => next && setMode(next as 'now' | 'later')} spacing={2} aria-label="زمان ارسال">
             <ToggleGroupItem value="now" className={TOGGLE_ITEM}>
               همین حالا
@@ -98,8 +98,8 @@ export function SendDialog({
           <Field
             label="زمان ارسال"
             htmlFor="send-at"
-            hint={scheduledAt ? `${formatDateTime(scheduledAt.toISOString())} به وقت تهران` : 'یک زمان در آینده انتخاب کن'}
-            error={at && invalidTime ? 'این زمان گذشته؛ یک زمان در آینده انتخاب کن' : undefined}
+            hint={scheduledAt ? `${formatDateTime(scheduledAt.toISOString())} به وقت تهران` : 'یک زمان در آینده انتخاب کنید'}
+            error={at && invalidTime ? 'این زمان گذشته است؛ یک زمان در آینده انتخاب کنید' : undefined}
           >
             <Input id="send-at" type="datetime-local" dir="ltr" value={at} onChange={(event) => setAt(event.target.value)} />
           </Field>

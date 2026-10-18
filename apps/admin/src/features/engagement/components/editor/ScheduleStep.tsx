@@ -18,7 +18,7 @@ export function ScheduleStep({ editor }: { editor: ActivityEditorApi }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="شروع" htmlFor="starts-at" error={errors.startsAt} hint="خالی یعنی از لحظه‌ی انتشار.">
+        <Field label="شروع" htmlFor="starts-at" error={errors.startsAt} hint="اگر خالی بماند، از لحظه‌ی انتشار.">
           <Input
             id="starts-at"
             type="datetime-local"
@@ -32,7 +32,7 @@ export function ScheduleStep({ editor }: { editor: ActivityEditorApi }) {
           label={state.type === 'mission' ? 'پایان (مهلت انجام)' : 'پایان'}
           htmlFor="ends-at"
           error={errors.endsAt}
-          hint="خالی یعنی تا وقتی خودت ببندیش."
+          hint="اگر خالی بماند، تا زمانی که آن را ببندید."
         >
           <Input
             id="ends-at"
@@ -46,8 +46,8 @@ export function ScheduleStep({ editor }: { editor: ActivityEditorApi }) {
       </div>
       <Alert>
         <AlertDescription>
-          اعلان (پوش یا پیامک) برای فعالیت‌های جدید هنوز ممکن نیست: محصول ماژول اعلان نداره. فعالیت منتشرشده توی صفحه‌ی
-          خانه‌ی مخاطبانش نشون داده می‌شه.
+          ارسال خودکار اعلان برای فعالیت‌های جدید هنوز فعال نیست؛ برای اطلاع‌رسانی از بخش «اعلان‌ها» استفاده کنید. فعالیت منتشرشده در صفحه‌ی
+          خانه‌ی مخاطبان خود نمایش داده می‌شود.
         </AlertDescription>
       </Alert>
     </div>

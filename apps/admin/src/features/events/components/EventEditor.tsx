@@ -45,7 +45,7 @@ const TAB_TRIGGER = 'shrink-0 px-3 data-[state=active]:border-foreground data-[s
 
 const SUCCESS: Record<EventStatusAction, string> = {
   publish: 'منتشر شد',
-  unpublish: 'انتشارش لغو شد',
+  unpublish: 'انتشار لغو شد',
   cancel: 'لغو شد',
   archive: 'بایگانی شد',
 };
@@ -76,7 +76,7 @@ export function EventEditor({ initial, initialTab = 'basics' }: { initial?: Admi
       const outcome = await editor.save();
       if ('section' in outcome) {
         goTo(outcome.section);
-        toast.error('چند مورد نیاز به اصلاح داره');
+        toast.error('چند مورد نیاز به اصلاح دارد');
         return;
       }
       toast.success(initial || editor.saved ? 'تغییرات ذخیره شد' : 'پیش‌نویس ذخیره شد');
@@ -91,7 +91,7 @@ export function EventEditor({ initial, initialTab = 'basics' }: { initial?: Admi
       const outcome = await editor.changeStatus(input);
       if ('section' in outcome) {
         goTo(outcome.section);
-        toast.error('برای این کار چند مورد نیاز به اصلاح داره');
+        toast.error('برای این کار، چند مورد نیاز به اصلاح دارد');
         return;
       }
       const { detail } = outcome;
@@ -122,7 +122,7 @@ export function EventEditor({ initial, initialTab = 'basics' }: { initial?: Admi
             {initial ? 'ویرایش رویداد' : 'رویداد جدید'}
             {status && <Badge variant={STATUS_BADGE[status]}>{STATUS_LABELS[status]}</Badge>}
           </h1>
-          {status === 'archived' && <p className="text-sm text-muted-foreground">رویداد بایگانی‌شده ویرایش نمی‌شه.</p>}
+          {status === 'archived' && <p className="text-sm text-muted-foreground">رویداد بایگانی‌شده قابل ویرایش نیست.</p>}
         </div>
         {writable && (
           <Button variant="outline" onClick={save} loading={editor.busy}>

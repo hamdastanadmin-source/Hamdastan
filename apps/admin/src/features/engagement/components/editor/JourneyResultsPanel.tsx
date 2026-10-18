@@ -63,7 +63,7 @@ export function JourneyResultsPanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <SwitchRow id="result-enabled" label="کارت شخصیت نهایی" hint="بعد از تموم کردن همه‌ی روزها، هر نفر یک شخصیت می‌گیره که ثابت می‌مونه.">
+      <SwitchRow id="result-enabled" label="کارت شخصیت نهایی" hint="پس از تکمیل همه‌ی روزها، به هر کاربر یک شخصیت اختصاص می‌یابد که ثابت می‌ماند.">
         <Switch id="result-enabled" checked={result.enabled} onCheckedChange={(enabled) => set({ enabled })} />
       </SwitchRow>
 
@@ -75,8 +75,8 @@ export function JourneyResultsPanel({
                 ویژگی‌ها
               </h4>
               <p className="text-xs text-muted-foreground">
-                هر گزینه‌ی سؤال می‌تونه به یک یا چند ویژگی امتیاز بده (در مرحله‌ی سؤال‌ها، زیر گزینه‌ها). ترتیب این لیست، در
-                تساوی، برنده رو تعیین می‌کنه.
+                هر گزینه‌ی سؤال می‌تواند به یک یا چند ویژگی امتیاز بدهد (در مرحله‌ی سؤال‌ها، زیر گزینه‌ها). در صورت تساوی، ترتیب این فهرست
+                برنده را تعیین می‌کند.
               </p>
             </div>
             {result.traits.map((trait, t) => (
@@ -211,11 +211,11 @@ export function JourneyResultsPanel({
                 label="نتیجه‌ی پیش‌فرض"
                 htmlFor="result-default"
                 error={error('defaultCharacterId')}
-                hint="وقتی امتیازی ثبت نشده یا برای ویژگیِ برتر شخصیتی تعریف نشده."
+                hint="برای زمانی که امتیازی ثبت نشده یا برای ویژگی برتر، شخصیتی تعریف نشده است."
               >
                 <Select value={result.defaultCharacterId ?? undefined} onValueChange={(defaultCharacterId) => set({ defaultCharacterId })}>
                   <SelectTrigger id="result-default" className="w-full sm:w-72" {...invalid(error('defaultCharacterId'))}>
-                    <SelectValue placeholder="انتخاب کن" />
+                    <SelectValue placeholder="انتخاب کنید" />
                   </SelectTrigger>
                   <SelectContent>
                     {result.characters.map((character, c) => (
@@ -242,10 +242,10 @@ export function JourneyResultsPanel({
                   onChange={(event) => setCard({ brandName: event.target.value })}
                 />
               </Field>
-              <Field label="لوگو" hint="خالی باشه، لوگوی هم‌داستان.">
+              <Field label="لوگو" hint="اگر خالی بماند، لوگوی هم‌داستان استفاده می‌شود.">
                 <MediaField value={result.card.logoId} onChange={(logoId) => setCard({ logoId })} kind="image" category="result" pickerTitle="لوگوی کارت" />
               </Field>
-              <SwitchRow id="card-background" label="رنگ اختصاصی کارت" hint="خاموش باشه، زمینه‌ی خود اپ.">
+              <SwitchRow id="card-background" label="رنگ اختصاصی کارت" hint="اگر خاموش باشد، رنگ زمینه‌ی اپلیکیشن استفاده می‌شود.">
                 <div className="flex items-center gap-3">
                   {result.card.background && (
                     <Input
@@ -263,7 +263,7 @@ export function JourneyResultsPanel({
                   />
                 </div>
               </SwitchRow>
-              <SwitchRow id="card-name" label="نام کاربر روی کارت" hint="کاربر خودش هم می‌تونه قبل از دانلود خاموشش کنه.">
+              <SwitchRow id="card-name" label="نام کاربر روی کارت" hint="کاربر نیز می‌تواند پیش از دانلود آن را خاموش کند.">
                 <Switch id="card-name" checked={result.card.showUserName} onCheckedChange={(showUserName) => setCard({ showUserName })} />
               </SwitchRow>
             </div>

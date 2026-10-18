@@ -122,7 +122,7 @@ export function BookingsPanel({ eventId }: { eventId: string }) {
               <TableCell colSpan={COLUMNS} className="h-32 text-center">
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <Ticket aria-hidden="true" className="size-8" />
-                  هنوز کسی ثبت‌نام یا خرید نکرده
+                  هنوز کسی ثبت‌نام یا خرید نکرده است
                 </div>
               </TableCell>
             </TableRow>
@@ -190,8 +190,8 @@ export function BookingsPanel({ eventId }: { eventId: string }) {
             <DialogTitle>{reviewing && `${REVIEW_LABELS[reviewing.status]} — ${reviewing.booking.person.name || reviewing.booking.person.phone}`}</DialogTitle>
             <DialogDescription>
               {reviewing?.status === 'confirmed'
-                ? 'فقط وقتی تأیید کن که فیدیبو خرید رو تأیید کرده باشه. شناسه‌ی خرید فیدیبو رو برای پیگیری وارد کن.'
-                : 'کاربر این وضعیت رو توی «رویدادهای من» می‌بینه.'}
+                ? 'فقط زمانی تأیید کنید که فیدیبو خرید را تأیید کرده باشد. برای پیگیری، شناسه‌ی خرید فیدیبو را وارد کنید.'
+                : 'کاربر این وضعیت را در «رویدادهای من» می‌بیند.'}
             </DialogDescription>
           </DialogHeader>
           <Field label="شناسه‌ی خرید در فیدیبو" htmlFor="external-ref" hint="اختیاری.">

@@ -154,7 +154,7 @@ export function QuestionEditor({
         </label>
       </div>
 
-        <Field label="تصویر سؤال (اختیاری)" error={error('imageId')} hint="کامل نشون داده می‌شه، بدون برش یا کشیدگی.">
+        <Field label="تصویر سؤال (اختیاری)" error={error('imageId')} hint="به‌صورت کامل و بدون برش یا کشیدگی نمایش داده می‌شود.">
           <MediaField
             value={question.imageId}
             onChange={(imageId) =>
@@ -228,7 +228,7 @@ export function QuestionEditor({
                           )
                         )
                       }
-                      aria-label={`گزینه‌ی ${toPersianDigits(index + 1)} درسته`}
+                      aria-label={`گزینه‌ی ${toPersianDigits(index + 1)} درست است`}
                       className={NEUTRAL_CHECKBOX}
                     />
                   )}
@@ -281,10 +281,10 @@ export function QuestionEditor({
                 گزینه‌ی جدید
               </Button>
               {knowledge && (
-                <p className="text-xs text-muted-foreground">تیک، گزینه‌ی درست رو مشخص می‌کنه.</p>
+                <p className="text-xs text-muted-foreground">گزینه‌ی درست را با تیک مشخص کنید.</p>
               )}
               {personality && (
-                <p className="text-xs text-muted-foreground">عدد کنار هر گزینه، امتیاز اون گزینه برای بُعدِ این سؤاله.</p>
+                <p className="text-xs text-muted-foreground">عدد کنار هر گزینه، امتیاز آن گزینه برای بُعد این سؤال است.</p>
               )}
             </div>
             {traits.length > 0 && (
@@ -298,7 +298,7 @@ export function QuestionEditor({
             label="سقف انتخاب (اختیاری)"
             htmlFor={`${id}-max`}
             error={error('maxSelections')}
-            hint="خالی یعنی بدون محدودیت."
+            hint="اگر خالی بماند، محدودیتی ندارد."
           >
             <Input
               id={`${id}-max`}
@@ -376,7 +376,7 @@ export function QuestionEditor({
 
         {personality && question.kind !== 'text' && (
           <div className="flex flex-wrap items-end gap-4">
-            <Field label="بُعدی که می‌سنجه" htmlFor={`${id}-dimension`} error={error('dimensionId')}>
+            <Field label="بُعد مورد سنجش" htmlFor={`${id}-dimension`} error={error('dimensionId')}>
               <Select
                 value={question.dimensionId ?? ''}
                 onValueChange={(dimensionId) => onChange({ ...question, dimensionId })}
@@ -408,7 +408,7 @@ export function QuestionEditor({
           <AccordionItem value="motion" className="border-b-0">
             <AccordionTrigger>موشن بعد از پاسخ این سؤال</AccordionTrigger>
             <AccordionContent className="flex flex-col gap-4">
-              <SwitchRow id={`${id}-own-motion`} label="موشن اختصاصی این سؤال" hint="خاموش باشه، موشنِ روز (یا موشن عمومی چالش) پخش می‌شه.">
+              <SwitchRow id={`${id}-own-motion`} label="موشن اختصاصی این سؤال" hint="اگر خاموش باشد، موشن روز (یا موشن عمومی چالش) پخش می‌شود.">
                 <Switch
                   id={`${id}-own-motion`}
                   checked={Boolean(question.motion)}

@@ -52,9 +52,9 @@ const FIELDS = ['firstName', 'lastName', 'phone', 'status', 'role'] as const;
 /** One line on what each role opens, so the choice is an informed one. */
 const ROLE_HINTS: Record<(typeof ADMIN_ROLES)[number], string> = {
   system_admin: 'همه‌ی بخش‌ها، از جمله مدیریت کاربران پنل، نشست‌ها، خروجی و لغو XP.',
-  content_manager: 'ساخت، ویرایش و انتشار فعالیت‌ها و رویدادها، مدیریت دنیاها، دیدن آمار کلی و ارسال اعلان به مخاطب انتخابی (نه همه).',
-  mission_reviewer: 'بررسی مأموریت‌ها و دیدن پاسخ‌های فردی؛ بدون ویرایش و انتشار.',
-  notification_manager: 'ساخت، زمان‌بندی و ارسال کمپین‌های اعلان، از جمله به همه‌ی کاربران، و دیدن گزارش‌ها.',
+  content_manager: 'ساخت، ویرایش و انتشار فعالیت‌ها و رویدادها، مدیریت دنیاها، مشاهده‌ی آمار کلی و ارسال اعلان به مخاطب انتخابی (نه همه).',
+  mission_reviewer: 'بررسی مأموریت‌ها و مشاهده‌ی پاسخ‌های فردی؛ بدون ویرایش و انتشار.',
+  notification_manager: 'ساخت، زمان‌بندی و ارسال کمپین‌های اعلان، از جمله به همه‌ی کاربران، و مشاهده‌ی گزارش‌ها.',
 };
 
 /**
@@ -103,7 +103,7 @@ export function UserFormDialog({ open, onOpenChange, user, isSelf, onSubmit }: U
         <DialogHeader>
           <DialogTitle>{user ? 'ویرایش کاربر' : 'کاربر جدید'}</DialogTitle>
           <DialogDescription>
-            این کاربر با همین شماره و کد یک‌بارمصرف وارد پنل مدیریت می‌شه.
+            این کاربر با همین شماره و کد یک‌بارمصرف وارد پنل مدیریت می‌شود.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,8 +176,8 @@ export function UserFormDialog({ open, onOpenChange, user, isSelf, onSubmit }: U
                   </Select>
                   <FormDescription>
                     {isSelf
-                      ? 'وضعیت حساب خودت رو نمی‌تونی تغییر بدی.'
-                      : 'کاربر غیرفعال نمی‌تونه وارد بشه و نشست‌های بازش بسته می‌شه.'}
+                      ? 'امکان تغییر وضعیت حساب خودتان وجود ندارد.'
+                      : 'کاربر غیرفعال نمی‌تواند وارد شود و نشست‌های باز او بسته می‌شود.'}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -204,7 +204,7 @@ export function UserFormDialog({ open, onOpenChange, user, isSelf, onSubmit }: U
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    {isSelf ? 'نقش خودت رو نمی‌تونی تغییر بدی.' : field.value ? ROLE_HINTS[field.value] : 'هر نقش فقط به بخش‌های خودش دسترسی داره.'}
+                    {isSelf ? 'امکان تغییر نقش خودتان وجود ندارد.' : field.value ? ROLE_HINTS[field.value] : 'هر نقش فقط به بخش‌های مربوط به خود دسترسی دارد.'}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

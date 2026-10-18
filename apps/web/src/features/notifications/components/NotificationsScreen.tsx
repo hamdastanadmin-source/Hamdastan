@@ -24,7 +24,7 @@ const CHIP =
   'h-9 shrink-0 rounded-full border border-border px-4 text-sm data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:font-semibold data-[state=on]:text-background';
 
 const failure = (error: unknown) =>
-  error instanceof HttpError ? error.message : 'ارتباط با سرور برقرار نشد. اینترنتت رو بررسی کن.';
+  error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.';
 
 const EMPTY: Partial<Record<NotificationFilter, string>> = {
   all: 'هنوز اعلانی نداری',
@@ -129,10 +129,10 @@ export function NotificationsScreen({ initial }: { initial: NotificationInbox | 
         ) : status === 'error' ? (
           <Alert variant="destructive">
             <CircleAlert aria-hidden="true" />
-            <AlertTitle>اعلان‌ها بارگذاری نشدن</AlertTitle>
+            <AlertTitle>اعلان‌ها باز نشدن</AlertTitle>
             <AlertDescription>
               <Button variant="outline" size="sm" className="mt-2" onClick={inbox.reload}>
-                تلاش دوباره
+                دوباره امتحان کن
               </Button>
             </AlertDescription>
           </Alert>

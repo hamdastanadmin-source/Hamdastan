@@ -219,7 +219,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
           {data?.anonymous && (
             <p className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
               <Lock aria-hidden="true" className="size-3.5" />
-              نظرسنجی ناشناسه: فیلتر گروه، نام و شماره‌ی پاسخ‌دهنده‌ها در دسترس نیست.
+              این نظرسنجی ناشناس است؛ فیلتر گروه و نام و شماره‌ی پاسخ‌دهندگان در دسترس نیست.
             </p>
           )}
         </CardContent>
@@ -239,7 +239,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
       </div>
       {data?.filtered && (
         <p className="-mt-3 text-xs text-muted-foreground">
-          شاخص‌های بالا کل فعالیت رو نشون می‌دن؛ آمار سؤال‌ها با فیلتر محاسبه شده ({formatCount(data.responses)} پاسخ).
+          شاخص‌های بالا مربوط به کل فعالیت است؛ آمار سؤال‌ها بر اساس فیلتر محاسبه شده است ({formatCount(data.responses)} پاسخ).
         </p>
       )}
 

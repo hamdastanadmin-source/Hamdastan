@@ -41,9 +41,9 @@ export const ACTIONS_FOR: Record<EventStatus, EventStatusAction[]> = {
 
 /** The actions that take an event away from people, and so ask first. */
 export const CONFIRM_COPY: Partial<Record<EventStatusAction, string>> = {
-  unpublish: 'رویداد از همه‌جای محصول برداشته می‌شه تا دوباره منتشرش کنی. علاقه‌مندی‌ها و رزروها می‌مونن.',
-  cancel: 'رویداد با برچسب «لغو شد» دیده می‌شه و دیگه ثبت‌نام یا خرید نداره. این کار برگشت‌پذیر نیست.',
-  archive: 'رویداد از محصول و ویرایش خارج می‌شه. سابقه و رزروها می‌مونن.',
+  unpublish: 'رویداد تا انتشار دوباره از همه‌ی بخش‌های اپلیکیشن برداشته می‌شود. علاقه‌مندی‌ها و رزروها حفظ می‌شوند.',
+  cancel: 'رویداد با برچسب «لغو شد» نمایش داده می‌شود و امکان ثبت‌نام یا خرید آن از بین می‌رود. این کار برگشت‌پذیر نیست.',
+  archive: 'رویداد از اپلیکیشن حذف و غیرقابل ویرایش می‌شود. سابقه و رزروها حفظ می‌شوند.',
 };
 
 export const BOOKING_STATUS_LABELS: Record<EventBookingStatus, string> = {
@@ -70,8 +70,8 @@ export const HISTORY_LABELS: Record<string, string> = {
   create: 'ساخته شد',
   update: 'ویرایش شد',
   publish: 'منتشر شد',
-  schedule: 'انتشارش زمان‌بندی شد',
-  unpublish: 'انتشارش لغو شد',
+  schedule: 'انتشار زمان‌بندی شد',
+  unpublish: 'انتشار لغو شد',
   cancel: 'لغو شد',
   archive: 'بایگانی شد',
   duplicate: 'از رویداد دیگری تکثیر شد',

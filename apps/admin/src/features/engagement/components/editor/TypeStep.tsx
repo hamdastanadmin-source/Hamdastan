@@ -12,19 +12,19 @@ import { switchType } from '../../utils/draft';
 const TYPES: Record<ActivityType, { icon: LucideIcon; body: string }> = {
   survey: {
     icon: ClipboardList,
-    body: 'چند سؤال از کاربرها؛ می‌تونه ناشناس باشه. XP بعد از ثبت پاسخ معتبر داده می‌شه.',
+    body: 'چند سؤال از کاربران، با امکان پاسخ ناشناس. XP پس از ثبت پاسخ معتبر اعطا می‌شود.',
   },
   mission: {
     icon: Flag,
-    body: 'یک کار چندمرحله‌ای با مدرک انجام. XP بعد از تکمیل — و اگه بخوای، بعد از تأیید تو — داده می‌شه.',
+    body: 'یک کار چندمرحله‌ای همراه با مدرک انجام. XP پس از تکمیل — و در صورت تمایل، پس از تأیید شما — اعطا می‌شود.',
   },
   assessment: {
     icon: GraduationCap,
-    body: 'آزمون دانشی یا شخصیت‌شناسی با نتیجه. XP مستقل از نتیجه‌ست، مگه اینکه شرط قبولی بذاری.',
+    body: 'آزمون دانشی یا شخصیت‌شناسی همراه با نتیجه. XP مستقل از نتیجه اعطا می‌شود، مگر اینکه شرط قبولی تعیین کنید.',
   },
   journey: {
     icon: CalendarDays,
-    body: 'یک ماجرای چندروزه؛ هر روز یک مرحله‌ی تازه باز می‌شه. XP برای هر پاسخ، هر روز و پایان چالش.',
+    body: 'یک ماجرای چندروزه که هر روز یک مرحله‌ی تازه از آن باز می‌شود. XP برای هر پاسخ، هر روز و پایان چالش.',
   },
 };
 
@@ -35,7 +35,7 @@ export function TypeStep({ editor }: { editor: ActivityEditorApi }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        {locked ? 'نوع فعالیتِ منتشرشده عوض نمی‌شه.' : 'چه چیزی می‌خوای بسازی؟'}
+        {locked ? 'نوع فعالیتِ منتشرشده قابل تغییر نیست.' : 'چه نوع فعالیتی می‌خواهید بسازید؟'}
       </p>
       <ToggleGroup
         type="single"

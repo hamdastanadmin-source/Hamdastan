@@ -8,7 +8,7 @@ export const STATUS_LABELS: Record<ParticipationStatus, string> = {
   in_progress: 'نیمه‌کاره',
   pending_review: 'در انتظار تأیید',
   completed: 'انجام شده',
-  rejected: 'نیاز به انجام دوباره',
+  rejected: 'باید دوباره انجامش بدی',
 };
 
 export const minutesLabel = (minutes: number) => `حدود ${toPersianDigits(minutes)} دقیقه`;

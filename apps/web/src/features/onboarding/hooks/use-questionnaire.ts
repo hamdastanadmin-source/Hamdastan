@@ -55,7 +55,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 function reportError(error: unknown) {
   // The API answers in Persian; only "never arrived" needs our wording.
   toast.error(
-    error instanceof HttpError ? error.message : 'ارتباط با سرور برقرار نشد. اینترنتت رو بررسی کن.'
+    error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.'
   );
 }
 

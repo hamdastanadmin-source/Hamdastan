@@ -88,10 +88,10 @@ export function AudiencePicker({
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
-      {!canBroadcast && <p className="-mt-3 text-xs text-muted-foreground">ارسال به همه‌ی کاربران برای نقش تو مجاز نیست.</p>}
+      {!canBroadcast && <p className="-mt-3 text-xs text-muted-foreground">ارسال به همه‌ی کاربران برای نقش شما مجاز نیست.</p>}
 
       {value.kind === 'world' && (
-        <Field label="دنیاها" error={errorUnder('audience.worldIds')} hint="کسانی که به یکی از رویدادهای این دنیاها علاقه نشون دادن یا ثبت‌نامشون قطعی شده.">
+        <Field label="دنیاها" error={errorUnder('audience.worldIds')} hint="کاربرانی که به یکی از رویدادهای این دنیاها علاقه نشان داده‌اند یا ثبت‌نام قطعی دارند.">
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {(options?.worlds ?? []).map((world) => (
               <li key={world.id}>
@@ -115,7 +115,7 @@ export function AudiencePicker({
           <Field label="رویداد" error={errorUnder('audience.eventId')}>
             <Select value={value.eventId || undefined} onValueChange={(eventId) => onChange({ ...value, eventId })} disabled={disabled}>
               <SelectTrigger className="w-full" {...invalid(errorUnder('audience.eventId'))}>
-                <SelectValue placeholder="یک رویداد منتشرشده انتخاب کن" />
+                <SelectValue placeholder="یک رویداد منتشرشده انتخاب کنید" />
               </SelectTrigger>
               <SelectContent>
                 {(options?.events ?? []).map((event) => (
@@ -126,7 +126,7 @@ export function AudiencePicker({
               </SelectContent>
             </Select>
           </Field>
-          <Field label="کدوم افراد">
+          <Field label="کدام کاربران">
             <ToggleGroup
               type="single"
               value={value.relation}
@@ -147,7 +147,7 @@ export function AudiencePicker({
       )}
 
       {value.kind === 'interests' && (
-        <Field label="گروه‌ها" error={errorUnder('audience.categoryIds')} hint="کسانی که توی آنبوردینگ دست‌کم یکی از علاقه‌مندی‌های این دسته‌ها رو انتخاب کردن.">
+        <Field label="گروه‌ها" error={errorUnder('audience.categoryIds')} hint="کاربرانی که در آنبوردینگ دست‌کم یکی از علاقه‌مندی‌های این دسته‌ها را انتخاب کرده‌اند.">
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {INTEREST_CATEGORIES.map((category) => (
               <li key={category.id}>
@@ -167,7 +167,7 @@ export function AudiencePicker({
       )}
 
       {value.kind === 'users' && (
-        <Field label="شماره‌های موبایل" htmlFor="campaign-phones" error={errorUnder('audience.phones')} hint="هر شماره در یک خط، یا با ویرگول جدا.">
+        <Field label="شماره‌های موبایل" htmlFor="campaign-phones" error={errorUnder('audience.phones')} hint="هر شماره در یک خط یا جداشده با ویرگول.">
           <Textarea
             id="campaign-phones"
             dir="ltr"
@@ -187,8 +187,8 @@ export function AudiencePicker({
       <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
         <Users aria-hidden="true" className="size-4" />
         {estimate === null
-          ? 'مخاطب رو کامل کن تا شمرده بشه'
-          : `${formatCount(estimate.eligible)} کاربر فعال این اعلان رو می‌گیرن؛ ${formatCount(estimate.push)} نفرشون روی گوشی هم`}
+          ? 'برای محاسبه‌ی تعداد، مخاطب را کامل کنید'
+          : `${formatCount(estimate.eligible)} کاربر فعال این اعلان را دریافت می‌کنند؛ ${formatCount(estimate.push)} نفر از آن‌ها روی گوشی نیز`}
       </p>
     </div>
   );

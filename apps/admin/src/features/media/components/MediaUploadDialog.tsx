@@ -86,7 +86,7 @@ export function MediaUploadDialog({
   };
 
   const submit = async () => {
-    if (!file) return setError('فایل رو انتخاب کن');
+    if (!file) return setError('فایل را انتخاب کنید');
     if (!replacing) {
       const checked = mediaUploadSchema.pick({ name: true, category: true }).safeParse({ name, category });
       if (!checked.success) return setError(checked.error.issues[0].message);
@@ -113,7 +113,7 @@ export function MediaUploadDialog({
           <DialogTitle>{replacing ? `جایگزینی «${replacing.name}»` : 'بارگذاری فایل'}</DialogTitle>
           <DialogDescription>
             تصویر PNG، JPEG یا WebP، یا موشن Lottie (JSON)، WebM یا MP4 — حداکثر {formatSize(MEDIA_LIMITS.MAX_BYTES)}.
-            {replacing && ' هر جا این فایل استفاده شده، فایل جدید نشون داده می‌شه.'}
+            {replacing && ' در همه‌ی بخش‌هایی که این فایل استفاده شده، فایل جدید نمایش داده می‌شود.'}
           </DialogDescription>
         </DialogHeader>
 

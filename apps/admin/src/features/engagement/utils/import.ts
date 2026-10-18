@@ -25,7 +25,7 @@ export function mergeImported(
   const valid = rows.filter((row): row is ImportedQuestionRow & { question: ActivityQuestion } => row.question !== null);
   const total = definition.steps.reduce((sum, step) => sum + step.questions.length, 0) + valid.length;
   if (total > limits.questions) {
-    return { error: `با این سؤال‌ها از سقف ${toPersianDigits(limits.questions)} سؤال رد می‌شی` };
+    return { error: `با افزودن این سؤال‌ها، تعداد سؤال‌ها از سقف ${toPersianDigits(limits.questions)} سؤال بیشتر می‌شود` };
   }
 
   const steps = definition.steps.map((step) => ({ ...step, questions: [...step.questions] }));
@@ -49,7 +49,7 @@ export function mergeImported(
           ? steps.find((s) => s.title === stepTitle)
           : steps.at(-1);
     if (!step) {
-      if (steps.length >= limits.steps) return { error: 'تعداد مرحله‌ها از سقف بیشتر می‌شه' };
+      if (steps.length >= limits.steps) return { error: 'تعداد مرحله‌ها از سقف مجاز بیشتر می‌شود' };
       step = { id: newKey(), title: stepTitle, description: '', questions: [] };
       steps.push(step);
     }

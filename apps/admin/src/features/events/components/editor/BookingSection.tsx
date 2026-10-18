@@ -83,15 +83,15 @@ export function BookingSection({ editor }: SectionProps) {
           </div>
           <Alert>
             <AlertDescription>
-              کاربر برای خرید به فیدیبو آرت می‌ره و رزروش «در انتظار تأیید» ثبت می‌شه. وقتی فیدیبو خرید رو تأیید کرد، از زبانه‌ی
-              «رزروها» تأییدش کن.
+              کاربر برای خرید به فیدیبو آرت هدایت می‌شود و رزرو او با وضعیت «در انتظار تأیید» ثبت می‌شود. پس از تأیید خرید توسط فیدیبو، از زبانه‌ی
+              «رزروها» آن را تأیید کنید.
             </AlertDescription>
           </Alert>
         </>
       )}
 
       {state.bookingMode === 'free_registration' && (
-        <Field label="ظرفیت" htmlFor="capacity" error={errors.capacity} hint="خالی یعنی بدون محدودیت.">
+        <Field label="ظرفیت" htmlFor="capacity" error={errors.capacity} hint="اگر خالی بماند، محدودیتی ندارد.">
           <Input
             id="capacity"
             dir="ltr"
@@ -108,7 +108,7 @@ export function BookingSection({ editor }: SectionProps) {
         <Field
           label="انواع بلیت"
           error={errors.tickets}
-          hint={`اختیاری، حداکثر ${toPersianDigits(EVENT_LIMITS.TICKETS_MAX)} نوع. اگه بلیتی تعریف بشه، کاربر یکی رو انتخاب می‌کنه.`}
+          hint={`اختیاری، حداکثر ${toPersianDigits(EVENT_LIMITS.TICKETS_MAX)} نوع. اگر بلیتی تعریف شود، کاربر یکی را انتخاب می‌کند.`}
         >
           <ul className="flex flex-col gap-3">
             {tickets.map((ticket, index) => (
@@ -132,7 +132,7 @@ export function BookingSection({ editor }: SectionProps) {
                     {...invalid(ticketError(index, 'priceToman'))}
                   />
                 </Field>
-                <Field label="ظرفیت" htmlFor={`${ticket.key}-capacity`} error={ticketError(index, 'capacity')} hint="خالی یعنی بدون محدودیت.">
+                <Field label="ظرفیت" htmlFor={`${ticket.key}-capacity`} error={ticketError(index, 'capacity')} hint="اگر خالی بماند، محدودیتی ندارد.">
                   <Input
                     id={`${ticket.key}-capacity`}
                     dir="ltr"

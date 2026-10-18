@@ -76,14 +76,14 @@ export default async function HomePage() {
               <span className="font-semibold">پروفایل اجتماعی‌ات آماده‌ست</span>
               <span className="text-xs text-muted-foreground">{socialProfile.title}</span>
             </span>
-            <span className="text-xs text-muted-foreground">مشاهده نتیجه</span>
+            <span className="text-xs text-muted-foreground">دیدن نتیجه</span>
             {/* rtl-ok: "forward" points left in an RTL layout. */}
             <ChevronLeft aria-hidden="true" className="size-4 text-muted-foreground" />
           </Link>
         ) : (
           <PersonalityTestCard
             title="یه قدم مونده تا بیشتر بشناسیمت"
-            body="آزمون کوتاهت رو کامل کن تا تجربه‌ها و آدم‌های مناسب‌تری برات پیدا کنیم."
+            body="هرچی بیشتر بشناسیمت، پیشنهادهای جذاب‌تری برات داریم. لازم نیست همه‌چی رو همین الان کامل کنی؛ هر وقت خواستی برگرد و ادامه بده."
             className="animate-in fade-in slide-in-from-bottom-1 duration-300 motion-reduce:animate-none"
           />
         )}

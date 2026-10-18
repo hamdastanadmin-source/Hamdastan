@@ -17,7 +17,7 @@ test('Welcome leads to the phone screen', async ({ page }) => {
   await page.goto('/welcome');
 
   await expect(
-    page.getByRole('heading', { name: 'دنیاهای داستانی‌ات منتظرتن' })
+    page.getByRole('heading', { name: 'خوش اومدی به هم‌داستان!' })
   ).toBeVisible();
 
   await page.getByRole('link', { name: 'شروع کنیم' }).click();
@@ -99,5 +99,5 @@ test('the verify screen shows the number it is waiting on', async ({ page }) => 
 
   await expect(page.getByRole('heading', { name: 'کد تأیید رو وارد کن' })).toBeVisible();
   await expect(page.getByText('۰۹۱۲۳۴۵۶۷۸۹')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'ویرایش شماره' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'تغییر شماره' })).toBeVisible();
 });

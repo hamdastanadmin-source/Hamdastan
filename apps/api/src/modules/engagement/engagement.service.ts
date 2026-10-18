@@ -227,8 +227,8 @@ async function checkMedia(input: ActivityInputOutput): Promise<void> {
   const fields: Record<string, string> = {};
   for (const ref of refs) {
     const kind = kinds.get(ref.id);
-    if (!kind) fields[ref.path] ??= 'این فایل توی کتابخانه نیست؛ دوباره انتخابش کن';
-    else if (ref.needs && kind !== ref.needs) fields[ref.path] ??= 'اینجا فقط تصویر می‌شه گذاشت';
+    if (!kind) fields[ref.path] ??= 'این فایل در کتابخانه وجود ندارد؛ دوباره انتخابش کنید';
+    else if (ref.needs && kind !== ref.needs) fields[ref.path] ??= 'در این بخش فقط تصویر قابل استفاده است';
   }
   if (Object.keys(fields).length > 0) throw new ValidationError(Object.values(fields)[0], { fields });
 }
@@ -441,10 +441,10 @@ export const engagementService = {
   async update(actor: AdminRecord, id: string, input: ActivityInputOutput): Promise<AdminActivityDetail> {
     const current = await requireActivity(id);
     if (current.status === 'archived') {
-      throw new AppError(409, CODES.ACTIVITY_ARCHIVED, 'فعالیت بایگانی‌شده رو نمی‌شه ویرایش کرد');
+      throw new AppError(409, CODES.ACTIVITY_ARCHIVED, 'فعالیت بایگانی‌شده قابل ویرایش نیست');
     }
     if (current.status !== 'draft' && input.type !== current.type) {
-      throw new ValidationError('نوع فعالیتِ منتشرشده عوض نمی‌شه', { fields: { type: 'نوع فعالیتِ منتشرشده عوض نمی‌شه' } });
+      throw new ValidationError('نوع فعالیتِ منتشرشده قابل تغییر نیست', { fields: { type: 'نوع فعالیتِ منتشرشده قابل تغییر نیست' } });
     }
 
     await checkMedia(input);
@@ -458,8 +458,8 @@ export const engagementService = {
   async changeStatus(actor: AdminRecord, id: string, action: ActivityStatusAction): Promise<AdminActivityDetail> {
     const current = await requireActivity(id);
     if (action === 'publish' && current.endsAt && current.endsAt <= new Date()) {
-      throw new ValidationError('تاریخ پایانِ این فعالیت گذشته؛ اول زمان‌بندی رو درست کن', {
-        fields: { endsAt: 'پایان باید در آینده باشه' },
+      throw new ValidationError('تاریخ پایان این فعالیت گذشته است؛ ابتدا زمان‌بندی را اصلاح کنید', {
+        fields: { endsAt: 'زمان پایان باید در آینده باشد' },
       });
     }
 
@@ -603,7 +603,7 @@ export const engagementService = {
     note: string | undefined
   ): Promise<{ xpAwarded: number }> {
     const target = await engagementRepository().findReviewTarget(responseId);
-    if (!target) throw new NotFoundError('پاسخ پیدا نشد');
+    if (!target) throw new NotFoundError('پاسخ یافت نشد');
 
     const { xp } = target.definition;
     const outcome = await engagementRepository().review({
@@ -629,8 +629,8 @@ export const engagementService = {
       }
       return { xpAwarded: outcome.xpAwarded };
     }
-    if (outcome.status === 'not_found') throw new NotFoundError('پاسخ پیدا نشد');
-    throw new AppError(409, CODES.SUBMISSION_ALREADY_REVIEWED, 'این پاسخ قبلاً بررسی شده');
+    if (outcome.status === 'not_found') throw new NotFoundError('پاسخ یافت نشد');
+    throw new AppError(409, CODES.SUBMISSION_ALREADY_REVIEWED, 'این پاسخ قبلاً بررسی شده است');
   },
 
   async grants(id: string, query: { page: number; pageSize: number }): Promise<Paginated<AdminXpGrant>> {
@@ -653,11 +653,11 @@ export const engagementService = {
     const outcome = await progressService.revoke(transactionId, reason, actor.id);
     switch (outcome.status) {
       case 'not_found':
-        throw new NotFoundError('تراکنش پیدا نشد');
+        throw new NotFoundError('تراکنش یافت نشد');
       case 'not_revocable':
-        throw new ValidationError('این تراکنش خودش یک ابطاله');
+        throw new ValidationError('این تراکنش خود یک ابطال است');
       case 'already_revoked':
-        throw new AppError(409, CODES.XP_ALREADY_REVOKED, 'این امتیاز قبلاً باطل شده');
+        throw new AppError(409, CODES.XP_ALREADY_REVOKED, 'این امتیاز قبلاً باطل شده است');
       case 'revoked':
         await engagementRepository().audit(outcome.activityId, actor.id, 'xp_revoked', {
           transactionId,

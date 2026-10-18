@@ -63,9 +63,9 @@ export function SubmissionsPanel({
       toast.success(
         decision === 'approve'
           ? xpAwarded > 0
-            ? `تأیید شد و ${toPersianDigits(xpAwarded)} XP به ${submission.user.name || 'کاربر'} داده شد`
+            ? `تأیید شد و ${toPersianDigits(xpAwarded)} XP به ${submission.user.name || 'کاربر'} اعطا شد`
             : 'تأیید شد'
-          : 'رد شد؛ کاربر می‌تونه دوباره انجامش بده'
+          : 'رد شد؛ کاربر می‌تواند آن را دوباره انجام دهد'
       );
     } catch (error) {
       toast.error(errorMessage(error));
@@ -97,7 +97,7 @@ export function SubmissionsPanel({
       </div>
 
       {loading && !data && <Skeleton className="h-40 w-full" />}
-      {data?.items.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">موردی نیست.</p>}
+      {data?.items.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">موردی وجود ندارد.</p>}
 
       {data?.items.map((submission) => (
         <Card key={submission.id} className="gap-4">
@@ -154,9 +154,9 @@ export function SubmissionsPanel({
       <ReasonDialog
         open={rejecting !== null}
         title="رد کردن پاسخ"
-        description="کاربر XP نمی‌گیره و می‌تونه مأموریت رو دوباره انجام بده. یادداشت توی سابقه می‌مونه."
+        description="کاربر XP دریافت نمی‌کند و می‌تواند مأموریت را دوباره انجام دهد. یادداشت در سابقه ثبت می‌شود."
         label="یادداشت (اختیاری)"
-        confirmLabel="رد کن"
+        confirmLabel="رد پاسخ"
         destructive
         onCancel={() => setRejecting(null)}
         onConfirm={async (note) => {

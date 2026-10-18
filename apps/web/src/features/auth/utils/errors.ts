@@ -10,7 +10,7 @@ import { HttpError } from '@/services';
  */
 export function authErrorMessage(error: unknown): string {
   if (error instanceof HttpError) return error.message;
-  return 'ارتباط با سرور برقرار نشد. اینترنتت رو بررسی کن.';
+  return 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.';
 }
 
 /** `retryAfter` from a 429, in seconds, when the API sent one. */

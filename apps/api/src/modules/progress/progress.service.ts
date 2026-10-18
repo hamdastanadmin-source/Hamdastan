@@ -32,7 +32,7 @@ function activityLabel(transaction: XpTransaction): string {
   const missionId = (
     transaction.sourceType === 'mission' ? transaction.sourceId : transaction.sourceType
   ) as MissionId;
-  return MISSION_BY_ID.get(missionId)?.doneTitle ?? 'ماموریت';
+  return MISSION_BY_ID.get(missionId)?.doneTitle ?? 'مأموریت';
 }
 
 /** The ledger, newest first, as the account screen shows it. */

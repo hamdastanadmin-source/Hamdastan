@@ -15,7 +15,7 @@ import { Screen, ScreenBody, ScreenFooter } from '@/components';
  * who has asked for less movement.
  */
 
-const HEADLINE = 'دنیاهای داستانی‌ات منتظرتن';
+const HEADLINE = 'خوش اومدی به هم‌داستان!';
 const WORDS = HEADLINE.split(' ');
 
 /**
@@ -24,7 +24,7 @@ const WORDS = HEADLINE.split(' ');
  * The headline arrives a word at a time rather than as one block — it is the
  * product's one promise, and staggering it makes the eye read it rather than
  * just see it. The step is at the slow end of the 30–50ms a list stagger
- * usually wants: there are only three words, and a faster step would be over
+ * usually wants: there are only four words, and a faster step would be over
  * before it registered as motion at all.
  */
 const MOTION = {
@@ -119,7 +119,7 @@ export function WelcomeScreen() {
             className="max-w-sm text-balance text-base leading-relaxed text-muted-foreground animate-rise-loop fill-mode-backwards motion-reduce:animate-none"
             style={{ animationDelay: `${SUBTITLE_DELAY}ms` }}
           >
-            بازی کن، امتیاز بگیر و با بقیه‌ی طرفدارها رقابت کن.
+            اینجا قراره بیشتر خودتو بشناسی، آدم‌های شبیه خودتو پیدا کنی و اتفاق‌های جالب‌تری رو تجربه کنی.
           </p>
         </div>
       </ScreenBody>
@@ -132,7 +132,7 @@ export function WelcomeScreen() {
           <Link href="/auth/phone">شروع کنیم</Link>
         </Button>
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          ورود و ثبت‌نام، هر دو با شماره موبایل
+          ورود و ثبت‌نام، هر دو فقط با شماره موبایل
         </p>
       </ScreenFooter>
     </Screen>

@@ -95,7 +95,7 @@ export function ActivitiesScreen() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">استودیو</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            نظرسنجی، مأموریت و آزمون بساز، برای کاربرها منتشر کن و نتیجه و XP رو دنبال کن.
+            نظرسنجی، مأموریت و آزمون بسازید، برای کاربران منتشر کنید و نتایج و XP را پیگیری کنید.
           </p>
         </div>
         {can('activities.write') && (
@@ -119,8 +119,8 @@ export function ActivitiesScreen() {
               type="search"
               value={filters.search}
               onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-              placeholder="جستجوی عنوان"
-              aria-label="جستجوی فعالیت‌ها"
+              placeholder="جست‌وجوی عنوان"
+              aria-label="جست‌وجوی فعالیت‌ها"
               className="ps-9"
             />
           </div>
@@ -215,7 +215,7 @@ export function ActivitiesScreen() {
                       <Sparkles aria-hidden="true" className="size-8" />
                       {filters.search || filters.status || filters.type
                         ? 'فعالیتی با این مشخصات پیدا نشد'
-                        : 'هنوز فعالیتی نساختی'}
+                        : 'هنوز فعالیتی ساخته نشده است'}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -251,7 +251,7 @@ export function ActivitiesScreen() {
                       {activity.xpAmount === null ? '—' : formatCount(activity.xpAmount)}
                     </span>
                     <span className="block text-xs text-muted-foreground tabular-nums">
-                      {formatCount(activity.stats.xpAwarded)} داده‌شده
+                      {formatCount(activity.stats.xpAwarded)} اعطاشده
                     </span>
                   </TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground xl:table-cell">

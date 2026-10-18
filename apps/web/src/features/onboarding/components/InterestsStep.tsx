@@ -43,7 +43,7 @@ export function InterestsStep({ initialInterestIds }: { initialInterestIds: stri
       toast.error(
         error instanceof HttpError
           ? error.message
-          : 'ارتباط با سرور برقرار نشد. اینترنتت رو بررسی کن.'
+          : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.'
       );
       return;
     }

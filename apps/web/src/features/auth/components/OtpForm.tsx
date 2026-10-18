@@ -89,7 +89,7 @@ export function OtpForm({ phone }: { phone: string }) {
       setError(null);
       submitted.current = null;
       setResendIn(seconds);
-      toast.success('کد دوباره فرستاده شد');
+      toast.success('یه کد جدید برات فرستادیم');
     } catch (caught) {
       toast.error(authErrorMessage(caught));
     }
@@ -106,16 +106,16 @@ export function OtpForm({ phone }: { phone: string }) {
           title="کد تأیید رو وارد کن"
           description={
             <>
-              کد {toPersianDigits(OTP.LENGTH)} رقمی به{' '}
+              یه کد {toPersianDigits(OTP.LENGTH)} رقمی به{' '}
               <span dir="ltr" className="font-medium text-foreground tabular-nums">
                 {toPersianDigits(phone)}
               </span>{' '}
-              فرستاده شد.{' '}
+              فرستادیم.{' '}
               <Link
                 href="/auth/phone"
                 className="font-medium text-foreground underline underline-offset-4"
               >
-                ویرایش شماره
+                تغییر شماره
               </Link>
             </>
           }
@@ -212,7 +212,7 @@ export function OtpForm({ phone }: { phone: string }) {
       </ScreenBody>
 
       <ScreenFooter className="flex flex-col items-center gap-1">
-        <p className="text-sm text-muted-foreground">کد رو دریافت نکردی؟</p>
+        <p className="text-sm text-muted-foreground">کد به دستت نرسید؟</p>
         {remaining > 0 ? (
           <p
             className="flex h-12 items-center text-sm font-medium tabular-nums text-foreground"
@@ -229,7 +229,7 @@ export function OtpForm({ phone }: { phone: string }) {
             className="w-full"
           >
             <RotateCcw aria-hidden="true" />
-            ارسال دوباره‌ی کد
+            دوباره بفرست
           </Button>
         )}
       </ScreenFooter>

@@ -77,7 +77,7 @@ export function OptionTraitPoints({
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-muted-foreground">خالی یعنی صفر. انتخاب هر گزینه، امتیازهاش رو به ویژگی‌ها اضافه می‌کنه.</p>
+          <p className="text-xs text-muted-foreground">خانه‌ی خالی یعنی صفر. با انتخاب هر گزینه، امتیازهای آن به ویژگی‌ها افزوده می‌شود.</p>
           {problem && <p className="text-xs text-destructive">{problem}</p>}
         </AccordionContent>
       </AccordionItem>

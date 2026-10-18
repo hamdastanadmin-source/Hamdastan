@@ -25,7 +25,7 @@ const yekanBakh = localFont({
 
 export const metadata: Metadata = {
   title: APP_NAME,
-  description: "دنیاهای داستانی‌ات منتظرتن — بازی کن، امتیاز بگیر و با بقیه‌ی طرفدارها رقابت کن.",
+  description: "اینجا قراره بیشتر خودتو بشناسی، آدم‌های شبیه خودتو پیدا کنی و اتفاق‌های جالب‌تری رو تجربه کنی.",
   manifest: "/manifest.webmanifest",
   applicationName: APP_NAME,
   appleWebApp: {

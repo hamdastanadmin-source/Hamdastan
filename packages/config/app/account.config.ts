@@ -41,7 +41,7 @@ export const MISSIONS: readonly MissionDefinition[] = [
     id: 'personality_test',
     title: 'آزمون کوتاه شخصیت',
     doneTitle: 'آزمون شخصیت',
-    description: 'چند سؤال کوتاه جواب بده تا بهتر بشناسیمت.',
+    description: 'مهم‌ترین قدم برای پیدا کردن آدم‌هایی که بیشتر باهات جورن.',
     xpReward: 50,
     ctaLabel: 'شروع آزمون',
     ctaHref: '/onboarding/questionnaire',

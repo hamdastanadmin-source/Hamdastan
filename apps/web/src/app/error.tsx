@@ -28,7 +28,7 @@ export default function Error({
         </IconBadge>
         <ScreenTitle
           title="یه مشکلی پیش اومد"
-          description="این صفحه درست بارگذاری نشد. دوباره امتحان کن."
+          description="این صفحه درست باز نشد. یه بار دیگه امتحان کن."
         />
         {error.digest && (
           <p dir="ltr" className="font-mono text-xs text-muted-foreground/60">
@@ -43,7 +43,7 @@ export default function Error({
           className="w-full"
         >
           <RotateCcw aria-hidden="true" />
-          تلاش دوباره
+          دوباره امتحان کن
         </Button>
       </ScreenFooter>
     </Screen>

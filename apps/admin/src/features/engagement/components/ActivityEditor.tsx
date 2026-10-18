@@ -74,7 +74,7 @@ export function ActivityEditor({
       const outcome = publish ? await editor.saveAndPublish() : await editor.save();
       if ('step' in outcome) {
         goTo(outcome.step);
-        toast.error('چند مورد نیاز به اصلاح داره');
+        toast.error('چند مورد نیاز به اصلاح دارد');
         return;
       }
       const { detail } = outcome;
@@ -113,7 +113,7 @@ export function ActivityEditor({
           </h1>
           {live && (
             <p className="text-sm text-muted-foreground">
-              این فعالیت منتشر شده؛ ذخیره یک نسخه‌ی جدید می‌سازه و پاسخ‌ها و XPهای قبلی دست نمی‌خورن.
+              این فعالیت منتشر شده است؛ با ذخیره، نسخه‌ی جدیدی ساخته می‌شود و پاسخ‌ها و XPهای قبلی تغییری نمی‌کنند.
             </p>
           )}
         </div>

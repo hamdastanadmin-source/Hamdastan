@@ -17,11 +17,11 @@ import { usePushDevice, type PushDeviceState } from '../hooks/use-push-device';
 import { CATEGORY_ICONS, PREFERENCE_HINTS } from '../utils/labels';
 
 const failure = (error: unknown) =>
-  error instanceof HttpError ? error.message : 'ذخیره نشد. اینترنتت رو بررسی کن و دوباره امتحان کن.';
+  error instanceof HttpError ? error.message : 'ذخیره نشد. اینترنتت رو چک کن و دوباره امتحان کن.';
 
 const DEVICE_HINTS: Record<PushDeviceState, string> = {
   checking: 'در حال بررسی…',
-  unavailable: 'این مرورگر پشتیبانی نمی‌کنه. روی آیفون، اول برنامه رو به صفحه‌ی اصلی اضافه کن.',
+  unavailable: 'این مرورگر از اعلان پشتیبانی نمی‌کنه. روی آیفون، اول برنامه رو به صفحه‌ی اصلی اضافه کن.',
   denied: 'توی تنظیمات مرورگر بسته شده؛ از همون‌جا بازش کن.',
   off: 'حتی وقتی برنامه بسته است هم خبردار می‌شی.',
   on: 'روشنه — روی همین گوشی اعلان می‌گیری.',
@@ -51,10 +51,10 @@ function SettingsUnavailable() {
         <ScreenTitle title="تنظیمات اعلان‌ها" />
         <Alert variant="destructive">
           <CircleAlert aria-hidden="true" />
-          <AlertTitle>تنظیمات اعلان‌ها بارگذاری نشد</AlertTitle>
+          <AlertTitle>تنظیمات اعلان‌ها باز نشد</AlertTitle>
           <AlertDescription>
             <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>
-              تلاش دوباره
+              دوباره امتحان کن
             </Button>
           </AlertDescription>
         </Alert>
@@ -138,7 +138,7 @@ function SettingsForm({ preferences }: { preferences: NotificationPreferences })
         )}
 
         <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-          اطلاعیه‌های مهم حساب همیشه میان. XP که با کار خودت می‌گیری فقط توی برنامه نشون داده می‌شه.
+          اطلاعیه‌های مهم حساب همیشه میان. XPهایی که با کار خودت می‌گیری فقط توی برنامه نشون داده می‌شن.
         </p>
       </ScreenBody>
     </Screen>

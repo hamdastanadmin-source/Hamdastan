@@ -83,7 +83,7 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
       toast.success(
         status === 'active'
           ? `«${fullName(user)}» فعال شد`
-          : `«${fullName(user)}» غیرفعال شد و نشست‌هاش بسته شد`
+          : `«${fullName(user)}» غیرفعال شد و نشست‌های او بسته شد`
       );
     } catch (caught) {
       toast.error(errorMessage(caught));
@@ -112,7 +112,7 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">مدیریت کاربران</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            فقط کاربران فعالِ این فهرست می‌تونن وارد پنل مدیریت بشن.
+            فقط کاربران فعال این فهرست می‌توانند وارد پنل مدیریت شوند.
           </p>
         </div>
         <Button onClick={() => setEditing({ mode: 'create' })}>
@@ -132,8 +132,8 @@ export function UsersScreen({ currentAdminId }: { currentAdminId: string }) {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="جستجوی نام یا شماره"
-              aria-label="جستجوی کاربران"
+              placeholder="جست‌وجوی نام یا شماره"
+              aria-label="جست‌وجوی کاربران"
               className="ps-9"
             />
           </div>

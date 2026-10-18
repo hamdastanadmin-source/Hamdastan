@@ -64,7 +64,7 @@ const toRecord = (row: Row): WorldRecord => ({
 /** The unique index decides, not a prior read. */
 function rethrowSlugTaken(error: unknown): never {
   if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
-    throw new AppError(409, 'WORLD_SLUG_TAKEN', 'این نامک برای دنیای دیگه‌ای ثبت شده');
+    throw new AppError(409, 'WORLD_SLUG_TAKEN', 'این نامک قبلاً برای دنیای دیگری ثبت شده است');
   }
   throw error;
 }

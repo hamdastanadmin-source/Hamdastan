@@ -46,7 +46,7 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
         router.refresh();
         return;
       }
-      toast.error(error instanceof HttpError ? error.message : 'ارتباط با سرور برقرار نشد. دوباره امتحان کن.');
+      toast.error(error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.');
     }
   };
 
@@ -189,7 +189,7 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
           </p>
         )}
         {activity.review === 'manual' && (
-          <p className="text-sm text-muted-foreground">بعد از ثبت، انجامش بررسی و تأیید می‌شه و XP بعد از تأیید میاد.</p>
+          <p className="text-sm text-muted-foreground">بعد از ثبت، کارت رو بررسی می‌کنیم و XP بعد از تأیید به حسابت میاد.</p>
         )}
         {activity.lastResult && <ResultCard result={activity.lastResult} />}
       </ScreenBody>

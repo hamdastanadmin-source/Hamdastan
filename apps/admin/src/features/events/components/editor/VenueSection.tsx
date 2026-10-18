@@ -40,7 +40,7 @@ export function VenueSection({ editor }: SectionProps) {
 
       {state.type !== 'physical' && (
         <div className="flex flex-col gap-5">
-          <Field label="لینک شرکت آنلاین" htmlFor="online-url" error={errors.onlineUrl} hint="فقط برای کسانی فرستاده می‌شه که می‌تونن شرکت کنن.">
+          <Field label="لینک شرکت آنلاین" htmlFor="online-url" error={errors.onlineUrl} hint="فقط برای کسانی ارسال می‌شود که امکان شرکت دارند.">
             <Input
               id="online-url"
               dir="ltr"

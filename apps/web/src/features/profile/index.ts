@@ -1,5 +1,5 @@
 /**
- * Profile — حساب من: هویت، آواتار، پروفایل اجتماعی، ماموریت‌ها، پیشرفت و تنظیمات.
+ * Profile — حساب من: هویت، آواتار، پروفایل اجتماعی، مأموریت‌ها، پیشرفت و تنظیمات.
  *
  * Public surface of the feature. Nothing outside it imports past this file;
  * the server-only overview read is in `./server`.

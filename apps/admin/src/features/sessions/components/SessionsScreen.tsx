@@ -84,7 +84,7 @@ export function SessionsScreen() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">نشست‌های کاربران</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          دستگاه‌هایی که یک کاربر اپلیکیشن الان باهاشون وارد شده رو ببین و هر کدوم رو که لازمه ببند.
+          دستگاه‌هایی را که کاربر اپلیکیشن در حال حاضر با آن‌ها وارد شده است ببینید و در صورت نیاز، هر کدام را ببندید.
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export function SessionsScreen() {
             </div>
             <Button type="submit" loading={loading}>
               <Search aria-hidden="true" />
-              جستجو
+              جست‌وجو
             </Button>
           </form>
           {error && (
@@ -161,7 +161,7 @@ export function SessionsScreen() {
                   <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <MonitorSmartphone aria-hidden="true" className="size-8" />
-                      نشست فعالی نداره
+                      نشست فعالی ندارد
                     </div>
                   </TableCell>
                 </TableRow>
@@ -206,8 +206,8 @@ export function SessionsScreen() {
             <DialogTitle>{pending?.kind === 'all' ? 'بستن همه‌ی نشست‌ها' : 'بستن نشست'}</DialogTitle>
             <DialogDescription>
               {pending?.kind === 'all'
-                ? `«${name}» از همه‌ی دستگاه‌هاش خارج می‌شه و برای ادامه باید دوباره وارد بشه.`
-                : `«${name}» از «${pending?.kind === 'one' ? describeDevice(pending.session.userAgent) : ''}» خارج می‌شه. بقیه‌ی دستگاه‌هاش دست‌نخورده می‌مونن.`}
+                ? `«${name}» از همه‌ی دستگاه‌ها خارج می‌شود و برای ادامه باید دوباره وارد شود.`
+                : `«${name}» از «${pending?.kind === 'one' ? describeDevice(pending.session.userAgent) : ''}» خارج می‌شود. سایر دستگاه‌ها بدون تغییر می‌مانند.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -217,7 +217,7 @@ export function SessionsScreen() {
               </Button>
             </DialogClose>
             <Button type="button" variant="destructive" onClick={confirm} loading={busy}>
-              ببند
+              بستن
             </Button>
           </DialogFooter>
         </DialogContent>

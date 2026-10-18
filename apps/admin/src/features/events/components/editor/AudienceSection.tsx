@@ -12,9 +12,9 @@ import { AudienceField } from '@/features/engagement';
 import { TOGGLE_ITEM, type SectionProps } from './types';
 
 const VISIBILITY_HINTS: Record<EventVisibility, string> = {
-  public: 'توی «رویدادها»ی محصول برای همه، و توی صفحه‌ی دنیاهایی که بهشون وصله.',
-  world: 'فقط توی صفحه‌ی دنیاهای انتخاب‌شده؛ نه توی فهرست کلی و نه توی جستجو. لینک مستقیمش برای همه باز می‌شه.',
-  restricted: 'فقط برای مخاطب انتخاب‌شده. برای بقیه — حتی با لینک مستقیم — وجود نداره.',
+  public: 'در بخش «رویدادها»ی اپلیکیشن برای همه، و در صفحه‌ی دنیاهایی که به آن‌ها متصل است.',
+  world: 'فقط در صفحه‌ی دنیاهای انتخاب‌شده؛ نه در فهرست کلی و نه در جست‌وجو. لینک مستقیم آن برای همه باز می‌شود.',
+  restricted: 'فقط برای مخاطب انتخاب‌شده. برای دیگران — حتی با لینک مستقیم — در دسترس نیست.',
 };
 
 /**
@@ -30,12 +30,12 @@ export function AudienceSection({ editor, worlds }: SectionProps) {
 
   const surfaces: string[] =
     state.visibility === 'public'
-      ? ['فهرست کلی «رویدادها»، جستجو و تقویم — برای همه', worldList ? `صفحه‌ی دنیاهای ${worldList}` : 'به هیچ دنیایی وصل نیست']
+      ? ['فهرست کلی «رویدادها»، جست‌وجو و تقویم — برای همه', worldList ? `صفحه‌ی دنیاهای ${worldList}` : 'به هیچ دنیایی متصل نیست']
       : state.visibility === 'world'
-        ? [worldList ? `فقط صفحه‌ی دنیاهای ${worldList} — برای همه` : 'هیچ‌جا: حداقل یک دنیا انتخاب کن', 'نه در فهرست کلی، نه در جستجو']
+        ? [worldList ? `فقط صفحه‌ی دنیاهای ${worldList} — برای همه` : 'هیچ‌جا؛ حداقل یک دنیا انتخاب کنید', 'نه در فهرست کلی، نه در جست‌وجو']
         : [
             `فهرست کلی${worldList ? ` و صفحه‌ی دنیاهای ${worldList}` : ''} — فقط برای مخاطب انتخاب‌شده`,
-            'برای بقیه هیچ‌جا، حتی با لینک مستقیم',
+            'برای دیگران هیچ‌جا، حتی با لینک مستقیم',
           ];
 
   return (
@@ -67,7 +67,7 @@ export function AudienceSection({ editor, worlds }: SectionProps) {
         )}
       </Field>
 
-      <Field label="کجا دیده بشه" error={errors.visibility} hint={VISIBILITY_HINTS[state.visibility]}>
+      <Field label="محل نمایش" error={errors.visibility} hint={VISIBILITY_HINTS[state.visibility]}>
         <ToggleGroup
           type="single"
           value={state.visibility}
@@ -97,7 +97,7 @@ export function AudienceSection({ editor, worlds }: SectionProps) {
 
       <Alert>
         <Eye aria-hidden="true" />
-        <AlertTitle>بعد از انتشار کجا دیده می‌شه</AlertTitle>
+        <AlertTitle>محل نمایش پس از انتشار</AlertTitle>
         <AlertDescription>
           <ul className="list-disc ps-4">
             {surfaces.map((line) => (

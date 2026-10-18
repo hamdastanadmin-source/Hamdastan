@@ -94,7 +94,7 @@ export function CategoryFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{category ? 'ویرایش دسته' : 'دسته‌ی جدید'}</DialogTitle>
-          <DialogDescription>دسته‌ها توی فیلترهای کشف رویداد و روی کارت رویدادها دیده می‌شن.</DialogDescription>
+          <DialogDescription>دسته‌ها در فیلترهای جست‌وجوی رویداد و روی کارت رویدادها نمایش داده می‌شوند.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -121,7 +121,7 @@ export function CategoryFormDialog({
                   <FormControl>
                     <Input {...field} dir="ltr" autoComplete="off" placeholder="music" />
                   </FormControl>
-                  <FormDescription>شناسه‌ی ثابت دسته توی نشانی‌ها؛ فقط حروف کوچک انگلیسی، عدد و خط تیره.</FormDescription>
+                  <FormDescription>شناسه‌ی ثابت دسته در نشانی‌ها؛ فقط حروف کوچک انگلیسی، عدد و خط تیره.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -177,7 +177,7 @@ export function CategoryFormDialog({
                     pickerTitle="تصویر دسته"
                     invalid={Boolean(fieldState.error)}
                   />
-                  <FormDescription>اگه باشه، به‌جای آیکن نشون داده می‌شه.</FormDescription>
+                  <FormDescription>در صورت انتخاب، به‌جای آیکن نمایش داده می‌شود.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

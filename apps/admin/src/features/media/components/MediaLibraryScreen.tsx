@@ -90,7 +90,7 @@ export function MediaLibraryScreen() {
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" disabled={asset.usage > 0} onSelect={() => setDeleting(asset)}>
             <Trash2 aria-hidden="true" />
-            {asset.usage > 0 ? 'در حال استفاده — حذف نمی‌شه' : 'حذف'}
+            {asset.usage > 0 ? 'در حال استفاده — قابل حذف نیست' : 'حذف'}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -102,7 +102,7 @@ export function MediaLibraryScreen() {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold tracking-tight">کتابخانه‌ی رسانه و موشن</h1>
           <p className="text-sm text-muted-foreground">
-            تصویر و موشن‌هایی که فعالیت‌ها ازشون استفاده می‌کنن؛ هر فایل حداکثر {formatSize(MEDIA_LIMITS.MAX_BYTES)}.
+            تصاویر و موشن‌هایی که در فعالیت‌ها استفاده می‌شوند؛ حجم هر فایل حداکثر {formatSize(MEDIA_LIMITS.MAX_BYTES)}.
           </p>
         </div>
         {canWrite && (
@@ -187,7 +187,7 @@ export function MediaLibraryScreen() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>حذف «{deleting?.name}»؟</DialogTitle>
-            <DialogDescription>این فایل در هیچ فعالیتی استفاده نشده. حذفش برگشت‌پذیر نیست.</DialogDescription>
+            <DialogDescription>این فایل در هیچ فعالیتی استفاده نشده است. حذف آن برگشت‌پذیر نیست.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>

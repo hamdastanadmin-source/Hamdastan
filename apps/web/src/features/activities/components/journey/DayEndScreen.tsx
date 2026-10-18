@@ -53,7 +53,7 @@ export function DayEndScreen({
       url: inviteUrl(activity.id, window.location.origin),
     });
     if (outcome === 'copied') toast.success('لینک دعوت کپی شد');
-    if (outcome === 'failed') toast.error('اشتراک‌گذاری ممکن نشد؛ لینک این صفحه رو برای دوستات بفرست.');
+    if (outcome === 'failed') toast.error('اشتراک‌گذاری انجام نشد؛ لینک همین صفحه رو برای دوستات بفرست.');
   };
 
   return (

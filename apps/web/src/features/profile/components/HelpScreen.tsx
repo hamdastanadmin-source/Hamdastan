@@ -8,7 +8,7 @@ import { Screen, ScreenBack, ScreenBody, ScreenHeader, ScreenTitle } from '@/com
 const TOPICS: ReadonlyArray<{ question: string; answer: string }> = [
   {
     question: 'XP چیه و چطور می‌گیرمش؟',
-    answer: 'XP امتیاز پیشرفتته. با انجام ماموریت‌ها — مثل آزمون شخصیت، ساخت آواتار و تکمیل پروفایل — XP می‌گیری. هر ماموریت فقط یک بار امتیاز داره.',
+    answer: 'XP امتیاز پیشرفتته. با انجام مأموریت‌ها — مثل آزمون شخصیت، ساخت آواتار و تکمیل پروفایل — XP می‌گیری. هر مأموریت فقط یه بار امتیاز داره.',
   },
   {
     question: 'سطح‌ها چطور کار می‌کنن؟',

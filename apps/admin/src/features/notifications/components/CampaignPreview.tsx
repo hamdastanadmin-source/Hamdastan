@@ -26,7 +26,7 @@ export function CampaignPreview({ value }: { value: CampaignInput }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">توی مرکز اعلان‌های برنامه</p>
+          <p className="text-xs text-muted-foreground">در مرکز اعلان‌های اپلیکیشن</p>
           <div className="flex items-start gap-3 rounded-2xl border bg-background p-3" dir="rtl">
             <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-secondary">
               {asset ? <MediaPreview asset={asset} className="size-full" /> : <Megaphone aria-hidden="true" className="size-5 text-muted-foreground" />}
@@ -44,7 +44,7 @@ export function CampaignPreview({ value }: { value: CampaignInput }) {
 
         {value.push && (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">روی صفحه‌ی قفل گوشی (ظاهر دقیق به سیستم‌عامل بستگی داره)</p>
+            <p className="text-xs text-muted-foreground">روی صفحه‌ی قفل گوشی (ظاهر دقیق به سیستم‌عامل بستگی دارد)</p>
             <div className="flex items-start gap-3 rounded-2xl bg-muted p-3" dir="rtl">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background">
                 <Bell aria-hidden="true" className="size-4 text-muted-foreground" />

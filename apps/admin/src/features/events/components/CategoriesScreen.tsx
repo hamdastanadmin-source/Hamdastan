@@ -105,7 +105,7 @@ export function CategoriesScreen() {
             </Link>
           </Button>
           <h1 className="text-2xl font-bold tracking-tight">دسته‌بندی رویدادها</h1>
-          <p className="text-sm text-muted-foreground">ترتیب این فهرست، ترتیب چیپ‌های دسته توی صفحه‌ی رویدادهاست.</p>
+          <p className="text-sm text-muted-foreground">ترتیب این فهرست، ترتیب نمایش دسته‌ها در صفحه‌ی رویدادهای اپلیکیشن است.</p>
         </div>
         {writable && (
           <Button onClick={() => setEditing('new')}>
@@ -211,7 +211,7 @@ export function CategoriesScreen() {
                           size="icon-sm"
                           className="text-muted-foreground hover:text-destructive"
                           disabled={category.eventCount > 0}
-                          title={category.eventCount > 0 ? 'رویدادهایی توی این دسته‌اند؛ به‌جای حذف، غیرفعالش کن' : undefined}
+                          title={category.eventCount > 0 ? 'این دسته رویداد دارد؛ به‌جای حذف، آن را غیرفعال کنید' : undefined}
                           onClick={() => setDeleting(category)}
                           aria-label={`حذف «${category.name}»`}
                         >
@@ -241,7 +241,7 @@ export function CategoriesScreen() {
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{deleting && `حذف «${deleting.name}»`}</DialogTitle>
-            <DialogDescription>این دسته برای همیشه حذف می‌شه. اگه فقط نمی‌خوای دیده بشه، غیرفعالش کن.</DialogDescription>
+            <DialogDescription>این دسته برای همیشه حذف می‌شود. اگر فقط می‌خواهید نمایش داده نشود، آن را غیرفعال کنید.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>

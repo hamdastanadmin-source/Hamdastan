@@ -1,5 +1,5 @@
 /**
- * Play — تجربهٔ بازی: ماموریت‌ها، تریویا و جریان نوبت‌ها.
+ * Play — تجربهٔ بازی: مأموریت‌ها، تریویا و جریان نوبت‌ها.
  *
  * Public surface of the feature. Nothing outside it imports past this file.
  *

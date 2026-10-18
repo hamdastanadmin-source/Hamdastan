@@ -22,7 +22,7 @@ export function ResultCard({ result }: { result: AssessmentResult }) {
           <Progress value={result.score ?? 0} className={BAR} aria-label="نمره" />
           {result.passed !== null && (
             <p className={result.passed ? 'text-sm font-semibold text-success' : 'text-sm text-muted-foreground'}>
-              {result.passed ? 'قبول شدی!' : 'این بار به حد قبولی نرسیدی.'}
+              {result.passed ? 'قبول شدی!' : 'این بار به نمره‌ی قبولی نرسیدی.'}
             </p>
           )}
         </CardContent>

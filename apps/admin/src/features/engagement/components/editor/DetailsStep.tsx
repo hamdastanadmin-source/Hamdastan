@@ -35,7 +35,7 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
         label="توضیح کوتاه"
         htmlFor="summary"
         error={errors.summary}
-        hint="روی کارت فعالیت توی اپ دیده می‌شه."
+        hint="روی کارت فعالیت در اپلیکیشن نمایش داده می‌شود."
         className="lg:col-span-2"
       >
         <Input
@@ -50,7 +50,7 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
         label="توضیحات و دستورالعمل"
         htmlFor="instructions"
         error={errors.instructions}
-        hint="قبل از شروع نشون داده می‌شه. تصویر فعلاً پشتیبانی نمی‌شه: سرویس ذخیره‌ی فایل هنوز به بک‌اند وصل نیست."
+        hint="پیش از شروع نمایش داده می‌شود. افزودن تصویر در این بخش هنوز پشتیبانی نمی‌شود."
         className="lg:col-span-2"
       >
         <Textarea
@@ -84,7 +84,7 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
           label="تعداد دفعات مجاز پاسخ‌دهی"
           htmlFor="repeats"
           error={errors['definition.maxSubmissions']}
-          hint={`هر نفر چند بار می‌تونه ثبت کنه (حداکثر ${toPersianDigits(ENGAGEMENT_LIMITS.REPEAT_MAX)}).`}
+          hint={`هر کاربر چند بار می‌تواند پاسخ ثبت کند (حداکثر ${toPersianDigits(ENGAGEMENT_LIMITS.REPEAT_MAX)}).`}
         >
           <Input
             id="repeats"
@@ -102,7 +102,7 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
         <SwitchRow
           id="anonymous"
           label="پاسخ ناشناس"
-          hint="پاسخ‌ها بدون هویت ذخیره می‌شن؛ گزارش و خروجی هیچ‌کس رو به پاسخش وصل نمی‌کنه. XP همچنان داده می‌شه."
+          hint="پاسخ‌ها بدون هویت ذخیره می‌شوند و هیچ گزارش یا خروجی‌ای پاسخ را به فرد مرتبط نمی‌کند. XP همچنان اعطا می‌شود."
         >
           <Switch
             id="anonymous"
@@ -116,7 +116,7 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
         <Field
           label="تأیید انجام"
           htmlFor="review"
-          hint="با تأیید مدیر، مأموریت تا بررسی تو «در انتظار تأیید» می‌مونه و XP بعد از تأیید داده می‌شه."
+          hint="در حالت تأیید توسط مدیر، مأموریت تا زمان بررسی در وضعیت «در انتظار تأیید» می‌ماند و XP پس از تأیید اعطا می‌شود."
         >
           <Select
             value={definition.review}
@@ -157,7 +157,7 @@ function JourneyLength({ editor }: { editor: ActivityEditorApi }) {
     const removed = steps.slice(target);
     const kept = removed.findLastIndex((step) => !isUntouchedStep(step));
     if (kept !== -1) {
-      setBlocked(`روز ${toPersianDigits(target + kept + 1)} محتوا داره؛ اول سؤال‌هاش رو جابه‌جا یا حذف کن.`);
+      setBlocked(`روز ${toPersianDigits(target + kept + 1)} محتوا دارد؛ ابتدا سؤال‌های آن را جابه‌جا یا حذف کنید.`);
       return;
     }
     updateDefinition({ steps: steps.slice(0, target) });
@@ -170,7 +170,7 @@ function JourneyLength({ editor }: { editor: ActivityEditorApi }) {
         label="تعداد روزها"
         htmlFor="days"
         error={blocked ?? errors['definition.steps']}
-        hint={`هر روز یک مرحله با سؤال‌های خودش (حداکثر ${toPersianDigits(JOURNEY_LIMITS.DAYS_MAX)} روز).`}
+        hint={`هر روز یک مرحله با سؤال‌های مخصوص به خود است (حداکثر ${toPersianDigits(JOURNEY_LIMITS.DAYS_MAX)} روز).`}
       >
         <Input
           id="days"
@@ -187,7 +187,7 @@ function JourneyLength({ editor }: { editor: ActivityEditorApi }) {
         label="هدف تعداد سؤال در هر روز"
         htmlFor="questions-per-day"
         error={errors['definition.journey.questionsPerDay']}
-        hint="فقط راهنمای ساخت: توی تب سؤال‌ها کنار هر روز نشون داده می‌شه."
+        hint="فقط برای راهنمایی هنگام ساخت؛ در زبانه‌ی سؤال‌ها کنار هر روز نمایش داده می‌شود."
       >
         <Input
           id="questions-per-day"

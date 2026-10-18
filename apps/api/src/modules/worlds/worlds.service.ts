@@ -69,7 +69,7 @@ export const worldsService = {
     const outcome = await worldsRepository().remove(id, actor.id);
     if (outcome === 'not_found') throw notFound();
     if (outcome === 'in_use') {
-      throw new AppError(409, CODES.WORLD_IN_USE, 'رویدادهایی به این دنیا وصل‌اند؛ به‌جای حذف، غیرفعالش کن');
+      throw new AppError(409, CODES.WORLD_IN_USE, 'این دنیا به رویدادهایی متصل است؛ به‌جای حذف، آن را غیرفعال کنید');
     }
     return { deleted: true };
   },

@@ -49,7 +49,7 @@ const slug = (max: number) =>
     })
     .refine((value) => value.length <= max, { error: `حداکثر ${fa(max)} کاراکتر` })
     .refine((value) => !(EVENT_RESERVED_SLUGS as readonly string[]).includes(value), {
-      error: 'این نامک رزرو شده؛ یکی دیگه انتخاب کن',
+      error: 'این نامک رزرو شده است؛ نامک دیگری انتخاب کنید',
     });
 
 /** An address a browser may open: http or https, nothing that runs. */
@@ -65,15 +65,15 @@ const nullableUrl = (max: number) =>
 
 const dateTime = z.iso.datetime({ offset: true, error: 'تاریخ معتبر نیست' }).nullable();
 
-const count = (max: number) => z.number().int().min(1, { error: 'باید بیشتر از صفر باشه' }).max(max).nullable();
+const count = (max: number) => z.number().int().min(1, { error: 'باید بیشتر از صفر باشد' }).max(max).nullable();
 
 // ─── Event ───────────────────────────────────────────────────────────────────
 
 const ticketSchema = z.object({
   id: uuid.optional(),
-  title: line(L.TICKET_TITLE_MAX, 'عنوان بلیت رو بنویس'),
+  title: line(L.TICKET_TITLE_MAX, 'عنوان بلیت را وارد کنید'),
   description: line(L.TICKET_DESCRIPTION_MAX, null),
-  priceToman: z.number().int().min(0, { error: 'قیمت نمی‌تونه منفی باشه' }).max(L.PRICE_MAX),
+  priceToman: z.number().int().min(0, { error: 'قیمت نمی‌تواند منفی باشد' }).max(L.PRICE_MAX),
   capacity: count(L.CAPACITY_MAX),
   benefits: z
     .array(line(L.BENEFIT_MAX, null))
@@ -86,7 +86,7 @@ const ticketSchema = z.object({
 /** `POST /admin/events` and `PUT /admin/events/:id`. A draft only needs a title. */
 export const eventInputSchema = z
   .object({
-    title: line(L.TITLE_MAX, 'عنوان رویداد رو بنویس'),
+    title: line(L.TITLE_MAX, 'عنوان رویداد را وارد کنید'),
     slug: slug(L.SLUG_MAX),
     summary: line(L.SUMMARY_MAX, null),
     description: paragraph(L.DESCRIPTION_MAX),
@@ -123,13 +123,13 @@ export const eventInputSchema = z
   })
   .superRefine((input, ctx) => {
     if (input.startAt && input.endAt && Date.parse(input.endAt) <= Date.parse(input.startAt)) {
-      ctx.addIssue({ code: 'custom', path: ['endAt'], message: 'پایان باید بعد از شروع باشه' });
+      ctx.addIssue({ code: 'custom', path: ['endAt'], message: 'زمان پایان باید بعد از زمان شروع باشد' });
     }
     if (input.registrationDeadline && input.endAt && Date.parse(input.registrationDeadline) > Date.parse(input.endAt)) {
-      ctx.addIssue({ code: 'custom', path: ['registrationDeadline'], message: 'مهلت ثبت‌نام باید قبل از پایان رویداد باشه' });
+      ctx.addIssue({ code: 'custom', path: ['registrationDeadline'], message: 'مهلت ثبت‌نام باید پیش از پایان رویداد باشد' });
     }
     if ((input.latitude === null) !== (input.longitude === null)) {
-      ctx.addIssue({ code: 'custom', path: ['longitude'], message: 'عرض و طول جغرافیایی رو با هم وارد کن' });
+      ctx.addIssue({ code: 'custom', path: ['longitude'], message: 'عرض و طول جغرافیایی را با هم وارد کنید' });
     }
   })
   // An audience only means something for a restricted event.
@@ -147,31 +147,31 @@ export function eventPublishProblems(input: EventInput): { field: string; messag
     if (!ok) problems.push({ field, message });
   };
 
-  need(input.coverId, 'coverId', 'تصویر کاور رو انتخاب کن');
-  need(input.description.trim(), 'description', 'توضیحات رویداد رو بنویس');
-  need(input.categoryIds.length > 0, 'categoryIds', 'حداقل یک دسته انتخاب کن');
-  need(input.startAt, 'startAt', 'زمان شروع رو مشخص کن');
-  need(input.endAt, 'endAt', 'زمان پایان رو مشخص کن');
+  need(input.coverId, 'coverId', 'تصویر کاور را انتخاب کنید');
+  need(input.description.trim(), 'description', 'توضیحات رویداد را وارد کنید');
+  need(input.categoryIds.length > 0, 'categoryIds', 'حداقل یک دسته انتخاب کنید');
+  need(input.startAt, 'startAt', 'زمان شروع را مشخص کنید');
+  need(input.endAt, 'endAt', 'زمان پایان را مشخص کنید');
 
   if (input.type !== 'online') {
-    need(input.venueName, 'venueName', 'نام محل برگزاری رو بنویس');
-    need(input.city, 'city', 'شهر رو بنویس');
-    need(input.address, 'address', 'نشانی رو بنویس');
+    need(input.venueName, 'venueName', 'نام محل برگزاری را وارد کنید');
+    need(input.city, 'city', 'شهر را وارد کنید');
+    need(input.address, 'address', 'نشانی را وارد کنید');
   }
   if (input.type !== 'physical') {
-    need(input.onlineUrl || input.onlineInstructions.trim(), 'onlineUrl', 'نشانی یا راهنمای شرکت آنلاین رو بنویس');
+    need(input.onlineUrl || input.onlineInstructions.trim(), 'onlineUrl', 'نشانی یا راهنمای شرکت آنلاین را وارد کنید');
   }
   if (input.bookingMode === 'external') {
-    need(input.externalBookingUrl, 'externalBookingUrl', 'نشانی خرید بلیت رو وارد کن');
+    need(input.externalBookingUrl, 'externalBookingUrl', 'نشانی خرید بلیت را وارد کنید');
   }
   if (input.bookingMode === 'free_registration') {
-    need(input.tickets.every((ticket) => ticket.priceToman === 0), 'tickets', 'ثبت‌نام رایگان بلیت پولی نمی‌پذیره');
+    need(input.tickets.every((ticket) => ticket.priceToman === 0), 'tickets', 'در ثبت‌نام رایگان، بلیت پولی مجاز نیست');
   }
   if (input.visibility === 'world') {
-    need(input.worldIds.length > 0, 'worldIds', 'رویداد فقط‌دنیایی باید حداقل به یک دنیا وصل باشه');
+    need(input.worldIds.length > 0, 'worldIds', 'رویدادی که فقط در دنیاها نمایش داده می‌شود باید دست‌کم به یک دنیا متصل باشد');
   }
   if (input.visibility === 'restricted') {
-    need(input.audience, 'audience', 'مخاطب رویداد محدود رو مشخص کن');
+    need(input.audience, 'audience', 'مخاطب رویداد محدود را مشخص کنید');
   }
   return problems;
 }
@@ -200,8 +200,8 @@ export const eventBookingReviewSchema = z.object({
 // ─── Categories and worlds ───────────────────────────────────────────────────
 
 export const eventCategoryInputSchema = z.object({
-  slug: slug(60).refine((value) => value !== '', { error: 'نامک رو بنویس' }),
-  name: line(L.CATEGORY_NAME_MAX, 'نام دسته رو بنویس'),
+  slug: slug(60).refine((value) => value !== '', { error: 'نامک را وارد کنید' }),
+  name: line(L.CATEGORY_NAME_MAX, 'نام دسته را وارد کنید'),
   description: line(L.CATEGORY_DESCRIPTION_MAX, null),
   icon: z.enum(EVENT_CATEGORY_ICONS),
   imageId: mediaIdSchema.nullable(),
@@ -209,8 +209,8 @@ export const eventCategoryInputSchema = z.object({
 });
 
 export const worldInputSchema = z.object({
-  slug: slug(60).refine((value) => value !== '', { error: 'نامک رو بنویس' }),
-  name: line(L.WORLD_NAME_MAX, 'نام دنیا رو بنویس'),
+  slug: slug(60).refine((value) => value !== '', { error: 'نامک را وارد کنید' }),
+  name: line(L.WORLD_NAME_MAX, 'نام دنیا را وارد کنید'),
   summary: line(L.WORLD_SUMMARY_MAX, null),
   coverId: mediaIdSchema.nullable(),
   isActive: z.boolean(),

@@ -87,7 +87,7 @@ export function WorldFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{world ? 'ویرایش دنیا' : 'دنیای جدید'}</DialogTitle>
-          <DialogDescription>رویدادها به دنیاها وصل می‌شن؛ دنیای غیرفعال توی محصول دیده نمی‌شه.</DialogDescription>
+          <DialogDescription>رویدادها به دنیاها متصل می‌شوند؛ دنیای غیرفعال در اپلیکیشن نمایش داده نمی‌شود.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

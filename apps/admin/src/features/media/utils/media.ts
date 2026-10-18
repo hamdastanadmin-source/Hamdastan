@@ -15,6 +15,6 @@ export const nameFromFile = (file: File) => file.name.replace(/\.[^.]+$/, '').sl
  */
 export function tooLarge(file: File): string | null {
   return file.size > MEDIA_LIMITS.MAX_BYTES
-    ? `حجم این فایل ${formatSize(file.size)}ه؛ حداکثر ${formatSize(MEDIA_LIMITS.MAX_BYTES)} مجازه`
+    ? `حجم این فایل ${formatSize(file.size)} است؛ حداکثر ${formatSize(MEDIA_LIMITS.MAX_BYTES)} مجاز است`
     : null;
 }

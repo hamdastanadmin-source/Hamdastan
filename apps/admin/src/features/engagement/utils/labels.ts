@@ -50,9 +50,9 @@ export const ACTIONS_FOR: Record<ActivityStatus, ActivityStatusAction[]> = {
 
 /** The actions that take an activity away from people, and so ask first. */
 export const CONFIRM_COPY: Partial<Record<ActivityStatusAction, string>> = {
-  pause: 'تا وقتی دوباره منتشرش نکنی، کسی نمی‌تونه پاسخ بده.',
-  close: 'دیگه پاسخی ثبت نمی‌شه و این کار برگشت‌پذیر نیست؛ نتایج می‌مونن.',
-  archive: 'از فهرست کاربران حذف می‌شه و دیگه ویرایش نمی‌شه؛ نتایج و XPهای داده‌شده می‌مونن.',
+  pause: 'تا زمانی که دوباره منتشر نشود، هیچ کاربری نمی‌تواند پاسخ دهد.',
+  close: 'پاسخ جدیدی ثبت نمی‌شود و این کار برگشت‌پذیر نیست؛ نتایج حفظ می‌شوند.',
+  archive: 'از فهرست کاربران حذف می‌شود و دیگر قابل ویرایش نیست؛ نتایج و XPهای اعطاشده حفظ می‌شوند.',
 };
 
 export const REVIEW_LABELS: Record<ReviewStatus, string> = {
@@ -78,7 +78,7 @@ export const AUDIT_LABELS: Record<ActivityAuditAction, string> = {
   resumed: 'دوباره منتشر شد',
   closed: 'بسته شد',
   archived: 'بایگانی شد',
-  duplicated: 'از یک فعالیت دیگه کپی شد',
+  duplicated: 'از فعالیت دیگری تکثیر شد',
   submission_approved: 'یک پاسخ تأیید شد',
   submission_rejected: 'یک پاسخ رد شد',
   xp_revoked: 'یک XP باطل شد',

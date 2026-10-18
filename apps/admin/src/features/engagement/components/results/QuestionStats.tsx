@@ -67,7 +67,7 @@ function QuestionStatCard({ stat, number }: { stat: QuestionStat; number: number
         )}
         {stat.texts &&
           (stat.texts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">هنوز جوابی نیومده.</p>
+            <p className="text-sm text-muted-foreground">هنوز پاسخی ثبت نشده است.</p>
           ) : (
             <ul className="flex flex-col divide-y text-sm">
               {stat.texts.map((text, index) => (
@@ -100,7 +100,7 @@ export function AssessmentSummary({ stats, responses }: { stats: AssessmentStats
         <CardTitle className="text-base">نتایج آزمون</CardTitle>
         <CardDescription>
           {stats.mode === 'knowledge' ? 'آزمون دانش و مهارت' : 'آزمون شخصیت‌شناسی'} — نتیجه‌ی هر نفر فقط در خروجی CSV
-          کنار نامش میاد.
+          در کنار نام او نمایش داده می‌شود.
         </CardDescription>
       </CardHeader>
       <CardContent>

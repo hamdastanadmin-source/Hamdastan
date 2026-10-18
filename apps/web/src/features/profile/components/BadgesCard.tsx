@@ -25,7 +25,7 @@ export function BadgesCard({ badges }: { badges: EarnedBadge[] }) {
           </div>
 
           {badges.length === 0 ? (
-            <p className="text-sm text-muted-foreground">با انجام ماموریت‌ها، نشان‌هات اینجا جمع می‌شن.</p>
+            <p className="text-sm text-muted-foreground">با انجام مأموریت‌ها، نشان‌هات اینجا جمع می‌شن.</p>
           ) : (
             <ul className="grid grid-cols-3 gap-3">
               {badges.map((badge) => {

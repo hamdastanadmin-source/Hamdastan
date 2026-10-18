@@ -42,10 +42,10 @@ export function FramedPreview({ asset, frame }: { asset: { id: string; version?:
       {natural && (offRatio || tooNarrow) ? (
         <p className="flex items-start gap-1.5 text-xs leading-relaxed text-warning" role="status">
           <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-          {`این فایل ${size(natural)} است؛ ${offRatio ? 'لبه‌هاش توی محصول بریده می‌شه' : 'برای این قاب کوچیکه و تار دیده می‌شه'}. ${frameHint(frame)}`}
+          {`این فایل ${size(natural)} است؛ ${offRatio ? 'لبه‌های آن در اپلیکیشن بریده می‌شود' : 'برای این قاب کوچک است و تار دیده می‌شود'}. ${frameHint(frame)}`}
         </p>
       ) : (
-        <p className="text-xs text-muted-foreground">همین‌طور توی محصول دیده می‌شه.</p>
+        <p className="text-xs text-muted-foreground">در اپلیکیشن به همین شکل نمایش داده می‌شود.</p>
       )}
     </div>
   );

@@ -55,7 +55,7 @@ export function EventStatusDialog({
         <DialogHeader>
           <DialogTitle>{pending && `${ACTION_LABELS[pending.action]} «${pending.title}»`}</DialogTitle>
           <DialogDescription>
-            {publishing ? 'خالی بذاری همین حالا منتشر می‌شه؛ یک زمان آینده انتشار رو زمان‌بندی می‌کنه.' : pending && CONFIRM_COPY[pending.action]}
+            {publishing ? 'اگر خالی بماند، همین حالا منتشر می‌شود؛ با انتخاب زمانی در آینده، انتشار زمان‌بندی می‌شود.' : pending && CONFIRM_COPY[pending.action]}
           </DialogDescription>
         </DialogHeader>
         {publishing && (

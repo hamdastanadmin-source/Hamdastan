@@ -19,7 +19,7 @@ export function SocialProfileSection({ result }: { result: QuestionnaireResult |
       <section aria-label="پروفایل اجتماعی من">
         <PersonalityTestCard
           title="پروفایلت هنوز کامل نیست"
-          body="آزمون کوتاه شخصیت رو کامل کن تا پیشنهادهای دقیق‌تری برات داشته باشیم."
+          body="آزمون کوتاه شخصیت رو انجام بده؛ مهم‌ترین قدم برای پیدا کردن آدم‌هایی که بیشتر باهات جورن."
         />
       </section>
     );
@@ -27,7 +27,7 @@ export function SocialProfileSection({ result }: { result: QuestionnaireResult |
 
   return (
     <ListGroup title="پروفایل اجتماعی من">
-      <ListRow icon={UserRound} label="مشاهده نتیجه کامل" href="/profile/social" />
+      <ListRow icon={UserRound} label="دیدن نتیجه‌ی کامل" href="/profile/social" />
     </ListGroup>
   );
 }

@@ -292,7 +292,7 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
                   {...invalid(errors[`definition.steps.${at.s}.title`])}
                 />
               </Field>
-              <Field label="توضیح مرحله (اختیاری)" htmlFor="step-description" hint="بالای اولین سؤالِ این مرحله توی اپ نشون داده می‌شه.">
+              <Field label="توضیح مرحله (اختیاری)" htmlFor="step-description" hint="در اپلیکیشن، بالای اولین سؤالِ این مرحله نمایش داده می‌شود.">
                 <Textarea
                   id="step-description"
                   rows={3}
@@ -320,7 +320,7 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
                 onRemove={questionActions(at.s, at.q).onRemove}
               />
               <div className="flex flex-col gap-3">
-                <p className="text-sm font-medium text-muted-foreground">پیش‌نمایش در اپ</p>
+                <p className="text-sm font-medium text-muted-foreground">پیش‌نمایش در اپلیکیشن</p>
                 <div className="w-full max-w-shell rounded-xl border bg-surface-0 p-5">
                   <PreviewQuestion question={steps[at.s].questions[at.q]} number={stepFlatStart(at.s) + at.q + 1} />
                 </div>

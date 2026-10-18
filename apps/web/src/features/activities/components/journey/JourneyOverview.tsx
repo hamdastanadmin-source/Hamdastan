@@ -26,7 +26,7 @@ function dayNote(day: PlayerJourneyDay, now: Date): { icon: typeof Lock; text: s
     case 'available':
       return { icon: Play, text: 'آماده‌ی شروع' };
     case 'missed':
-      return { icon: CircleDashed, text: 'ازدست‌رفته' };
+      return { icon: CircleDashed, text: 'از دست رفت' };
     case 'locked':
       if (day.lockReason === 'previous_day') return { icon: Lock, text: 'بعد از تکمیل روز قبل' };
       return { icon: Lock, text: day.unlocksAt ? `${opensLabel(day.unlocksAt, now)} باز می‌شه` : 'قفل' };

@@ -59,7 +59,7 @@ export function CampaignReportPanel({ campaign, refreshKey }: { campaign: AdminC
       <Card>
         <CardHeader>
           <CardTitle className="text-base">گزارش</CardTitle>
-          <CardDescription>تحویلِ پوش روی دستگاه قابل اندازه‌گیری نیست؛ «پذیرفته‌شده» یعنی سرویس پوش پیام رو گرفت.</CardDescription>
+          <CardDescription>تحویلِ پوش روی دستگاه قابل اندازه‌گیری نیست؛ «پذیرفته‌شده» یعنی سرویس پوش پیام را دریافت کرده است.</CardDescription>
         </CardHeader>
         <CardContent>
           {report ? (

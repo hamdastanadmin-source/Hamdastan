@@ -11,7 +11,7 @@ import { SocialProfileResult } from './SocialProfileResult';
  * The questionnaire's payoff: the result, why it matters, and the way on.
  *
  * When finishing has just earned the personality-test reward, the action
- * carries it — «ورود به اپلیکیشن +۵۰ XP» — so the reward pulls the person
+ * carries it — «ورود به هم‌داستان +۵۰ XP» — so the reward pulls the person
  * in. It is not repeated on a later visit, because the API reports the
  * reward only to the call that granted it.
  */
@@ -41,7 +41,7 @@ export function QuestionnaireResultView({
 
       <ScreenFooter className="bg-surface-stage/95 before:from-surface-stage">
         <Button type="button" size="xl" className="w-full" loading={isLeaving} onClick={onContinue}>
-          ورود به اپلیکیشن
+          ورود به هم‌داستان
           {xpAwarded > 0 && <XpAmount value={xpAwarded} signed className="font-semibold opacity-80" />}
         </Button>
       </ScreenFooter>

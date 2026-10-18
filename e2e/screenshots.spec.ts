@@ -29,7 +29,7 @@ async function capture(page: Page, name: string, project: string): Promise<void>
 test('welcome', async ({ page }, testInfo) => {
   await page.goto('/welcome');
   await expect(
-    page.getByRole('heading', { name: 'دنیاهای داستانی‌ات منتظرتن' })
+    page.getByRole('heading', { name: 'خوش اومدی به هم‌داستان!' })
   ).toBeVisible();
   // Let the entrance animation finish so the shot is the resting state.
   await page.waitForTimeout(600);

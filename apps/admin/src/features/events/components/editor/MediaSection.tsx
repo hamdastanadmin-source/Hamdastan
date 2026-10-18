@@ -35,7 +35,7 @@ export function MediaSection({ editor }: SectionProps) {
             frame={IMAGE_FRAMES.eventCover}
           />
         </Field>
-        <Field label="متن جایگزین کاور" htmlFor="cover-alt" error={errors.coverAlt} hint="چیزی که توی تصویره، برای صفحه‌خوان‌ها.">
+        <Field label="متن جایگزین کاور" htmlFor="cover-alt" error={errors.coverAlt} hint="توصیف محتوای تصویر برای صفحه‌خوان‌ها.">
           <Input id="cover-alt" value={state.coverAlt} onChange={(event) => update({ coverAlt: event.target.value })} {...invalid(errors.coverAlt)} />
         </Field>
       </div>
@@ -43,7 +43,7 @@ export function MediaSection({ editor }: SectionProps) {
       <Field
         label="گالری"
         error={errors.gallery}
-        hint={`اختیاری، حداکثر ${toPersianDigits(EVENT_LIMITS.GALLERY_MAX)} تصویر، به همین ترتیب نمایش داده می‌شن.`}
+        hint={`اختیاری، حداکثر ${toPersianDigits(EVENT_LIMITS.GALLERY_MAX)} تصویر؛ به همین ترتیب نمایش داده می‌شوند.`}
       >
         <ul className="flex flex-col gap-3">
           {gallery.map((item, index) => {

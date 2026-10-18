@@ -30,8 +30,8 @@ export const notificationDestinationSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('my_events') }),
   z.object({ kind: z.literal('activities') }),
   z.object({ kind: z.literal('profile') }),
-  z.object({ kind: z.literal('event'), eventId: z.uuid({ error: 'رویداد رو انتخاب کن' }) }),
-  z.object({ kind: z.literal('activity'), activityId: z.uuid({ error: 'فعالیت رو انتخاب کن' }) }),
+  z.object({ kind: z.literal('event'), eventId: z.uuid({ error: 'رویداد را انتخاب کنید' }) }),
+  z.object({ kind: z.literal('activity'), activityId: z.uuid({ error: 'فعالیت را انتخاب کنید' }) }),
 ]);
 
 export const notificationAudienceSchema = z.discriminatedUnion('kind', [
@@ -40,7 +40,7 @@ export const notificationAudienceSchema = z.discriminatedUnion('kind', [
     kind: z.literal('users'),
     phones: z
       .array(phoneSchema)
-      .min(1, { error: 'حداقل یک شماره وارد کن' })
+      .min(1, { error: 'حداقل یک شماره وارد کنید' })
       .max(L.AUDIENCE_PHONES_MAX, { error: `حداکثر ${fa(L.AUDIENCE_PHONES_MAX)} شماره` })
       .transform((phones) => [...new Set(phones)]),
   }),
@@ -48,19 +48,19 @@ export const notificationAudienceSchema = z.discriminatedUnion('kind', [
     kind: z.literal('interests'),
     categoryIds: z
       .array(z.enum(INTEREST_CATEGORIES.map((category) => category.id) as [string, ...string[]]))
-      .min(1, { error: 'حداقل یک گروه انتخاب کن' })
+      .min(1, { error: 'حداقل یک گروه انتخاب کنید' })
       .transform((ids) => [...new Set(ids)]),
   }),
   z.object({
     kind: z.literal('event'),
-    eventId: z.uuid({ error: 'رویداد رو انتخاب کن' }),
+    eventId: z.uuid({ error: 'رویداد را انتخاب کنید' }),
     relation: z.enum(['interested', 'confirmed']),
   }),
   z.object({
     kind: z.literal('world'),
     worldIds: z
       .array(uuid)
-      .min(1, { error: 'حداقل یک دنیا انتخاب کن' })
+      .min(1, { error: 'حداقل یک دنیا انتخاب کنید' })
       .max(L.WORLDS_MAX, { error: `حداکثر ${fa(L.WORLDS_MAX)} دنیا` })
       .transform((ids) => [...new Set(ids)]),
   }),
@@ -82,8 +82,8 @@ export type CampaignInputOutput = z.output<typeof campaignInputSchema>;
 /** What a campaign needs before it may be sent or scheduled. Shared with the panel's checklist. */
 export function campaignSendProblems(input: { title: string; body: string }): { field: string; message: string }[] {
   const problems: { field: string; message: string }[] = [];
-  if (!input.title.trim()) problems.push({ field: 'title', message: 'عنوان اعلان رو بنویس' });
-  if (!input.body.trim()) problems.push({ field: 'body', message: 'متن کوتاه اعلان رو بنویس' });
+  if (!input.title.trim()) problems.push({ field: 'title', message: 'عنوان اعلان را وارد کنید' });
+  if (!input.body.trim()) problems.push({ field: 'body', message: 'متن کوتاه اعلان را وارد کنید' });
   return problems;
 }
 

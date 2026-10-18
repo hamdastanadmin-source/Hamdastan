@@ -11,13 +11,13 @@ import { Field, invalid, SwitchRow } from './Field';
 /** When the reward is paid, by type — the rule the API applies. */
 function payRule(type: ActivityType, review: 'auto' | 'manual', requirePass: boolean): string {
   if (type === 'journey') return 'هر پاداش جداگانه و فقط یک بار: با ثبت هر پاسخ، با تکمیل هر روز، و با تکمیل همه‌ی روزها.';
-  if (type === 'survey') return 'بعد از ثبت موفق یک پاسخ معتبر.';
+  if (type === 'survey') return 'پس از ثبت موفق یک پاسخ معتبر.';
   if (type === 'mission') {
-    return review === 'manual' ? 'بعد از تأیید نهایی تو — نه موقع ثبت.' : 'بعد از تکمیل همه‌ی مراحل.';
+    return review === 'manual' ? 'پس از تأیید نهایی شما — نه هنگام ثبت.' : 'پس از تکمیل همه‌ی مراحل.';
   }
   return requirePass
-    ? 'فقط وقتی کاربر نمره‌ی قبولی بگیره.'
-    : 'بعد از تکمیل آزمون، مستقل از نمره یا نتیجه‌ی شخصیت‌شناسی.';
+    ? 'فقط زمانی که کاربر نمره‌ی قبولی بگیرد.'
+    : 'پس از تکمیل آزمون، مستقل از نمره یا نتیجه‌ی شخصیت‌شناسی.';
 }
 
 /**
@@ -36,7 +36,7 @@ export function XpStep({ editor }: { editor: ActivityEditorApi }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SwitchRow id="xp-enabled" label="دریافت XP" hint="خاموش باشه، این فعالیت XP نمی‌ده.">
+      <SwitchRow id="xp-enabled" label="دریافت XP" hint="اگر خاموش باشد، این فعالیت XP ندارد.">
         <Switch id="xp-enabled" checked={xp.enabled} onCheckedChange={(enabled) => setXp({ enabled })} />
       </SwitchRow>
 
@@ -75,7 +75,7 @@ export function XpStep({ editor }: { editor: ActivityEditorApi }) {
                 label="سقف دفعات دریافت XP"
                 htmlFor="xp-max"
                 error={errors['definition.xp.maxAwards']}
-                hint={`پیش‌فرض ۱: حتی اگه چند بار پاسخ بده، یک بار XP می‌گیره. بیشتر از تعداد دفعات مجاز پاسخ (${toPersianDigits(maxSubmissions)}) نمی‌شه.`}
+                hint={`پیش‌فرض ۱: حتی اگر کاربر چند بار پاسخ دهد، فقط یک بار XP می‌گیرد. این عدد نمی‌تواند از تعداد دفعات مجاز پاسخ (${toPersianDigits(maxSubmissions)}) بیشتر باشد.`}
               >
                 <Input
                   id="xp-max"
@@ -92,7 +92,7 @@ export function XpStep({ editor }: { editor: ActivityEditorApi }) {
             </div>
           )}
 
-          <SwitchRow id="xp-show" label="نمایش XP قبل از شروع" hint="روی کارت فعالیت توی اپ.">
+          <SwitchRow id="xp-show" label="نمایش XP قبل از شروع" hint="روی کارت فعالیت در اپلیکیشن.">
             <Switch id="xp-show" checked={xp.showBeforeStart} onCheckedChange={(showBeforeStart) => setXp({ showBeforeStart })} />
           </SwitchRow>
 
@@ -100,7 +100,7 @@ export function XpStep({ editor }: { editor: ActivityEditorApi }) {
             <SwitchRow
               id="xp-pass"
               label="فقط با قبولی"
-              hint={`XP فقط با نمره‌ی ${toPersianDigits(assessment.passingScore!)}٪ یا بیشتر داده می‌شه.`}
+              hint={`XP فقط با نمره‌ی ${toPersianDigits(assessment.passingScore!)}٪ یا بیشتر اعطا می‌شود.`}
             >
               <Switch id="xp-pass" checked={xp.requirePass} onCheckedChange={(requirePass) => setXp({ requirePass })} />
             </SwitchRow>
@@ -110,8 +110,8 @@ export function XpStep({ editor }: { editor: ActivityEditorApi }) {
             <AlertDescription>
               <span>
                 <strong className="font-semibold">شرط اعطا: </strong>
-                {payRule(state.type, review, passMarkSet && xp.requirePass)} XP روی سرور حساب و ثبت می‌شه و با تغییر بعدیِ
-                این عدد، XPهای داده‌شده عوض نمی‌شن.
+                {payRule(state.type, review, passMarkSet && xp.requirePass)} XP روی سرور محاسبه و ثبت می‌شود و با تغییر بعدی
+                این عدد، XPهای اعطاشده تغییر نمی‌کنند.
               </span>
             </AlertDescription>
           </Alert>
@@ -171,7 +171,7 @@ function JourneyRewards({
       </div>
       <p className="text-sm text-muted-foreground">
         بیشترین XP قابل دریافت برای هر نفر: <strong className="font-semibold text-foreground tabular-nums">{toPersianDigits(total)}</strong>
-        {' '}({toPersianDigits(questions)} سؤال، {toPersianDigits(days)} روز). سؤالِ اختیاریِ ردشده XP نمی‌ده.
+        {' '}({toPersianDigits(questions)} سؤال، {toPersianDigits(days)} روز). به سؤال اختیاری‌ای که رد شود XP تعلق نمی‌گیرد.
       </p>
     </div>
   );

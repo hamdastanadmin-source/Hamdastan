@@ -97,7 +97,7 @@ export function WorldsScreen() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">دنیاها</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            دنیاهای داستانی که رویدادها بهشون وصل می‌شن. ترتیب این فهرست، ترتیب نمایش توی محصوله.
+            دنیاهای داستانی که رویدادها به آن‌ها متصل می‌شوند. ترتیب این فهرست، ترتیب نمایش در اپلیکیشن است.
           </p>
         </div>
         {writable && (
@@ -201,7 +201,7 @@ export function WorldsScreen() {
                           size="icon-sm"
                           className="text-muted-foreground hover:text-destructive"
                           disabled={world.eventCount > 0}
-                          title={world.eventCount > 0 ? 'رویدادهایی به این دنیا وصل‌اند؛ به‌جای حذف، غیرفعالش کن' : undefined}
+                          title={world.eventCount > 0 ? 'این دنیا به رویدادهایی متصل است؛ به‌جای حذف، آن را غیرفعال کنید' : undefined}
                           onClick={() => setDeleting(world)}
                           aria-label={`حذف «${world.name}»`}
                         >
@@ -231,7 +231,7 @@ export function WorldsScreen() {
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{deleting && `حذف «${deleting.name}»`}</DialogTitle>
-            <DialogDescription>این دنیا برای همیشه حذف می‌شه. اگه فقط نمی‌خوای دیده بشه، غیرفعالش کن.</DialogDescription>
+            <DialogDescription>این دنیا برای همیشه حذف می‌شود. اگر فقط می‌خواهید نمایش داده نشود، آن را غیرفعال کنید.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>

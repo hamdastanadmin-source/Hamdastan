@@ -16,10 +16,10 @@ import { z } from 'zod';
 import { firstNameSchema, lastNameSchema, phoneSchema } from './auth';
 
 export const adminUserStatusSchema = z.enum(['active', 'inactive'], {
-  error: 'وضعیت رو انتخاب کن',
+  error: 'وضعیت را انتخاب کنید',
 });
 
-export const adminRoleSchema = z.enum(ADMIN_ROLES, { error: 'نقش رو انتخاب کن' });
+export const adminRoleSchema = z.enum(ADMIN_ROLES, { error: 'نقش را انتخاب کنید' });
 
 const adminUserFields = {
   firstName: firstNameSchema,
@@ -43,7 +43,7 @@ export const adminUserUpdateSchema = z
   .object(adminUserFields)
   .partial()
   .refine((fields) => Object.values(fields).some((value) => value !== undefined), {
-    error: 'چیزی برای ذخیره نیست',
+    error: 'تغییری برای ذخیره وجود ندارد',
   });
 
 /**

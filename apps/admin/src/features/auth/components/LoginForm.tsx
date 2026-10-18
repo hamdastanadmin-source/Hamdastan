@@ -83,7 +83,7 @@ export function LoginForm() {
     if (!codeStep) return;
     try {
       await sendCode(codeStep.phone, codeStep.attempt + 1);
-      toast.success('کد دوباره فرستاده شد');
+      toast.success('کد جدید ارسال شد');
     } catch (error) {
       toast.error(errorMessage(error));
     }
@@ -94,7 +94,7 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle className="text-xl">ورود به پنل مدیریت</CardTitle>
         <CardDescription>
-          {codeStep ? 'کد تأیید رو وارد کن' : 'فقط کاربرانی که مدیر ثبت کرده می‌تونن وارد بشن'}
+          {codeStep ? 'کد تأیید را وارد کنید' : 'ورود فقط برای کاربرانی امکان‌پذیر است که مدیر سیستم ثبت کرده باشد'}
         </CardDescription>
       </CardHeader>
 
@@ -114,7 +114,7 @@ export function LoginForm() {
               {denied && (
                 <Alert variant="destructive">
                   <ShieldAlert aria-hidden="true" />
-                  <AlertTitle>دسترسی نداری</AlertTitle>
+                  <AlertTitle>دسترسی ندارید</AlertTitle>
                   <AlertDescription>{denied}</AlertDescription>
                 </Alert>
               )}

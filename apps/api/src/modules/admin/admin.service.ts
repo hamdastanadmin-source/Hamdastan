@@ -86,7 +86,7 @@ export const adminService = {
 
     const admin = await adminRepository().findByPhone(phone);
     if (!admin || admin.status !== 'active') {
-      throw new AppError(403, 'ADMIN_ACCESS_DENIED', 'این شماره اجازه‌ی ورود به پنل مدیریت رو نداره');
+      throw new AppError(403, 'ADMIN_ACCESS_DENIED', 'این شماره مجوز ورود به پنل مدیریت را ندارد');
     }
 
     const token = generateToken();
@@ -120,13 +120,13 @@ export const adminService = {
   /** One product account, by number, with its live sessions. */
   async findAppUserSessions(phone: string): Promise<AppUserSessions> {
     const user = await usersService.findByPhone(phone);
-    if (!user) throw new NotFoundError('حسابی با این شماره پیدا نشد');
+    if (!user) throw new NotFoundError('حسابی با این شماره یافت نشد');
     return appUserSessions(user);
   },
 
   async appUserSessions(userId: string): Promise<AppUserSessions> {
     const user = await usersService.findAnyById(userId);
-    if (!user) throw new NotFoundError('حساب کاربری پیدا نشد');
+    if (!user) throw new NotFoundError('حساب کاربری یافت نشد');
     return appUserSessions(user);
   },
 
@@ -168,17 +168,17 @@ export const adminService = {
    */
   async update(actor: AdminRecord, id: string, fields: Partial<AdminFields>): Promise<AdminUser> {
     if (id === actor.id && fields.status === 'inactive') {
-      throw new AppError(400, 'ADMIN_SELF_DEACTIVATION', 'نمی‌تونی حساب خودت رو غیرفعال کنی');
+      throw new AppError(400, 'ADMIN_SELF_DEACTIVATION', 'امکان غیرفعال کردن حساب خودتان وجود ندارد');
     }
     // Only a system admin can reach this, and none can demote, deactivate or
     // delete themselves — so whoever is acting stays a system admin, and the
     // panel can never be left without one.
     if (id === actor.id && fields.role !== undefined && fields.role !== actor.role) {
-      throw new AppError(400, 'ADMIN_SELF_ROLE_CHANGE', 'نمی‌تونی نقش خودت رو تغییر بدی');
+      throw new AppError(400, 'ADMIN_SELF_ROLE_CHANGE', 'امکان تغییر نقش خودتان وجود ندارد');
     }
 
     const updated = await adminRepository().update(id, fields);
-    if (!updated) throw new NotFoundError('کاربر پیدا نشد');
+    if (!updated) throw new NotFoundError('کاربر یافت نشد');
     return toAdminUser(updated);
   },
 
@@ -188,8 +188,8 @@ export const adminService = {
    */
   async delete(actor: AdminRecord, id: string): Promise<void> {
     if (id === actor.id) {
-      throw new AppError(400, 'ADMIN_SELF_DELETION', 'نمی‌تونی حساب خودت رو حذف کنی');
+      throw new AppError(400, 'ADMIN_SELF_DELETION', 'امکان حذف حساب خودتان وجود ندارد');
     }
-    if (!(await adminRepository().delete(id))) throw new NotFoundError('کاربر پیدا نشد');
+    if (!(await adminRepository().delete(id))) throw new NotFoundError('کاربر یافت نشد');
   },
 };

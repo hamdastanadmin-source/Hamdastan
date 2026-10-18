@@ -28,7 +28,7 @@ export function BasicsSection({ editor, categories }: SectionProps) {
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="نامک (نشانی)" htmlFor="slug" error={errors.slug} hint="حروف کوچک انگلیسی، عدد و خط تیره. خالی بمونه خودکار ساخته می‌شه.">
+        <Field label="نامک (نشانی)" htmlFor="slug" error={errors.slug} hint="حروف کوچک انگلیسی، عدد و خط تیره. اگر خالی بماند، خودکار ساخته می‌شود.">
           <Input
             id="slug"
             dir="ltr"
@@ -47,7 +47,7 @@ export function BasicsSection({ editor, categories }: SectionProps) {
         label="توضیحات"
         htmlFor="description"
         error={errors.description}
-        hint="پاراگراف‌ها با یک خط خالی جدا می‌شن. **پررنگ**، «# » برای تیتر، «- » برای فهرست و [متن](https://…) برای لینک."
+        hint="پاراگراف‌ها با یک خط خالی از هم جدا می‌شوند. **پررنگ**، «# » برای تیتر، «- » برای فهرست و [متن](https://…) برای لینک."
       >
         <Textarea
           id="description"
@@ -78,7 +78,7 @@ export function BasicsSection({ editor, categories }: SectionProps) {
       <Field
         label="دسته‌ها"
         error={errors.categoryIds}
-        hint={`حداکثر ${toPersianDigits(EVENT_LIMITS.CATEGORIES_MAX)} دسته. دسته‌ها از بخش «دسته‌بندی رویدادها» مدیریت می‌شن.`}
+        hint={`حداکثر ${toPersianDigits(EVENT_LIMITS.CATEGORIES_MAX)} دسته. دسته‌ها از بخش «دسته‌بندی رویدادها» مدیریت می‌شوند.`}
       >
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((category) => {

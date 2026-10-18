@@ -82,7 +82,7 @@ export function AudienceField({
         <Field
           label="گروه‌ها"
           error={errors['audience.categoryIds']}
-          hint="کسانی که توی آنبوردینگ دست‌کم یکی از علاقه‌مندی‌های این دسته‌ها رو انتخاب کردن."
+          hint="کاربرانی که در آنبوردینگ دست‌کم یکی از علاقه‌مندی‌های این دسته‌ها را انتخاب کرده‌اند."
         >
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {INTEREST_CATEGORIES.map((category) => {
@@ -116,7 +116,7 @@ export function AudienceField({
           label="شماره‌های موبایل"
           htmlFor="phones"
           error={phonesError}
-          hint="هر شماره در یک خط، یا با ویرگول جدا. فقط همین افراد می‌بینن."
+          hint="هر شماره در یک خط یا جداشده با ویرگول. فقط همین افراد این فعالیت را می‌بینند."
         >
           <Textarea
             id="phones"
@@ -135,7 +135,7 @@ export function AudienceField({
 
       <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
         <Users aria-hidden="true" className="size-4" />
-        {eligible === null ? 'در حال شمردن…' : `${formatCount(eligible)} کاربر فعال واجد شرایط`}
+        {eligible === null ? 'در حال شمارش…' : `${formatCount(eligible)} کاربر فعال واجد شرایط`}
       </p>
     </div>
   );

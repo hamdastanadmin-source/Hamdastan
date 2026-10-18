@@ -152,7 +152,7 @@ export function BasicInfoForm() {
           >
             <ScreenTitle
               title="بیا آشنا بشیم"
-              description="این اطلاعات پیش ما می‌مونه و به کسی نشون داده نمی‌شه."
+              description="فعلاً فقط چندتا چیز ساده ازت می‌خوایم، بقیه‌ش رو هر وقت حوصله داشتی کامل می‌کنی. این اطلاعات پیش خودمون می‌مونه."
             />
 
             <div className="grid grid-cols-2 gap-3">

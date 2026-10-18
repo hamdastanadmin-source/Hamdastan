@@ -65,7 +65,7 @@ export function GrantsPanel({
             {data.items.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  هنوز XPای داده نشده.
+                  هنوز XPای اعطا نشده است.
                 </TableCell>
               </TableRow>
             )}
@@ -117,11 +117,11 @@ export function GrantsPanel({
         title="ابطال XP"
         description={
           revoking
-            ? `${toPersianDigits(revoking.amount)} XP از ${revoking.user.name || 'کاربر'} کم می‌شه. تراکنش اصلی پاک نمی‌شه؛ یک تراکنش اصلاحی با دلیلی که می‌نویسی کنارش ثبت می‌شه.`
+            ? `${toPersianDigits(revoking.amount)} XP از ${revoking.user.name || 'کاربر'} کسر می‌شود. تراکنش اصلی حذف نمی‌شود؛ یک تراکنش اصلاحی با دلیلی که وارد می‌کنید در کنار آن ثبت می‌شود.`
             : ''
         }
         label="دلیل ابطال"
-        confirmLabel="باطل کن"
+        confirmLabel="ابطال XP"
         destructive
         required
         onCancel={() => setRevoking(null)}

@@ -73,8 +73,8 @@ export function EventsScreen({
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="جستجوی رویداد، مکان یا برگزارکننده"
-            aria-label="جستجوی رویدادها"
+            placeholder="جست‌وجوی رویداد، مکان یا برگزارکننده"
+            aria-label="جست‌وجوی رویدادها"
             className="h-12 ps-10"
           />
         </div>
@@ -123,11 +123,11 @@ export function EventsScreen({
         <div className={pending ? 'opacity-60 transition-opacity' : undefined} aria-busy={pending}>
           {!result ? (
             <EventsEmpty
-              title="رویدادها بارگذاری نشد"
-              description="ارتباط با سرور برقرار نشد. اتصال اینترنت رو بررسی کن و دوباره امتحان کن."
+              title="رویدادها باز نشدن"
+              description="ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن."
               action={
                 <Button variant="outline" onClick={() => router.refresh()}>
-                  تلاش دوباره
+                  دوباره امتحان کن
                 </Button>
               }
             />

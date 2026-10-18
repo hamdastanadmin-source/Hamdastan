@@ -109,7 +109,7 @@ export function EventsScreen() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">رویدادها</h1>
-          <p className="mt-1 text-sm text-muted-foreground">رویداد بساز، به دنیاها وصلش کن، منتشرش کن و ثبت‌نام‌ها و خریدها رو دنبال کن.</p>
+          <p className="mt-1 text-sm text-muted-foreground">رویداد بسازید، آن را به دنیاها متصل و منتشر کنید و ثبت‌نام‌ها و خریدها را پیگیری کنید.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
@@ -137,8 +137,8 @@ export function EventsScreen() {
               type="search"
               value={filters.search}
               onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-              placeholder="جستجوی عنوان، نامک یا برگزارکننده"
-              aria-label="جستجوی رویدادها"
+              placeholder="جست‌وجوی عنوان، نامک یا برگزارکننده"
+              aria-label="جست‌وجوی رویدادها"
               className="ps-9"
             />
           </div>
@@ -226,7 +226,7 @@ export function EventsScreen() {
                   <TableCell colSpan={COLUMNS} className="h-40 text-center">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <CalendarDays aria-hidden="true" className="size-8" />
-                      {filtered ? 'رویدادی با این مشخصات پیدا نشد' : 'هنوز رویدادی نساختی'}
+                      {filtered ? 'رویدادی با این مشخصات پیدا نشد' : 'هنوز رویدادی ساخته نشده است'}
                     </div>
                   </TableCell>
                 </TableRow>

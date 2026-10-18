@@ -29,7 +29,7 @@ async function openPreview(editor: SectionProps['editor'], onGoTo: (section: Edi
     if (!('detail' in outcome)) {
       tab?.close();
       onGoTo(outcome.section);
-      toast.error('اول موارد مشخص‌شده رو اصلاح کن');
+      toast.error('ابتدا موارد مشخص‌شده را اصلاح کنید');
       return;
     }
     const url = `${WEB_BASE_URL}/preview/events/${outcome.detail.id}`;
@@ -75,7 +75,7 @@ export function PublishSection({
         {can('events.write') && (
           <Button variant="outline" size="sm" className="ms-auto" onClick={() => openPreview(editor, onGoTo)} disabled={busy}>
             <ExternalLink aria-hidden="true" />
-            پیش‌نمایش در محصول
+            پیش‌نمایش در اپلیکیشن
           </Button>
         )}
       </div>
@@ -83,7 +83,7 @@ export function PublishSection({
       {problems.length > 0 ? (
         <Alert variant="destructive">
           <CircleAlert aria-hidden="true" />
-          <AlertTitle>برای انتشار، این‌ها مونده</AlertTitle>
+          <AlertTitle>موارد باقی‌مانده برای انتشار</AlertTitle>
           <AlertDescription>
             <ul className="flex flex-col gap-1">
               {problems.map((problem) => (
@@ -101,13 +101,13 @@ export function PublishSection({
         <Alert>
           <CircleCheck aria-hidden="true" />
           <AlertTitle>آماده‌ی انتشار</AlertTitle>
-          <AlertDescription>همه‌ی اطلاعات لازم کامله. پیش‌نویس رو هر وقت خواستی ذخیره کن.</AlertDescription>
+          <AlertDescription>همه‌ی اطلاعات لازم تکمیل است. پیش‌نویس را هر زمان خواستید ذخیره کنید.</AlertDescription>
         </Alert>
       )}
 
       {canPublish && (
         <div className="flex flex-wrap items-end gap-3">
-          <Field label="زمان انتشار" htmlFor="publish-at" hint={at ? formatDateTime(new Date(at).toISOString()) : 'خالی یعنی همین حالا.'}>
+          <Field label="زمان انتشار" htmlFor="publish-at" hint={at ? formatDateTime(new Date(at).toISOString()) : 'اگر خالی بماند، همین حالا منتشر می‌شود.'}>
             <Input id="publish-at" type="datetime-local" dir="ltr" className="sm:w-64" value={at} onChange={(event) => setAt(event.target.value)} />
           </Field>
           <Button

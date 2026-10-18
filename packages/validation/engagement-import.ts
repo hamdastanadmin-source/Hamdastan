@@ -21,7 +21,7 @@ export const QUESTION_IMPORT_COLUMNS = [
   { key: 'title', title: 'متن سؤال', hint: 'الزامی' },
   { key: 'description', title: 'توضیح', hint: 'اختیاری' },
   { key: 'required', title: 'الزامی', hint: 'بله / خیر — پیش‌فرض بله' },
-  { key: 'options', title: 'گزینه‌ها', hint: 'با | جدا کن: کتاب | فیلم | هر دو' },
+  { key: 'options', title: 'گزینه‌ها', hint: 'با | جدا کنید: کتاب | فیلم | هر دو' },
   { key: 'maxSelections', title: 'حداکثر انتخاب', hint: 'فقط چندگزینه‌ای' },
   { key: 'correct', title: 'پاسخ درست', hint: 'آزمون دانشی: متن یا شماره‌ی گزینه' },
   { key: 'scores', title: 'امتیاز گزینه‌ها', hint: 'آزمون شخصیت‌شناسی: 0 | 2 | 4' },
@@ -122,19 +122,19 @@ function rowToQuestion(
       ? 'single'
       : 'text';
   if (!kind) {
-    errors.push(`نوع «${text(cells.type)}» شناخته نشد؛ یکی از: ${QUESTION_KINDS.map((k) => QUESTION_KIND_LABELS[k]).join('، ')}`);
+    errors.push(`نوع «${text(cells.type)}» شناخته نشد؛ نوع‌های مجاز: ${QUESTION_KINDS.map((k) => QUESTION_KIND_LABELS[k]).join('، ')}`);
     return { question: null, errors, dimensionTitle: null };
   }
 
   const required = flag(cells.required, true);
-  if (required === null) errors.push('ستون «الزامی» باید بله یا خیر باشه');
+  if (required === null) errors.push('ستون «الزامی» باید «بله» یا «خیر» باشد');
   const reverse = flag(cells.reverse, false);
-  if (reverse === null) errors.push('ستون «معکوس» باید بله یا خیر باشه');
+  if (reverse === null) errors.push('ستون «معکوس» باید «بله» یا «خیر» باشد');
 
   const personality = context.type === 'assessment' && context.mode === 'personality';
   const knowledge = context.type === 'assessment' && context.mode === 'knowledge';
   const dimensionTitle = personality && kind !== 'text' ? text(cells.dimension) || null : null;
-  if (personality && kind !== 'text' && !dimensionTitle) errors.push('آزمون شخصیت‌شناسی: ستون «بُعد» رو پر کن');
+  if (personality && kind !== 'text' && !dimensionTitle) errors.push('آزمون شخصیت‌شناسی: ستون «بُعد» را پر کنید');
 
   const base = {
     id: context.newId(),
@@ -151,7 +151,7 @@ function rowToQuestion(
       if (personality && scores.length > 0 && scores.length !== options.length) {
         errors.push(`تعداد امتیازها (${fa(scores.length)}) با تعداد گزینه‌ها (${fa(options.length)}) برابر نیست`);
       }
-      if (scores.some((s) => !Number.isInteger(s) || s < -10 || s > 10)) errors.push('امتیاز هر گزینه عدد صحیح بین ۱۰- و ۱۰ باشه');
+      if (scores.some((s) => !Number.isInteger(s) || s < -10 || s > 10)) errors.push('امتیاز هر گزینه باید عددی صحیح بین ۱۰- و ۱۰ باشد');
 
       const correct = new Set<number>();
       if (knowledge) {
@@ -164,7 +164,7 @@ function rowToQuestion(
       }
 
       const maxSelections = integer(cells.maxSelections);
-      if (Number.isNaN(maxSelections)) errors.push('«حداکثر انتخاب» باید عدد باشه');
+      if (Number.isNaN(maxSelections)) errors.push('«حداکثر انتخاب» باید عدد باشد');
 
       return {
         dimensionTitle,
@@ -187,13 +187,13 @@ function rowToQuestion(
     case 'rating': {
       const range = toLatinDigits(text(cells.range));
       const max = Number(range.split('-').pop() || 5);
-      if (max !== 5 && max !== 10) errors.push('بازه‌ی سؤال امتیازی ۵ یا ۱۰ هست');
+      if (max !== 5 && max !== 10) errors.push('بازه‌ی سؤال امتیازی باید ۵ یا ۱۰ باشد');
       return { dimensionTitle, errors, question: { ...base, kind, max } };
     }
     case 'scale': {
       const range = toLatinDigits(text(cells.range)) || '1-5';
       const [min, max] = range.split('-').map((part) => Number(part.trim()));
-      if (!Number.isInteger(min) || !Number.isInteger(max)) errors.push('بازه‌ی طیف رو به شکل 1-5 بنویس');
+      if (!Number.isInteger(min) || !Number.isInteger(max)) errors.push('بازه‌ی طیف را به شکل 1-5 بنویسید');
       return {
         dimensionTitle,
         errors,
@@ -217,12 +217,12 @@ function rowToQuestion(
  */
 export function parseQuestionRows(rows: Cell[][], context: QuestionImportContext): QuestionImportResult {
   const headerIndex = rows.findIndex((row) => row.some((cell) => text(cell) !== ''));
-  if (headerIndex === -1) return { ok: false, error: 'فایل خالیه' };
+  if (headerIndex === -1) return { ok: false, error: 'فایل خالی است' };
 
   const columnByHeader = new Map(QUESTION_IMPORT_COLUMNS.map((column) => [headerKey(column.title), column.key]));
   const columns = rows[headerIndex].map((cell) => columnByHeader.get(headerKey(cell)));
   if (!columns.includes('title')) {
-    return { ok: false, error: 'ستون «متن سؤال» پیدا نشد. از فایل نمونه استفاده کن.' };
+    return { ok: false, error: 'ستون «متن سؤال» پیدا نشد. از فایل نمونه استفاده کنید.' };
   }
 
   const parsed: ImportedQuestionRow[] = [];
@@ -249,7 +249,7 @@ export function parseQuestionRows(rows: Cell[][], context: QuestionImportContext
     });
   });
 
-  if (parsed.length === 0) return { ok: false, error: 'هیچ سؤالی زیر سرستون‌ها نیست' };
+  if (parsed.length === 0) return { ok: false, error: 'زیر سرستون‌ها هیچ سؤالی وجود ندارد' };
   if (parsed.length > L.QUESTIONS_MAX) {
     return { ok: false, error: `حداکثر ${fa(L.QUESTIONS_MAX)} سؤال در هر فعالیت` };
   }

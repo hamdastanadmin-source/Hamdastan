@@ -2092,6 +2092,13 @@ foreground, not violet.
   verbatim. Numbers inside Persian text are Persian digits (`toPersianDigits`),
   validation limits included; an LTR value such as the phone number on the
   verification screen is too.
+- **The admin panel speaks formally** — plural «شما», written Persian:
+  «عنوان رویداد را وارد کنید», never «عنوان رویداد رو بنویس». So do the
+  API errors and shared validation messages only an admin can trigger
+  (event, activity, media, campaign and admin-user editors). Errors the API
+  shares with the app (server error, rate limit, sign-in code, session) stay
+  informal at the source; `apps/admin/src/lib/error-message.ts` swaps them
+  for formal wording by `code`.
 - **Feedback.** A field's own problem is written under the field
   (`FormMessage`); anything else — a network failure, a rate limit, a save
   that did not land — is a toast. Error toasts are a soft red and success

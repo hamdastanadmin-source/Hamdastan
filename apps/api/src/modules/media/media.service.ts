@@ -47,12 +47,12 @@ const notFound = () => new NotFoundError('فایل پیدا نشد');
 /** The file's facts, or why it is not taken. */
 function readFile(base64: string): { file: MediaFile; bytes: Buffer } {
   const bytes = Buffer.from(base64, 'base64');
-  if (bytes.length === 0) throw new AppError(400, CODES.MEDIA_UNSUPPORTED, 'فایل خالیه');
+  if (bytes.length === 0) throw new AppError(400, CODES.MEDIA_UNSUPPORTED, 'فایل خالی است');
   if (bytes.length > MEDIA_LIMITS.MAX_BYTES) {
     throw new AppError(
       413,
       CODES.MEDIA_TOO_LARGE,
-      `حجم فایل باید حداکثر ${toPersianDigits(MEDIA_LIMITS.MAX_BYTES / 1024)} کیلوبایت باشه`
+      `حجم فایل باید حداکثر ${toPersianDigits(MEDIA_LIMITS.MAX_BYTES / 1024)} کیلوبایت باشد`
     );
   }
   const format = sniffMedia(bytes);
@@ -60,7 +60,7 @@ function readFile(base64: string): { file: MediaFile; bytes: Buffer } {
     throw new AppError(
       415,
       CODES.MEDIA_UNSUPPORTED,
-      'فقط تصویر PNG، JPEG و WebP یا موشن Lottie (JSON)، WebM و MP4 پذیرفته می‌شه'
+      'فقط تصویر PNG، JPEG و WebP یا موشن Lottie (JSON)، WebM و MP4 پذیرفته می‌شود'
     );
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex');
@@ -123,7 +123,7 @@ export const mediaService = {
       throw new AppError(
         409,
         CODES.MEDIA_KIND_CHANGED,
-        current.kind === 'image' ? 'جای یک تصویر فقط تصویر می‌شینه' : 'جای یک موشن فقط موشن می‌شینه'
+        current.kind === 'image' ? 'تصویر فقط با تصویر جایگزین می‌شود' : 'موشن فقط با موشن جایگزین می‌شود'
       );
     }
 
@@ -131,7 +131,7 @@ export const mediaService = {
     await store().write(next, bytes);
     if (!(await mediaRepository().replace(id, current.version, file, actor.id))) {
       await store().remove(next);
-      throw new AppError(409, 'MEDIA_CHANGED', 'این فایل همین الان عوض شد؛ صفحه رو دوباره باز کن');
+      throw new AppError(409, 'MEDIA_CHANGED', 'این فایل همین حالا تغییر کرد؛ صفحه را دوباره بارگذاری کنید');
     }
     await store().remove(storageKey(current));
     return this.get(id);
@@ -147,7 +147,7 @@ export const mediaService = {
     const outcome = await mediaRepository().remove(id);
     if (outcome.status !== 'deleted') {
       if (outcome.status === 'not_found') throw notFound();
-      throw new AppError(409, CODES.MEDIA_IN_USE, 'این فایل جایی استفاده شده و حذف نمی‌شه');
+      throw new AppError(409, CODES.MEDIA_IN_USE, 'این فایل در حال استفاده است و قابل حذف نیست');
     }
     await store().remove(storageKey(outcome.record));
     return { deleted: true };
@@ -205,8 +205,8 @@ export const mediaService = {
     const fields: Record<string, string> = {};
     for (const [path, id] of entries) {
       const kind = kinds.get(id);
-      if (!kind) fields[path] = 'این فایل توی کتابخانه نیست؛ دوباره انتخابش کن';
-      else if (kind !== 'image') fields[path] = 'اینجا فقط تصویر می‌شه گذاشت';
+      if (!kind) fields[path] = 'این فایل در کتابخانه وجود ندارد؛ دوباره انتخابش کنید';
+      else if (kind !== 'image') fields[path] = 'در این بخش فقط تصویر قابل استفاده است';
     }
     if (Object.keys(fields).length > 0) throw new ValidationError(Object.values(fields)[0], { fields });
   },

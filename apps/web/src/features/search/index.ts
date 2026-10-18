@@ -1,5 +1,5 @@
 /**
- * Search — جستجو: جستجوی سراسری، فیلترها و نتایج.
+ * Search — جستجو: جست‌وجوی سراسری، فیلترها و نتایج.
  *
  * Public surface of the feature. Nothing outside it imports past this file.
  *

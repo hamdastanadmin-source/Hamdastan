@@ -27,8 +27,8 @@ export function AssessmentSettingsPanel({
       <div className="flex flex-col gap-1 border-b pb-4">
         <h3 className="text-base font-semibold">روش محاسبه‌ی نتیجه</h3>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          دانشی: هر سؤال گزینه‌ای یک جواب درست داره و نمره درصد جواب‌های درسته. شخصیت‌شناسی: هر سؤال یک بُعد رو
-          می‌سنجه؛ بُعدی که بالاتر بیاد نتیجه‌ست.
+          دانشی: هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. شخصیت‌شناسی: هر سؤال یک بُعد را
+          می‌سنجد و بُعدی که بیشترین امتیاز را بگیرد، نتیجه است.
         </p>
       </div>
       <div className="flex flex-col gap-4">
@@ -51,7 +51,7 @@ export function AssessmentSettingsPanel({
           <Field
             label="حداقل نمره‌ی قبولی (٪، اختیاری)"
             htmlFor="passing-score"
-            hint="خالی یعنی آزمون قبولی و ردی نداره."
+            hint="اگر خالی بماند، آزمون قبولی و ردی ندارد."
             error={errors['definition.assessment.passingScore']}
           >
             <Input
@@ -99,7 +99,7 @@ export function AssessmentSettingsPanel({
                   <Textarea
                     rows={2}
                     value={dimension.description}
-                    placeholder="متنی که اگه این بُعد نتیجه‌ی کاربر باشه، می‌بینه"
+                    placeholder="متنی که کاربر در صورت قرار گرفتن در این بُعد می‌بیند"
                     aria-label={`توضیح بُعد ${toPersianDigits(index + 1)}`}
                     onChange={(event) =>
                       onChange({
@@ -128,7 +128,7 @@ export function AssessmentSettingsPanel({
           </Field>
         )}
 
-        <SwitchRow id="show-result" label="نمایش نتیجه به کاربر" hint="خاموش باشه، کاربر فقط پیام تکمیل رو می‌بینه.">
+        <SwitchRow id="show-result" label="نمایش نتیجه به کاربر" hint="اگر خاموش باشد، کاربر فقط پیام تکمیل را می‌بیند.">
           <Switch
             id="show-result"
             checked={settings.showResult}

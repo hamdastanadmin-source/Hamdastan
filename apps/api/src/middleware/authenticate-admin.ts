@@ -27,7 +27,7 @@ export async function authenticateAdmin(request: FastifyRequest): Promise<void> 
   if (!token) throw new UnauthorizedError();
 
   const admin = await adminService.resolveAdmin(token);
-  if (!admin) throw new UnauthorizedError('نشستت تموم شده، دوباره وارد شو');
+  if (!admin) throw new UnauthorizedError('نشست شما به پایان رسیده است؛ لطفاً دوباره وارد شوید');
   request.admin = admin;
 }
 
@@ -55,7 +55,7 @@ export function requireAdminPermission(permission: AdminPermission) {
           { audit: { action: 'permission.denied', adminId: admin.id, permission } },
           'admin permission denied'
         );
-        throw new AppError(403, 'ADMIN_PERMISSION_DENIED', 'دسترسی به این بخش رو نداری');
+        throw new AppError(403, 'ADMIN_PERMISSION_DENIED', 'شما به این بخش دسترسی ندارید');
       }
     },
   ];

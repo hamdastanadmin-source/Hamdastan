@@ -9,7 +9,7 @@ import type { EventBookingInput, EventDetail } from '@hamdastan/types';
 import { eventsService, HttpError } from '@/services';
 
 const failure = (error: unknown) =>
-  error instanceof HttpError ? error.message : 'ارتباط با سرور برقرار نشد. اتصال اینترنت رو بررسی کن.';
+  error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.';
 
 type Pending = 'interest' | 'booking' | null;
 type Interest = EventDetail['interest'];

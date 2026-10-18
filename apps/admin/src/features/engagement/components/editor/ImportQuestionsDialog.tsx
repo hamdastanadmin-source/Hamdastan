@@ -76,8 +76,8 @@ export function ImportQuestionsDialog({
   const read = async (file: File | undefined) => {
     reset();
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.xlsx')) return setFileError('فقط فایل اکسل ‎.xlsx‎ رو می‌شه خوند');
-    if (file.size > MAX_IMPORT_BYTES) return setFileError('حجم فایل بیشتر از ۲ مگابایته');
+    if (!file.name.toLowerCase().endsWith('.xlsx')) return setFileError('فقط فایل اکسل ‎.xlsx‎ پذیرفته می‌شود');
+    if (file.size > MAX_IMPORT_BYTES) return setFileError('حجم فایل بیشتر از ۲ مگابایت است');
     setReading(true);
     try {
       const sheet = await readQuestionSheet(file);
@@ -85,7 +85,7 @@ export function ImportQuestionsDialog({
       if (result.ok) setRows(result.rows);
       else setFileError(result.error);
     } catch {
-      setFileError('این فایل خونده نشد؛ مطمئن شو یک فایل اکسل سالمه');
+      setFileError('این فایل خوانده نشد؛ از سالم بودن فایل اکسل اطمینان حاصل کنید');
     } finally {
       setReading(false);
     }
@@ -113,7 +113,7 @@ export function ImportQuestionsDialog({
         <DialogHeader>
           <DialogTitle>ورود سؤال‌ها از اکسل</DialogTitle>
           <DialogDescription>
-            هر سطر فایل یک سؤاله. سؤال‌ها بعد از سؤال‌های فعلی اضافه می‌شن و قبل از ذخیره می‌تونی ویرایششون کنی.
+            هر سطر فایل یک سؤال است. سؤال‌ها پس از سؤال‌های فعلی اضافه می‌شوند و پیش از ذخیره قابل ویرایش‌اند.
           </DialogDescription>
         </DialogHeader>
 
@@ -167,7 +167,7 @@ export function ImportQuestionsDialog({
               <p className="flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
                 <Badge variant="success">{toPersianDigits(valid.length)} سؤال آماده</Badge>
                 {invalid.length > 0 && (
-                  <Badge variant="error">{toPersianDigits(invalid.length)} سطر با خطا — اضافه نمی‌شن</Badge>
+                  <Badge variant="error">{toPersianDigits(invalid.length)} سطر دارای خطا — اضافه نمی‌شوند</Badge>
                 )}
               </p>
               <ScrollArea className="max-h-80 rounded-md border">
@@ -212,7 +212,7 @@ export function ImportQuestionsDialog({
           {!rows && !fileError && (
             <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
               <FileSpreadsheet aria-hidden="true" className="size-8" />
-              {reading ? 'در حال خوندن فایل…' : 'فایل نمونه رو پر کن و اینجا انتخابش کن.'}
+              {reading ? 'در حال خواندن فایل…' : 'فایل نمونه را تکمیل و در این قسمت انتخاب کنید.'}
             </div>
           )}
         </div>

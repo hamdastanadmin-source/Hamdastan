@@ -25,7 +25,7 @@ export function NotificationOpener({ id }: { id: string }) {
     notificationsService.open(id).then(
       ({ href }) => {
         if (!active) return;
-        if (!href) toast.info('این اعلان دیگه به جایی نمی‌ره یا مقصدش در دسترس نیست');
+        if (!href) toast.info('صفحه‌ی این اعلان دیگه در دسترس نیست');
         router.replace(href ?? '/notifications');
       },
       () => {

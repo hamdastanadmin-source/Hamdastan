@@ -57,7 +57,7 @@ export function JourneyPlayer({ activity, preview }: { activity: PlayerActivity;
         return;
       }
       // Sending the same answer again is safe: the API keeps the first one.
-      toast.error(error instanceof HttpError ? error.message : 'ارتباط با سرور برقرار نشد. دوباره امتحان کن.');
+      toast.error(error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.');
     }
   };
 

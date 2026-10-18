@@ -44,7 +44,7 @@ const keySchema = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, { error: 'شناسه
 
 const optionSchema = z.object({
   id: keySchema,
-  label: line(L.OPTION_LABEL_MAX, 'متن گزینه رو بنویس'),
+  label: line(L.OPTION_LABEL_MAX, 'متن گزینه را وارد کنید'),
   correct: z.boolean().optional(),
   score: z.number().int().min(-10).max(10).optional(),
   traits: z.record(keySchema, z.number().int().min(-J.TRAIT_POINTS_MAX).max(J.TRAIT_POINTS_MAX)).optional(),
@@ -52,7 +52,7 @@ const optionSchema = z.object({
 
 const questionBase = {
   id: keySchema,
-  title: line(L.DESCRIPTION_MAX, 'متن سؤال رو بنویس'),
+  title: line(L.DESCRIPTION_MAX, 'متن سؤال را وارد کنید'),
   description: paragraph(L.DESCRIPTION_MAX).optional(),
   required: z.boolean(),
   dimensionId: keySchema.optional(),
@@ -66,7 +66,7 @@ const choiceFields = {
   ...questionBase,
   options: z
     .array(optionSchema)
-    .min(L.OPTIONS_MIN, { error: `حداقل ${fa(L.OPTIONS_MIN)} گزینه لازمه` })
+    .min(L.OPTIONS_MIN, { error: `حداقل ${fa(L.OPTIONS_MIN)} گزینه لازم است` })
     .max(L.OPTIONS_MAX, { error: `حداکثر ${fa(L.OPTIONS_MAX)} گزینه` }),
 };
 
@@ -93,7 +93,7 @@ export const activityQuestionSchema = z.discriminatedUnion('kind', [
 const coverSchema = z.object({
   headline: line(J.COVER_HEADLINE_MAX, null),
   text: paragraph(J.COVER_TEXT_MAX),
-  buttonLabel: line(J.COVER_BUTTON_MAX, 'متن دکمه‌ی شروع رو بنویس'),
+  buttonLabel: line(J.COVER_BUTTON_MAX, 'متن دکمه‌ی شروع را وارد کنید'),
   background: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, { error: 'رنگ معتبر نیست' })
@@ -108,7 +108,7 @@ const stepSchema = z.object({
   id: keySchema,
   title: line(L.TITLE_MAX, null),
   description: paragraph(L.DESCRIPTION_MAX).default(''),
-  questions: z.array(activityQuestionSchema).min(1, { error: 'حداقل یک سؤال لازمه' }),
+  questions: z.array(activityQuestionSchema).min(1, { error: 'حداقل یک سؤال لازم است' }),
   cover: coverSchema.optional(),
   answerMotion: motionSettingSchema.optional(),
 });
@@ -116,9 +116,9 @@ const stepSchema = z.object({
 const xpSchema = z.object({
   enabled: z.boolean(),
   amount: z
-    .number({ error: 'مقدار XP رو وارد کن' })
-    .int({ error: 'XP باید عدد صحیح باشه' })
-    .min(0, { error: 'XP نمی‌تونه منفی باشه' })
+    .number({ error: 'مقدار XP را وارد کنید' })
+    .int({ error: 'XP باید عدد صحیح باشد' })
+    .min(0, { error: 'XP نمی‌تواند منفی باشد' })
     .max(L.XP_MAX, { error: `حداکثر ${fa(L.XP_MAX)} XP` }),
   showBeforeStart: z.boolean(),
   maxAwards: z.number().int().min(1).max(L.REPEAT_MAX),
@@ -131,7 +131,7 @@ const assessmentSchema = z.object({
     .array(
       z.object({
         id: keySchema,
-        title: line(L.TITLE_MAX, 'عنوان بُعد رو بنویس'),
+        title: line(L.TITLE_MAX, 'عنوان بُعد را وارد کنید'),
         description: paragraph(L.DESCRIPTION_MAX).default(''),
       })
     )
@@ -141,9 +141,9 @@ const assessmentSchema = z.object({
 });
 
 const stepXp = z
-  .number({ error: 'مقدار XP رو وارد کن' })
-  .int({ error: 'XP باید عدد صحیح باشه' })
-  .min(0, { error: 'XP نمی‌تونه منفی باشه' })
+  .number({ error: 'مقدار XP را وارد کنید' })
+  .int({ error: 'XP باید عدد صحیح باشد' })
+  .min(0, { error: 'XP نمی‌تواند منفی باشد' })
   .max(J.STEP_XP_MAX, { error: `حداکثر ${fa(J.STEP_XP_MAX)} XP` });
 
 const journeySchema = z.object({
@@ -157,13 +157,13 @@ const journeySchema = z.object({
   // Absent on a journey saved before the day-end page existed.
   dayEnd: z
     .object({
-      title: line(J.DAY_END_TITLE_MAX, 'متن تبریک رو بنویس'),
+      title: line(J.DAY_END_TITLE_MAX, 'متن تبریک را وارد کنید'),
       message: paragraph(J.DAY_END_MESSAGE_MAX),
       mascot: motionSettingSchema,
       invite: z.object({
         enabled: z.boolean(),
         text: paragraph(J.DAY_END_MESSAGE_MAX),
-        button: line(J.COVER_BUTTON_MAX, 'متن دکمه‌ی دعوت رو بنویس'),
+        button: line(J.COVER_BUTTON_MAX, 'متن دکمه‌ی دعوت را وارد کنید'),
         shareMessage: paragraph(J.SHARE_MESSAGE_MAX),
       }),
     })
@@ -173,13 +173,13 @@ const journeySchema = z.object({
     .object({
       enabled: z.boolean(),
       traits: z
-        .array(z.object({ id: keySchema, title: line(J.CHARACTER_NAME_MAX, 'نام ویژگی رو بنویس') }))
+        .array(z.object({ id: keySchema, title: line(J.CHARACTER_NAME_MAX, 'نام ویژگی را وارد کنید') }))
         .max(J.TRAITS_MAX, { error: `حداکثر ${fa(J.TRAITS_MAX)} ویژگی` }),
       characters: z
         .array(
           z.object({
             id: keySchema,
-            name: line(J.CHARACTER_NAME_MAX, 'نام شخصیت رو بنویس'),
+            name: line(J.CHARACTER_NAME_MAX, 'نام شخصیت را وارد کنید'),
             title: line(L.TITLE_MAX, null),
             description: paragraph(J.CHARACTER_DESCRIPTION_MAX),
             imageId: mediaIdSchema.nullable(),
@@ -212,7 +212,7 @@ const journeySchema = z.object({
 
 const definitionSchema = z.object({
   // The cap depends on the type — a journey runs longer — so it is checked in `checkDefinition`.
-  steps: z.array(stepSchema).min(1, { error: 'حداقل یک مرحله لازمه' }),
+  steps: z.array(stepSchema).min(1, { error: 'حداقل یک مرحله لازم است' }),
   estimatedMinutes: z.number().int().min(1).max(L.ESTIMATED_MINUTES_MAX),
   maxSubmissions: z.number().int().min(1).max(L.REPEAT_MAX),
   anonymous: z.boolean(),
@@ -280,28 +280,28 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
     issue(['steps'], journey ? `حداکثر ${fa(stepsMax)} روز` : `حداکثر ${fa(stepsMax)} مرحله`);
   }
   if (questions.length > questionsMax) issue(['steps'], `حداکثر ${fa(questionsMax)} سؤال`);
-  if (journey && !definition.journey) issue(['journey'], 'تنظیمات بازشدن روزها رو کامل کن');
+  if (journey && !definition.journey) issue(['journey'], 'تنظیمات باز شدن روزها را کامل کنید');
   if (journey && definition.journey) checkResult(definition, issue);
 
   const ids = new Set<string>();
   definition.steps.forEach((step, s) => {
-    if (type === 'mission' && !step.title) issue(['steps', s, 'title'], 'عنوان مرحله رو بنویس');
-    if (journey && !step.title) issue(['steps', s, 'title'], 'عنوان روز رو بنویس');
+    if (type === 'mission' && !step.title) issue(['steps', s, 'title'], 'عنوان مرحله را وارد کنید');
+    if (journey && !step.title) issue(['steps', s, 'title'], 'عنوان روز را وارد کنید');
 
     step.questions.forEach((question, q) => {
       const at = ['steps', s, 'questions', q];
-      if (ids.has(question.id)) issue([...at, 'id'], 'شناسه سؤال تکراریه');
+      if (ids.has(question.id)) issue([...at, 'id'], 'شناسه‌ی سؤال تکراری است');
       ids.add(question.id);
 
       if (question.kind === 'single' || question.kind === 'multiple') {
         const optionIds = new Set(question.options.map((option) => option.id));
-        if (optionIds.size !== question.options.length) issue([...at, 'options'], 'شناسه گزینه تکراریه');
+        if (optionIds.size !== question.options.length) issue([...at, 'options'], 'شناسه‌ی گزینه تکراری است');
         if (question.kind === 'multiple' && (question.maxSelections ?? 0) > question.options.length) {
-          issue([...at, 'maxSelections'], 'سقف انتخاب از تعداد گزینه‌ها بیشتره');
+          issue([...at, 'maxSelections'], 'سقف انتخاب از تعداد گزینه‌ها بیشتر است');
         }
       }
       if (question.kind === 'scale' && question.min >= question.max) {
-        issue([...at, 'max'], 'انتهای طیف باید از ابتداش بزرگ‌تر باشه');
+        issue([...at, 'max'], 'انتهای طیف باید بزرگ‌تر از ابتدای آن باشد');
       }
     });
   });
@@ -309,18 +309,18 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
   if (type !== 'assessment') return;
   const assessment = definition.assessment;
   if (!assessment) {
-    issue(['assessment'], 'نوع آزمون رو انتخاب کن');
+    issue(['assessment'], 'نوع آزمون را انتخاب کنید');
     return;
   }
 
   if (assessment.mode === 'personality') {
-    if (assessment.dimensions.length === 0) issue(['assessment', 'dimensions'], 'حداقل یک بُعد لازمه');
+    if (assessment.dimensions.length === 0) issue(['assessment', 'dimensions'], 'حداقل یک بُعد لازم است');
     const dimensionIds = new Set(assessment.dimensions.map((dimension) => dimension.id));
     definition.steps.forEach((step, s) =>
       step.questions.forEach((question, q) => {
         if (question.kind === 'text') return;
         if (!question.dimensionId || !dimensionIds.has(question.dimensionId)) {
-          issue(['steps', s, 'questions', q, 'dimensionId'], 'بُعدی که این سؤال می‌سنجه رو انتخاب کن');
+          issue(['steps', s, 'questions', q, 'dimensionId'], 'بُعدی را که این سؤال می‌سنجد انتخاب کنید');
         }
       })
     );
@@ -335,13 +335,13 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
       if (correct === 0 || (question.kind === 'single' && correct !== 1)) {
         issue(
           ['steps', s, 'questions', q, 'options'],
-          question.kind === 'single' ? 'یک گزینه‌ی درست مشخص کن' : 'حداقل یک گزینه‌ی درست مشخص کن'
+          question.kind === 'single' ? 'یک گزینه‌ی درست مشخص کنید' : 'حداقل یک گزینه‌ی درست مشخص کنید'
         );
       }
     })
   );
   if (!questions.some((question) => question.kind === 'single' || question.kind === 'multiple')) {
-    issue(['steps'], 'آزمون دانشی حداقل یک سؤال گزینه‌ای لازم داره');
+    issue(['steps'], 'آزمون دانشی دست‌کم به یک سؤال گزینه‌ای نیاز دارد');
   }
 }
 
@@ -377,16 +377,16 @@ function checkResult(definition: ActivityDefinition, issue: (path: (string | num
   const at = ['journey', 'result'];
   const traitIds = new Set(result.traits.map((trait) => trait.id));
 
-  if (traitIds.size !== result.traits.length) issue([...at, 'traits'], 'شناسه‌ی ویژگی تکراریه');
-  if (result.characters.length === 0) issue([...at, 'characters'], 'حداقل یک شخصیت تعریف کن');
+  if (traitIds.size !== result.traits.length) issue([...at, 'traits'], 'شناسه‌ی ویژگی تکراری است');
+  if (result.characters.length === 0) issue([...at, 'characters'], 'حداقل یک شخصیت تعریف کنید');
   if (!result.characters.some((character) => character.id === result.defaultCharacterId)) {
-    issue([...at, 'defaultCharacterId'], 'نتیجه‌ی پیش‌فرض رو انتخاب کن');
+    issue([...at, 'defaultCharacterId'], 'نتیجه‌ی پیش‌فرض را انتخاب کنید');
   }
   const claimed = new Set<string>();
   result.characters.forEach((character, c) => {
     if (!character.traitId) return;
-    if (!traitIds.has(character.traitId)) issue([...at, 'characters', c, 'traitId'], 'این ویژگی دیگه وجود نداره');
-    else if (claimed.has(character.traitId)) issue([...at, 'characters', c, 'traitId'], 'هر ویژگی فقط به یک شخصیت می‌رسه');
+    if (!traitIds.has(character.traitId)) issue([...at, 'characters', c, 'traitId'], 'این ویژگی دیگر وجود ندارد');
+    else if (claimed.has(character.traitId)) issue([...at, 'characters', c, 'traitId'], 'هر ویژگی فقط به یک شخصیت اختصاص می‌یابد');
     claimed.add(character.traitId);
   });
   definition.steps.forEach((step, s) =>
@@ -394,7 +394,7 @@ function checkResult(definition: ActivityDefinition, issue: (path: (string | num
       if (!('options' in question)) return;
       question.options.forEach((option, o) => {
         if (Object.keys(option.traits ?? {}).some((id) => !traitIds.has(id))) {
-          issue(['steps', s, 'questions', q, 'options', o, 'traits'], 'امتیاز برای ویژگی‌ای که وجود نداره');
+          issue(['steps', s, 'questions', q, 'options', o, 'traits'], 'امتیاز برای ویژگی‌ای ثبت شده که وجود ندارد');
         }
       });
     })
@@ -422,7 +422,7 @@ export const activityAudienceSchema = z.discriminatedUnion('kind', [
     kind: z.literal('users'),
     phones: z
       .array(phoneSchema)
-      .min(1, { error: 'حداقل یک شماره وارد کن' })
+      .min(1, { error: 'حداقل یک شماره وارد کنید' })
       .max(L.AUDIENCE_PHONES_MAX, { error: `حداکثر ${fa(L.AUDIENCE_PHONES_MAX)} شماره` })
       .transform((phones) => [...new Set(phones)]),
   }),
@@ -430,7 +430,7 @@ export const activityAudienceSchema = z.discriminatedUnion('kind', [
     kind: z.literal('interests'),
     categoryIds: z
       .array(z.enum(CATEGORY_IDS))
-      .min(1, { error: 'حداقل یک گروه انتخاب کن' })
+      .min(1, { error: 'حداقل یک گروه انتخاب کنید' })
       .transform((ids) => [...new Set(ids)]),
   }),
 ]);
@@ -442,8 +442,8 @@ const dateTimeSchema = z.iso.datetime({ offset: true, error: 'تاریخ معت�
 /** `POST /admin/engagement/activities` and `PUT …/:id`. */
 export const activityInputSchema = z
   .object({
-    type: z.enum(ACTIVITY_TYPES, { error: 'نوع فعالیت رو انتخاب کن' }),
-    title: line(L.TITLE_MAX, 'عنوان رو بنویس'),
+    type: z.enum(ACTIVITY_TYPES, { error: 'نوع فعالیت را انتخاب کنید' }),
+    title: line(L.TITLE_MAX, 'عنوان را وارد کنید'),
     summary: line(L.SUMMARY_MAX, null),
     instructions: paragraph(L.DESCRIPTION_MAX),
     definition: definitionSchema,
@@ -454,11 +454,11 @@ export const activityInputSchema = z
   .superRefine((input, ctx) => {
     checkDefinition(input.type, input.definition, ctx);
     if (input.type === 'journey' && !input.startsAt) {
-      ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'زمان شروع کمپین رو مشخص کن' });
+      ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'زمان شروع کمپین را مشخص کنید' });
     }
     // A journey's end is derived from its start, so only the others are checked.
     if (input.type !== 'journey' && input.startsAt && input.endsAt && new Date(input.endsAt) <= new Date(input.startsAt)) {
-      ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'پایان باید بعد از شروع باشه' });
+      ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'زمان پایان باید بعد از زمان شروع باشد' });
     }
   })
   .transform((input) => ({
@@ -493,7 +493,7 @@ export const submissionReviewSchema = z.object({
 });
 
 export const xpRevokeSchema = z.object({
-  reason: line(L.REASON_MAX, 'دلیل ابطال رو بنویس'),
+  reason: line(L.REASON_MAX, 'دلیل ابطال را وارد کنید'),
 });
 
 export const reviewListQuerySchema = z.object({

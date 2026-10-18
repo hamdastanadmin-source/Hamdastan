@@ -77,9 +77,9 @@ export function OtpStep({ phone, resendIn, onVerify, onResend, onEditPhone }: Ot
         <span dir="ltr" className="font-medium tabular-nums text-foreground">
           {toPersianDigits(phone)}
         </span>{' '}
-        فرستاده شد.{' '}
+        ارسال شد.{' '}
         <Button type="button" variant="link" className="h-auto p-0 text-foreground underline" onClick={onEditPhone}>
-          ویرایش شماره
+          تغییر شماره
         </Button>
       </p>
 

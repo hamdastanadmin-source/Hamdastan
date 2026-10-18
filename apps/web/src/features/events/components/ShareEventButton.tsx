@@ -12,7 +12,7 @@ export function ShareEventButton({ title, slug }: { title: string; slug: string 
   const share = async () => {
     const outcome = await shareInvite({ title, text: `«${title}» توی هم‌داستان`, url: `${window.location.origin}/events/${slug}` });
     if (outcome === 'copied') toast.success('لینک رویداد کپی شد');
-    if (outcome === 'failed') toast.error('اشتراک‌گذاری ممکن نشد');
+    if (outcome === 'failed') toast.error('اشتراک‌گذاری انجام نشد؛ دوباره امتحان کن');
   };
 
   return (

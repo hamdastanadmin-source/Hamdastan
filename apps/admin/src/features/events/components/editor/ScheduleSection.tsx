@@ -34,15 +34,15 @@ export function ScheduleSection({ editor }: SectionProps) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-5 sm:grid-cols-2">
-        {dateField('startAt', 'شروع', 'لازم برای انتشار.')}
-        {dateField('endAt', 'پایان', 'باید بعد از شروع باشه. رویداد چندروزه همه‌ی روزهاش توی تقویم علامت می‌خوره.')}
-        {dateField('registrationDeadline', 'مهلت ثبت‌نام', 'اختیاری؛ خالی یعنی تا پایان رویداد.')}
-        <Field label="منطقه‌ی زمانی" hint="زمان‌ها با ساعت تهران ذخیره و نمایش داده می‌شن.">
+        {dateField('startAt', 'شروع', 'برای انتشار الزامی است.')}
+        {dateField('endAt', 'پایان', 'باید بعد از زمان شروع باشد. در رویداد چندروزه، همه‌ی روزها در تقویم علامت می‌خورند.')}
+        {dateField('registrationDeadline', 'مهلت ثبت‌نام', 'اختیاری؛ اگر خالی بماند، تا پایان رویداد.')}
+        <Field label="منطقه‌ی زمانی" hint="زمان‌ها به وقت تهران ذخیره و نمایش داده می‌شوند.">
           <Input value={state.timeZone} dir="ltr" readOnly />
         </Field>
       </div>
       <Alert>
-        <AlertDescription>زمان انتشار رویداد جداست و توی بخش «انتشار» تعیین می‌شه.</AlertDescription>
+        <AlertDescription>زمان انتشار رویداد جداگانه در بخش «انتشار» تعیین می‌شود.</AlertDescription>
       </Alert>
     </div>
   );

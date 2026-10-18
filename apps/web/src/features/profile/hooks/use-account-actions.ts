@@ -20,7 +20,7 @@ import { HttpError, accountService } from '@/services';
 
 export function accountErrorMessage(error: unknown): string {
   // The API answers in Persian; only "never arrived" needs our wording.
-  return error instanceof HttpError ? error.message : 'ارتباط با سرور برقرار نشد. اینترنتت رو بررسی کن.';
+  return error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.';
 }
 
 export function useAccountActions() {

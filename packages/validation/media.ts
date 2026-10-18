@@ -20,20 +20,20 @@ const fa = (n: number) => toPersianDigits(n);
 
 /** Base64 of at most MAX_BYTES once decoded: four characters carry three bytes. */
 const base64File = z
-  .string({ error: 'فایل رو انتخاب کن' })
-  .min(1, { error: 'فایل رو انتخاب کن' })
+  .string({ error: 'فایل را انتخاب کنید' })
+  .min(1, { error: 'فایل را انتخاب کنید' })
   .max(Math.ceil(MEDIA_LIMITS.MAX_BYTES / 3) * 4 + 4, {
-    error: `حجم فایل باید حداکثر ${fa(MEDIA_LIMITS.MAX_BYTES / 1024)} کیلوبایت باشه`,
+    error: `حجم فایل باید حداکثر ${fa(MEDIA_LIMITS.MAX_BYTES / 1024)} کیلوبایت باشد`,
   })
   .regex(/^[A-Za-z0-9+/]+={0,2}$/, { error: 'فایل معتبر نیست' });
 
 const name = z
   .string()
   .transform((value) => value.replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/\s+/g, ' ').trim())
-  .refine((value) => value.length > 0, { error: 'یک نام برای فایل بنویس' })
+  .refine((value) => value.length > 0, { error: 'یک نام برای فایل وارد کنید' })
   .refine((value) => value.length <= MEDIA_LIMITS.NAME_MAX, { error: `حداکثر ${fa(MEDIA_LIMITS.NAME_MAX)} کاراکتر` });
 
-const category = z.enum(MEDIA_CATEGORIES, { error: 'دسته رو انتخاب کن' });
+const category = z.enum(MEDIA_CATEGORIES, { error: 'دسته را انتخاب کنید' });
 
 /** `POST /admin/media`. */
 export const mediaUploadSchema = z.object({ name, category, data: base64File });
@@ -41,7 +41,7 @@ export const mediaUploadSchema = z.object({ name, category, data: base64File });
 /** `PATCH /admin/media/:id`. */
 export const mediaUpdateSchema = z
   .object({ name: name.optional(), category: category.optional() })
-  .refine((input) => input.name !== undefined || input.category !== undefined, { error: 'چیزی برای تغییر نیست' });
+  .refine((input) => input.name !== undefined || input.category !== undefined, { error: 'تغییری برای ذخیره وجود ندارد' });
 
 /** `PUT /admin/media/:id/file`. */
 export const mediaReplaceSchema = z.object({ data: base64File });
@@ -79,7 +79,7 @@ export const motionSettingSchema = z.discriminatedUnion('mode', [
     mode: z.literal('random'),
     assetIds: z
       .array(mediaIdSchema)
-      .min(2, { error: 'حداقل دو فایل برای انتخاب تصادفی لازمه' })
+      .min(2, { error: 'برای انتخاب تصادفی دست‌کم دو فایل لازم است' })
       .max(D.RANDOM_MAX, { error: `حداکثر ${fa(D.RANDOM_MAX)} فایل` })
       .transform((ids) => [...new Set(ids)]),
     ...motionCommon,

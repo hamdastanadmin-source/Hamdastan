@@ -170,7 +170,7 @@ export function PreviewStep({ editor }: { editor: ActivityEditorApi }) {
 
           {problems.length > 0 && (
             <Alert variant="destructive">
-              <AlertTitle>قبل از انتشار این‌ها رو درست کن</AlertTitle>
+              <AlertTitle>پیش از انتشار، این موارد را اصلاح کنید</AlertTitle>
               <AlertDescription>
                 <ul className="list-disc ps-4">
                   {problems.slice(0, 6).map((problem, index) => (
@@ -200,7 +200,7 @@ function FullPreview({ editor }: { editor: ActivityEditorApi }) {
       const outcome = await editor.save();
       if (!('detail' in outcome)) {
         tab?.close();
-        toast.error('اول موارد مشخص‌شده رو اصلاح کن');
+        toast.error('ابتدا موارد مشخص‌شده را اصلاح کنید');
         return;
       }
       const url = `${WEB_BASE_URL}/preview/activities/${outcome.detail.id}`;
@@ -217,8 +217,8 @@ function FullPreview({ editor }: { editor: ActivityEditorApi }) {
       <AlertTitle>پیش‌نمایش کامل تجربه</AlertTitle>
       <AlertDescription className="flex flex-col gap-3">
         <span>
-          هر روز، حالت قفل، کاور، سؤال‌های تصویری با موشن‌ها، پایان روز و دعوت، و کارت شخصیت — همون‌طور که کاربر می‌بینه،
-          در نمای موبایل یا دسکتاپ. هیچ پاسخ یا XPی ثبت نمی‌شه. (تغییرات اول ذخیره می‌شن.)
+          هر روز، حالت قفل، کاور، سؤال‌های تصویری با موشن‌ها، پایان روز و دعوت، و کارت شخصیت — همان‌طور که کاربر می‌بیند،
+          در نمای موبایل یا دسکتاپ. هیچ پاسخ یا XPای ثبت نمی‌شود. (تغییرات ابتدا ذخیره می‌شوند.)
         </span>
         <Button variant="outline" className="w-fit" onClick={open} loading={editor.busy}>
           <ExternalLink aria-hidden="true" />

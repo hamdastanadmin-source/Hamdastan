@@ -94,7 +94,7 @@ const deliver = (content: NotificationContent, recipients: Recipients) =>
 const iso = (date: Date | null) => date?.toISOString() ?? null;
 
 const notFound = () => new NotFoundError('اعلان پیدا نشد');
-const campaignNotFound = () => new NotFoundError('کمپین پیدا نشد');
+const campaignNotFound = () => new NotFoundError('کمپین یافت نشد');
 
 // ─── Inbox cursor ────────────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ const invalidTransition = () =>
 /** «Everyone» is its own permission, checked here as well as hidden in the panel. */
 function assertMaySendTo(actor: AdminRecord, audience: NotificationAudience): void {
   if (audience.kind === 'all' && !ADMIN_ROLE_PERMISSIONS[actor.role].includes('notifications.broadcast')) {
-    throw new AppError(403, ADMIN_ERROR_CODES.ADMIN_PERMISSION_DENIED, 'ارسال به همه‌ی کاربران برای نقش تو مجاز نیست');
+    throw new AppError(403, ADMIN_ERROR_CODES.ADMIN_PERMISSION_DENIED, 'ارسال به همه‌ی کاربران برای نقش شما مجاز نیست');
   }
 }
 
@@ -198,7 +198,7 @@ async function sendPushes(limit: number, now: Date): Promise<{ sent: number; ret
     results.push(
       ...(await Promise.all(
         batch.map(async (job): Promise<DeliveryResult> => {
-          if (!job.subscriptionId) return { id: job.id, status: 'failed', error: 'اشتراک دستگاه دیگه وجود نداره' };
+          if (!job.subscriptionId) return { id: job.id, status: 'failed', error: 'اشتراک دستگاه دیگر وجود ندارد' };
           const outcome = await sender.send(
             { endpoint: job.endpoint, p256dh: job.p256dh, auth: job.auth },
             { title: job.title, body: job.body, url: `/notifications/${job.notificationId}`, tag: job.notificationId }
@@ -230,7 +230,7 @@ async function sendCampaign(campaign: CampaignRecord): Promise<void> {
   // Re-checked at delivery, not only when scheduled: the event may have been
   // unpublished in between. Its audience is filtered again by `deliver`.
   if (!(await repo().destinationExists(campaign.destination))) {
-    await repo().finishCampaign(campaign.id, { status: 'failed', error: 'مقصد اعلان دیگه در دسترس نیست' });
+    await repo().finishCampaign(campaign.id, { status: 'failed', error: 'مقصد اعلان دیگر در دسترس نیست' });
     return;
   }
   if (campaign.push && !pushSender) {
@@ -445,7 +445,7 @@ export const notificationsService = {
     await mediaService.requireImages({ imageId: input.imageId });
     if (!(await repo().updateDraft(id, input, actor.id))) {
       if (!(await repo().findCampaign(id))) throw campaignNotFound();
-      throw new AppError(409, CODES.CAMPAIGN_NOT_EDITABLE, 'فقط پیش‌نویس رو می‌شه ویرایش کرد؛ ازش یک نسخه بساز');
+      throw new AppError(409, CODES.CAMPAIGN_NOT_EDITABLE, 'فقط پیش‌نویس قابل ویرایش است؛ از آن یک نسخه‌ی تازه بسازید');
     }
     return this.getCampaign(id);
   },
@@ -483,10 +483,10 @@ export const notificationsService = {
     }
     assertMaySendTo(actor, campaign.audience);
     if (campaign.push && !pushSender) {
-      throw new AppError(400, CODES.PUSH_UNAVAILABLE, 'زیرساخت اعلان گوشی پیکربندی نشده؛ کانال «فقط درون برنامه» رو انتخاب کن');
+      throw new AppError(400, CODES.PUSH_UNAVAILABLE, 'زیرساخت اعلان گوشی پیکربندی نشده است؛ کانال «فقط درون برنامه» را انتخاب کنید');
     }
     if (!(await repo().destinationExists(campaign.destination))) {
-      throw new AppError(400, CODES.DESTINATION_UNAVAILABLE, 'مقصد انتخاب‌شده منتشر نشده یا دیگه وجود نداره');
+      throw new AppError(400, CODES.DESTINATION_UNAVAILABLE, 'مقصد انتخاب‌شده منتشر نشده یا دیگر وجود ندارد');
     }
 
     const now = new Date();

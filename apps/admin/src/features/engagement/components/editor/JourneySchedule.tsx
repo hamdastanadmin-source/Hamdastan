@@ -53,7 +53,7 @@ export function JourneySchedule({ editor }: { editor: ActivityEditorApi }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="زمان شروع کمپین" htmlFor="starts-at" error={errors.startsAt} hint="روز اول همین لحظه باز می‌شه.">
+        <Field label="زمان شروع کمپین" htmlFor="starts-at" error={errors.startsAt} hint="روز اول در همین زمان باز می‌شود.">
           <Input
             id="starts-at"
             type="datetime-local"
@@ -65,7 +65,7 @@ export function JourneySchedule({ editor }: { editor: ActivityEditorApi }) {
         </Field>
         <Field label="پایان کمپین" hint="خودکار: نیمه‌شبِ بعد از آخرین روز.">
           <p className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
-            {end ? formatDayTimeIn(end, journey.timezone) : 'اول زمان شروع رو انتخاب کن'}
+            {end ? formatDayTimeIn(end, journey.timezone) : 'ابتدا زمان شروع را انتخاب کنید'}
           </p>
         </Field>
       </div>
@@ -82,7 +82,7 @@ export function JourneySchedule({ editor }: { editor: ActivityEditorApi }) {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="منطقه‌ی زمانی" htmlFor="timezone" error={errors['definition.journey.timezone']} hint="نیمه‌شب‌ها به وقت این منطقه حساب می‌شن.">
+        <Field label="منطقه‌ی زمانی" htmlFor="timezone" error={errors['definition.journey.timezone']} hint="نیمه‌شب‌ها به وقت این منطقه محاسبه می‌شوند.">
           <Select value={journey.timezone} onValueChange={(timezone) => setJourney({ timezone })}>
             <SelectTrigger id="timezone" className="w-full">
               <SelectValue />
@@ -109,8 +109,8 @@ export function JourneySchedule({ editor }: { editor: ActivityEditorApi }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="catch_up">تا پایان کمپین باز می‌مونن</SelectItem>
-                    <SelectItem value="lock">با باز شدن روز بعد، قفل می‌شن</SelectItem>
+                    <SelectItem value="catch_up">تا پایان کمپین باز می‌مانند</SelectItem>
+                    <SelectItem value="lock">با باز شدن روز بعد، قفل می‌شوند</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
@@ -119,7 +119,7 @@ export function JourneySchedule({ editor }: { editor: ActivityEditorApi }) {
               <SwitchRow
                 id="require-previous"
                 label="الزام تکمیل روز قبل"
-                hint="روشن باشه، هر روز فقط بعد از تکمیل (یا ازدست‌رفتنِ) روز قبلش باز می‌شه."
+                hint="اگر روشن باشد، هر روز فقط پس از تکمیل (یا از دست رفتنِ) روز قبل باز می‌شود."
               >
                 <Switch
                   id="require-previous"
@@ -128,7 +128,7 @@ export function JourneySchedule({ editor }: { editor: ActivityEditorApi }) {
                 />
               </SwitchRow>
             )}
-            <SwitchRow id="allow-review" label="مرور روزهای تکمیل‌شده" hint="کاربر می‌تونه سؤال‌ها و پاسخ‌های روزهای تموم‌شده رو دوباره ببینه.">
+            <SwitchRow id="allow-review" label="مرور روزهای تکمیل‌شده" hint="کاربر می‌تواند سؤال‌ها و پاسخ‌های روزهای تمام‌شده را دوباره ببیند.">
               <Switch id="allow-review" checked={journey.allowReview} onCheckedChange={(allowReview) => setJourney({ allowReview })} />
             </SwitchRow>
           </AccordionContent>

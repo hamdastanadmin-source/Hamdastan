@@ -12,7 +12,7 @@ function detailLine(event: AdminActivityEvent): string | null {
   const parts = [
     typeof version === 'number' && `نسخه‌ی ${toPersianDigits(version)}`,
     typeof xp === 'number' && `XP: ${toPersianDigits(xp)}`,
-    typeof xpAwarded === 'number' && xpAwarded > 0 && `${toPersianDigits(xpAwarded)} XP داده شد`,
+    typeof xpAwarded === 'number' && xpAwarded > 0 && `${toPersianDigits(xpAwarded)} XP اعطا شد`,
     typeof reason === 'string' && `دلیل: ${reason}`,
     typeof note === 'string' && `یادداشت: ${note}`,
   ].filter(Boolean);
@@ -22,7 +22,7 @@ function detailLine(event: AdminActivityEvent): string | null {
 /** What admins did to this activity, newest first. */
 export function HistoryPanel({ events, loading }: { events: AdminActivityEvent[] | null; loading: boolean }) {
   if (loading && !events) return <Skeleton className="h-40 w-full" />;
-  if (!events?.length) return <p className="py-10 text-center text-sm text-muted-foreground">سابقه‌ای نیست.</p>;
+  if (!events?.length) return <p className="py-10 text-center text-sm text-muted-foreground">سابقه‌ای ثبت نشده است.</p>;
 
   return (
     <ol className="flex flex-col divide-y">
