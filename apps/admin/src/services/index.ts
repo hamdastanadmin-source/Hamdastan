@@ -7,3 +7,4 @@ export { adminMediaService } from './admin-media.service';
 export { HttpError } from '@hamdastan/shared';
 export { adminEventsService } from './admin-events.service';
 export { adminWorldsService } from './admin-worlds.service';
+export { adminNotificationsService } from './admin-notifications.service';

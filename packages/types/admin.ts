@@ -13,7 +13,7 @@ export type AdminUserStatus = 'active' | 'inactive';
  * comparing role names: a route asks "may this admin revoke XP?", and the
  * table below answers. Adding a role is a row here, not an `if` in a handler.
  */
-export const ADMIN_ROLES = ['system_admin', 'content_manager', 'mission_reviewer'] as const;
+export const ADMIN_ROLES = ['system_admin', 'content_manager', 'mission_reviewer', 'notification_manager'] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export const ADMIN_PERMISSIONS = [
@@ -47,6 +47,14 @@ export const ADMIN_PERMISSIONS = [
   'events.publish',
   /** The world list: add, edit, order, switch off. */
   'worlds.manage',
+  /** Notification campaigns: see them, their reports and history. */
+  'notifications.read',
+  /** Create, edit a draft, duplicate, archive. */
+  'notifications.write',
+  /** Send, schedule, cancel a scheduled one — to a chosen audience. */
+  'notifications.send',
+  /** Send to everyone. Kept apart from `notifications.send` so a narrow audience never needs it. */
+  'notifications.broadcast',
 ] as const;
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
 
@@ -62,8 +70,12 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[
     'events.write',
     'events.publish',
     'worlds.manage',
+    'notifications.read',
+    'notifications.write',
+    'notifications.send',
   ],
   mission_reviewer: ['activities.read', 'results.read', 'results.individual', 'submissions.review'],
+  notification_manager: ['notifications.read', 'notifications.write', 'notifications.send', 'notifications.broadcast'],
 };
 
 export type AdminUser = {

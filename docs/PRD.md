@@ -2,7 +2,7 @@
 
 **Product:** هم‌داستان (Hamdastan)
 **Version:** 1.0
-**Last Updated:** 2026-10-17
+**Last Updated:** 2026-10-18
 **Status:** Active Development
 
 ---
@@ -411,7 +411,8 @@ bump the version:
 `/`. The worlds are not open yet, so home carries the person's next step.
 The header is their avatar (see «Where the avatar comes from», §4.4) and
 `@username` (their display name only if an older account has none), linking
-to the profile — no greeting line; the bottom nav holds خانه, رویدادها and پروفایل. Signing out is not on home.
+to the profile — no greeting line — and at the other end the bell to the
+Notification Center with the unread count (§4.11); the bottom nav holds خانه, رویدادها and پروفایل. Signing out is not on home.
 
 - **Questionnaire not done:** the first thing on the screen is a card —
   «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
@@ -537,12 +538,15 @@ the avatar is the person's image, and nothing in the product uses email.
 
 **Settings — `/profile/settings`.** «ظاهر»
 (حالت تاریک — a switch; per device, kept in the browser by the theme store,
-not on the account), «اعلان‌ها» (ماموریت‌ها و پیشرفت — a switch), «حریم خصوصی» (نمایش پروفایل اجتماعی به
+not on the account), «اعلان‌ها» (a row to `/profile/settings/notifications`,
+§4.11), «حریم خصوصی» (نمایش پروفایل اجتماعی به
 دیگران — a switch), «پشتیبانی» (راهنما و پشتیبانی → `/profile/help`), then,
 set apart, «خروج از حساب» in red text. An account switch saves when flipped
-and flips back if the save fails. A switch's "on" is the brand violet. Both
-account settings are stored; nothing reads them yet,
-because notifications and other people's views do not exist yet.
+and flips back if the save fails. A switch's "on" is the brand violet. The
+privacy setting is stored; nothing reads it yet, because other people's views
+do not exist. The old «ماموریت‌ها و پیشرفت» switch is gone: its stored
+`settings.notifications` is no longer read, and migration `0019` carried an
+«off» over to the activity and achievement categories.
 
 **Logout.** Only in settings. It asks: «از حساب خارج می‌شی؟» / «هر وقت خواستی
 می‌تونی دوباره وارد بشی.» / «خروج» (destructive red) / «انصراف», in a
@@ -620,6 +624,16 @@ reads the same table only to hide what would be refused.
 | `events.write` — create, edit, duplicate; categories; record a booking's outcome | ✓ | ✓ | |
 | `events.publish` — publish, schedule, unpublish, cancel, archive | ✓ | ✓ | |
 | `worlds.manage` — the world list | ✓ | ✓ | |
+| `notifications.read` — campaigns, reports, history | ✓ | ✓ | |
+| `notifications.write` — create, edit a draft, duplicate, archive | ✓ | ✓ | |
+| `notifications.send` — send, schedule, cancel, stop pushes | ✓ | ✓ | |
+| `notifications.broadcast` — send to everyone | ✓ | | |
+
+A fourth role, **مدیر اعلان‌ها (`notification_manager`)**, holds the four
+`notifications.*` permissions and nothing else (migration `0019` adds it to
+`v2_admin_role`). A content manager can send a campaign to a chosen audience
+but not to everyone; «everyone» is checked again by the API on send, not only
+hidden in the panel.
 
 - Every admin who existed before roles became `system_admin` (migration
   `0014`), so no one lost access.
@@ -633,7 +647,7 @@ reads the same table only to hide what would be refused.
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
 start), with the panel's name at the top, the sections the admin's role opens
 — مدیریت کاربران, استودیو (Engagement Studio, §4.7), رویدادها (§4.9),
-دنیاها (§4.10), کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
+دنیاها (§4.10), اعلان‌ها (§4.11), کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
 the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
@@ -1118,8 +1132,10 @@ otherwise. **Planned (phase 5):** end-to-end tests and polish.
   page is read again after every action; interest and the reminder show
   the change at once and step back if the API refuses it.
 - **Reminders** — once interested, a card on the page: «توی اپ» (on by
-  default; the event appears under «یادت نره» on home and in «رویدادهای من»
-  the day before), and «اعلان گوشی» and «پیامک» shown as «به‌زودی». Home's
+  default; the day before, a reminder notification arrives and the event
+  appears under «یادت نره» on home and in «رویدادهای من»), «اعلان گوشی» — a
+  link to the notification settings, where this device's push is turned on
+  (§4.11) — and «پیامک» shown as «به‌زودی». Home's
   «یادت نره» lists interested-with-reminder or confirmed events starting
   within 24 hours; «رویدادهای پیش‌رو» below it leaves those out.
 - **`/events/mine`** — «رویدادهای من», reached from the profile's «رویدادها»
@@ -1267,12 +1283,15 @@ as «در انتظار تأیید») until an operator records what Fidibo repor
 Fidibo's reference). One open handoff per person and event.
 
 **Interest and reminders.** «علاقه‌مندم» is separate from any booking, with
-an in-app reminder switch (on by default). Reminders are in-app only:
-«به‌زودی» (`/me/events?tab=soon`) lists interested-with-reminder or
-confirmed events starting within 24 hours, read live — so a cancellation
-or a new time shows at once. Nothing is pushed or texted: there is no
-notifications module, no push, and no SMS provider for it, and the product
-never says otherwise.
+an in-app reminder switch (on by default). «به‌زودی»
+(`/me/events?tab=soon`) lists interested-with-reminder or confirmed events
+starting within 24 hours, read live — so a cancellation or a new time shows
+at once. The same people get one reminder notification the day before
+(§4.11, on the phone too if they turned push on), and everyone interested or
+holding a pending or confirmed booking is notified when the event is
+cancelled or its time or place changes; a buyer hears the operator-recorded
+outcome of a Fidibo booking. Nothing is texted: there is no SMS provider for
+it.
 
 **«رویدادهای من»** (`GET /me/events`): interested, booked (pending or
 confirmed), past, soon. Each card carries the person's booking status, so
@@ -1285,7 +1304,8 @@ appears only through a shared world.
 **Not built:** ratings and reviews (there is no feedback backend, and none
 is invented), sessions inside one event, the Fidibo API, push and SMS
 reminders, world managers scoped to their worlds (needs admins assigned to
-worlds), an event's participants as an audience.
+worlds). An event's participants are an audience for notification campaigns
+(§4.11), not yet for activities.
 
 ### 4.10 Worlds — the minimal list — دنیاها
 
@@ -1303,6 +1323,149 @@ orders them with up/down, and deletes only one without events. The
 product has no world page: the home banners are not links, and an event's
 page names its worlds as text. A world's events — including its
 world-only ones — are found through the «دنیا» filter on `/events`.
+
+### 4.11 Notifications — اعلان‌ها
+
+**Purpose:** one system for everything the product tells a person — what the
+system sends on its own when something real happens, and what an operator
+sends as a campaign — in one inbox, under one set of preferences, opened
+through one deep link. Code in `apps/api/src/modules/notifications`,
+`apps/web/src/features/notifications` and
+`apps/admin/src/features/notifications`; schema: migration `0019`.
+
+**Two sources, one pipeline.** A system notification and a campaign both
+become rows through the same statement (`deliver`), which picks the
+recipients, drops whoever switched the category off, inserts one row each
+and queues a push for every subscribed device whose owner left push on.
+Every notification has a name (`dedupe_key`), unique per person, so a
+duplicate domain event or a re-run job creates nothing.
+
+**Categories.** Only what something in the product produces:
+فعالیت‌ها و XP (`activity`), نشان‌ها و سطح (`achievements`), رویدادها
+(`events`), دنیاها (`worlds`), پیشنهادها (`promotions`), سیستم (`system`).
+Social, ranking and wallet notifications do not exist because those modules
+do not; they arrive with them. The tabs and the preferences are built from
+this list (`NOTIFICATION_CATEGORIES`). XP is progression only — no money,
+no wallet column, nothing financial is touched.
+
+**What the system sends** (and only this):
+
+| When | Category | Push | Name |
+|---|---|:-:|---|
+| XP from a profile mission, an activity submission, a journey day or a whole journey (never a single journey answer) | activity | — | `mission:<id>`, `submit:<activity>:<key>`, `journey-day:…`, `journey:…` |
+| A new level, the first time it is reached | achievements | ✓ | `level:<n>` |
+| A badge, when its last mission completes | achievements | ✓ | `badge:<id>` |
+| A reviewed mission: approved (with its XP) or not | activity | ✓ | `review:<response>` |
+| An event the person follows is cancelled | events | ✓ | `event-cancelled:<event>` |
+| Its start, end or place changes (an upcoming, published event) | events | ✓ | `event-changed:<event>:<hash of the new values>` |
+| The day before it starts — interested with the reminder on, or confirmed | events | ✓ | `event-reminder:<event>` |
+| An operator records a booking's outcome (confirmed, failed, cancelled) | events | ✓ | `booking:<booking>:<status>` |
+
+«Follows» is interest or a pending or confirmed booking. XP the person just
+earned by their own action stays in the app; it is not pushed. A
+notification about an event expires when the event ends, a reminder when it
+starts; an expired one is labelled and opens nothing. Producing a
+notification never fails the action that caused it — the XP is already in
+the ledger — a failure is logged and the action answers as usual.
+
+**The Notification Center — `/notifications`.** Reached from the bell on
+home. A back arrow to home and a link to the settings; the title; under
+it the unread count («۳ اعلان خوانده‌نشده» / «همه‌ی اعلان‌ها خوانده شده»)
+with «خواندن همه» across from it — text only, no icon, violet while
+something is unread and disabled when nothing is; a row
+of filter chips that scrolls sideways — همه، خوانده‌نشده (with its count) and
+the six categories (selected is the foreground filled, never the brand
+colour); then the list grouped by امروز / دیروز / هفته‌ی گذشته / قبل‌تر, 20 at
+a time with «اعلان‌های قبلی». Each notification is a card: the category icon
+in a circle (with a dot while unread), the title (bold while unread), the
+line, the category and time, and — when a campaign has one — its image full
+width at 16:9; an unread card is tinted. A cross in the corner dismisses it. Skeleton rows while
+loading, an error with «تلاش دوباره», an empty state per tab, and an offline
+notice.
+
+**Opening one — `/notifications/:id`.** Every row and every tapped push
+leads here. The page asks the API to open it (`POST /notifications/:id/open`,
+which marks it read and opened) and goes where the API answers. The API
+re-checks the destination *now*: an event the person may no longer see, an
+unpublished one, or an expired notification answers no destination, and the
+person is returned to the Center with «این اعلان دیگه به جایی نمی‌ره یا
+مقصدش در دسترس نیست». Destinations are kinds, never URLs: home, events, one
+event, «رویدادهای من», activities, one activity, the profile, or none.
+
+**Preferences — `/profile/settings/notifications`** (back is an arrow alone). «اعلان گوشی»: this
+device's push, which asks the browser for permission only when it is
+switched on — never on a page load, and never again once the browser says no
+(the screen then says to change it in the browser). An unsupported browser,
+or an API without push, says so; on iPhone the PWA must be on the home
+screen. Then one switch per category, each with its own icon (system notices are not optional and
+not listed); with the device on, each category can also stay in the app
+only. Defaults: everything on, promotions not on the phone. Stored in
+`v2_notification_preferences`; no row is the default.
+
+**Push.** Web Push with VAPID, sent by `apps/api` alone (`PushSender`,
+`web-push`). The browser subscribes through its own push service and gives
+the subscription to the API; the front-end calls nothing else. The service
+worker (`apps/web/public/sw.js`) caches nothing: it shows a push and, on a
+tap, opens `/notifications/<id>`. Without `VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` the API sends and queues no push, the
+product disables the device switch and the panel refuses a push campaign
+(`400 PUSH_UNAVAILABLE`) — in-app notifications are unaffected. A push the
+push service says is gone (404/410) removes the subscription; 429, 5xx or a
+timeout is retried after 1, 5 and 30 minutes, then marked failed. A failed
+push never removes the in-app notification.
+
+**Delivery.** A dispatcher in `maintenance` runs every
+`NOTIFICATIONS_DISPATCH_INTERVAL_SECONDS` (30): due campaigns (up to five a
+pass), the next 24 hours' event reminders, then up to
+`NOTIFICATIONS_PUSH_BATCH` (500) queued pushes, 20 at a time. Every claim is
+`FOR UPDATE SKIP LOCKED`, so two instances share the work. A campaign stuck
+in «در حال ارسال» for ten minutes is taken again; its dedupe key makes that
+harmless. Nothing is sent from an admin's HTTP request. Notifications are
+kept 180 days, finished push records 30 (the hourly cleanup).
+
+**The admin screens — `/notifications`** (`notifications.read` to open):
+
+- **The list** — figures (all, draft, scheduled, sent, failed, notifications
+  created, pushes accepted / failed — or «پیکربندی نشده»), search, a status
+  filter (archived only on request), and a table: title and category, status
+  with the recipient count, audience, channel, send time, created and by
+  whom. A row's menu: view (edit a draft), duplicate, cancel a scheduled
+  one, archive — only what the role may do.
+- **A campaign — `/notifications/new`, `/notifications/:id`** — content
+  (title ≤ 80, short text ≤ 240, category, an image from the media library,
+  destination), audience, channel («فقط درون برنامه» or «درون برنامه +
+  اعلان گوشی», the second disabled without push), and a live preview as the
+  Center's row and as a lock-screen push. The audience shows how many active
+  people would receive it today and how many on a phone, counted by the API
+  with the dispatcher's own rule. «ارسال یا زمان‌بندی…» opens the
+  confirmation: now or a time (shown back in Tehran's time; stored as UTC),
+  then everything that will happen — content, audience, recipients,
+  channels, destination, time — and one button, busy while the request is
+  out. A sent or scheduled campaign is read-only, with its report —
+  created, read, opened, dismissed; pushes queued, accepted by the push
+  service, failed, cancelled — and its history. «Accepted» is never called
+  delivered.
+
+**Audiences.** Everyone (`notifications.broadcast`); chosen numbers;
+interest groups; one event's interested people, or its confirmed bookings
+(interest is never taken for a booking); and a world's — people interested
+in or confirmed for an event filed under it, since there is no membership
+or following to send to. A campaign pointing at an event reaches only those
+who may see it (a restricted event's audience); one pointing at an
+activity, only that activity's audience.
+
+**Campaign statuses.** draft → scheduled («now» is a schedule for the
+present) → sending → sent, or failed (the destination was gone by then, or
+the run broke — it can be sent again); scheduled → cancelled; draft, sent,
+cancelled, failed → archived. Only a draft is edited (`409
+CAMPAIGN_NOT_EDITABLE`); a wrong move is `409 CAMPAIGN_INVALID_TRANSITION`.
+A sent campaign's queued pushes can be stopped. Sending is limited to ten a
+minute per admin. Every write is in `v2_notification_audit_log`.
+
+**Not built:** social, ranking and wallet notifications (no such modules);
+world managers scoped to their worlds; native app push (the product is a
+PWA); SMS; email; aggregation of reactions (there are no reactions);
+notifying automatically when an activity or an event is published.
 
 ---
 
@@ -1605,6 +1768,21 @@ Covers, logos, category images and gallery items point at v2_media_assets.
   registration and one open handoff per person and event.
 - **`v2_event_interests` (0018)** — (user, event), with `remind_in_app`.
 - **`v2_worlds` (0018)** — the minimal world list; no membership yet.
+- **`v2_notifications` (0019)** — one row per recipient: category, type,
+  title, body, image, destination (jsonb), campaign, `dedupe_key` (unique
+  with the user — «only once» is the database's job), expiry, and
+  `read_at` / `opened_at` / `dismissed_at`.
+- **`v2_notification_campaigns` (0019)** — an operator's campaign: content,
+  category, destination, audience (jsonb), push, status, `scheduled_at`
+  (UTC), recipient count, error, creator.
+- **`v2_notification_preferences` (0019)** — (user, category) → in-app,
+  push. No row is the default.
+- **`v2_push_subscriptions` (0019)** — a browser's Web Push endpoint and
+  keys; the endpoint is unique and belongs to whoever subscribed it last.
+- **`v2_notification_deliveries` (0019)** — one push per notification and
+  device: queued → sent / failed / cancelled, attempts, next attempt, the
+  provider's error.
+- **`v2_notification_audit_log` (0019)** — who did what to a campaign.
 
 - **`v2_admin_users`** — the admin panel's allow-list: `phone` (unique,
   normalised like `v2_users.phone`), `first_name`, `last_name`, `status`
@@ -1620,8 +1798,8 @@ The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 `0002_user_interests.sql`, `0004_social_questionnaire.sql`,
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
 everyone who finished it before XP existed), `0009_admin_users.sql`,
-`0010_engagement_studio.sql`, `0015_engagement_journeys.sql` and
-`0018_events.sql`.
+`0010_engagement_studio.sql`, `0015_engagement_journeys.sql`,
+`0018_events.sql` and `0019_notifications.sql`.
 
 ---
 
@@ -1736,6 +1914,20 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | PUT | `/admin/worlds/order` | `{ ids }` | `AdminWorld[]` — `worlds.manage` |
 | PUT | `/admin/worlds/:id` | `WorldInput` | `AdminWorld` — `worlds.manage` |
 | DELETE | `/admin/worlds/:id` | — | `{ deleted: true }`; 409 `WORLD_IN_USE` — `worlds.manage` |
+| GET | `/admin/notifications/overview` | — | `NotificationsOverview` — `notifications.read` |
+| GET | `/admin/notifications/options` | — | `CampaignOptions`: events, activities, worlds, `pushAvailable` — `notifications.write` |
+| POST | `/admin/notifications/audience` | `{ audience, category, destination }` | `AudienceEstimate`: `{ eligible, push }` — `notifications.write` |
+| GET | `/admin/notifications/campaigns` | `?search=&status=&page=` | `Paginated<AdminCampaignSummary>` — `notifications.read` |
+| POST | `/admin/notifications/campaigns` | `CampaignInput` | `AdminCampaign` (201) — `notifications.write` |
+| GET | `/admin/notifications/campaigns/:id` | — | `AdminCampaign` — `notifications.read` |
+| PUT | `/admin/notifications/campaigns/:id` | `CampaignInput` | `AdminCampaign`; 409 `CAMPAIGN_NOT_EDITABLE` unless a draft — `notifications.write` |
+| POST | `/admin/notifications/campaigns/:id/duplicate` | — | `AdminCampaign` (201), a draft — `notifications.write` |
+| POST | `/admin/notifications/campaigns/:id/send` | `{ scheduledAt \| null }` | `AdminCampaign`, scheduled; 400 incomplete, `PUSH_UNAVAILABLE`, `DESTINATION_UNAVAILABLE`; 403 `ADMIN_PERMISSION_DENIED` for everyone without `notifications.broadcast`; 409 `CAMPAIGN_INVALID_TRANSITION`; 10 a minute — `notifications.send` |
+| POST | `/admin/notifications/campaigns/:id/cancel` | — | `AdminCampaign` — `notifications.send` |
+| POST | `/admin/notifications/campaigns/:id/stop-push` | — | `{ cancelled }` — `notifications.send` |
+| POST | `/admin/notifications/campaigns/:id/archive` | — | `AdminCampaign` — `notifications.write` |
+| GET | `/admin/notifications/campaigns/:id/report` | — | `CampaignReport` — `notifications.read` |
+| GET | `/admin/notifications/campaigns/:id/history` | — | `CampaignHistoryEntry[]` (latest 100) — `notifications.read` |
 | GET | `/worlds` | — | `World[]` (active) |
 | GET | `/worlds/:slug` | — | `World`; 404 when switched off |
 | GET | `/events` | `?q=&category=a,b&type=&world=&from=&to=&city=&price=free\|paid&available=&interested=&sort=&page=&pageSize=` | `Paginated<EventCard>` |
@@ -1749,6 +1941,15 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | DELETE | `/events/:id/registrations` | — | `{ cancelled: true }` |
 | POST | `/events/:id/booking-handoff` | `{ ticketOptionId, quantity }` | `EventHandoff`: `{ booking (pending), url }`; 409 `EVENT_SOLD_OUT`, `EVENT_BOOKING_CLOSED` |
 | GET | `/me/events` | `?tab=interested\|booked\|past\|soon` | `EventCard[]` (≤ 50) |
+| GET | `/notifications` | `?filter=all\|unread\|<category>&before=<cursor>` | `NotificationInbox`: `{ items, nextCursor, unread }` (20 a page) |
+| GET | `/notifications/unread` | — | `{ unread }` |
+| POST | `/notifications/read` | `{ ids? }` — without ids, everything | `{ unread }` |
+| POST | `/notifications/:id/open` | — | `{ href }` — the product path, or null when it no longer leads anywhere for this person; 404 for someone else's |
+| DELETE | `/notifications/:id` | — | `{ unread }` |
+| GET | `/notifications/preferences` | — | `NotificationPreferences`: `{ categories, push: { available, publicKey } }` |
+| PUT | `/notifications/preferences` | `{ categories: [{ category, inApp, push }] }` | `NotificationPreferences` |
+| POST | `/notifications/push/subscriptions` | the browser's `PushSubscription` JSON | `{ subscribed: true }` (201); 503 `PUSH_UNAVAILABLE` |
+| POST | `/notifications/push/unsubscribe` | `{ endpoint }` | `{ subscribed: false }` |
 | GET | `/me/activities` | — | `ActivityCard[]` |
 | GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
 | PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
@@ -1773,7 +1974,8 @@ Error codes the UI switches on: `OTP_RATE_LIMITED`, `OTP_NOT_FOUND`,
 `OTP_EXPIRED`, `OTP_INVALID`, `OTP_LOCKED`, `VALIDATION_ERROR`,
 `UNAUTHORIZED`, `RATE_LIMITED`, `IDEMPOTENCY_KEY_REUSED`,
 `ADMIN_PERMISSION_DENIED`, `EVENT_INCOMPLETE`, `EVENT_SOLD_OUT`,
-`EVENT_BOOKING_CLOSED`.
+`EVENT_BOOKING_CLOSED`, `PUSH_UNAVAILABLE`, `DESTINATION_UNAVAILABLE`,
+`CAMPAIGN_NOT_EDITABLE`, `CAMPAIGN_INVALID_TRANSITION`.
 
 ### 7.1 Server Actions (RPC)
 
@@ -1785,7 +1987,7 @@ reaches it on the same origin.
 
 ## 8. Validation Rules
 
-Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`, `engagement.ts`, `media.ts`, `events.ts`); the forms and the API parse
+Written once in `packages/validation` (`auth.ts`, `onboarding.ts`, `questionnaire.ts`, `account.ts`, `admin.ts`, `engagement.ts`, `media.ts`, `events.ts`, `notifications.ts`); the forms and the API parse
 against the same objects, including the Persian messages.
 
 | Field | Rule | Message |
@@ -2015,7 +2217,7 @@ app background; re-export them all when the master changes.
 | Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
 | Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |
 | Home screen | High | Carries the questionnaire mission and the story-world picker |
-| Read the account settings | Medium | `notifications` and `showSocialProfile` are stored; nothing reads them until notifications and other people's profiles exist |
+| Read the privacy setting | Medium | `showSocialProfile` is stored; nothing reads it until other people's profiles exist |
 | Level-gated avatar items | Low | `unlockLevel` is enforced by the API; the dress-up studio is gone and no item uses it |
 | «ساخت آواتار» mission | Low | No longer reachable — there is no avatar screen. Earned XP and «خوش‌استایل» badges stay; missions are not listed on the profile |
 | More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
@@ -2027,7 +2229,8 @@ app background; re-export them all when the master changes.
 | Multi-day journey (چالش چندروزه) | Done — apply `0015`, `0016`, `0017` | Campaign calendar with server-side unlocking, per-answer storage and XP, builder, images and motions, player, day-end page, invitation links, character card, full preview — §4.7, §4.8. Not built: referral records and rewards (needs a migration) |
 | Media & motion library | Done — apply `0016` | Upload, sniffed formats, 250 KB, replace, safe delete, picker, motion settings — §4.8. The API's `api-media` volume must be backed up with the database |
 | Image / file proof for missions | Medium | The media library's `MediaStorage` can carry it; proof is text today |
-| Notify people of a new activity | Medium | Needs the notifications module |
+| Notifications (center, preferences, automatic, campaigns, push) | Done — apply `0019` | §4.11. Push needs VAPID keys in `deploy/.env.production` |
+| Notify people of a new activity | Medium | The notifications module exists; publishing an activity does not call it — a campaign pointing at the activity does it by hand |
 | Events — API (phase 1) | Done — `0018` applied on dev; production gets it on the next deploy | Events, categories, the minimal world list, visibility in SQL, publish checks and scheduling, calendar, registration, Fidibo handoff (pending until an operator confirms), interest, «رویدادهای من», audit — §4.9, §4.10 |
 | Events — admin screens (phase 2) | Done | Event list, editor (eight sections, publish checklist, scheduling), bookings with operator confirmation, categories, worlds — §4.9, §4.10. The visual preview of the detail page comes with phase 3 |
 | Events — product screens (phase 3) | Done | Discovery with search, chips, the filters sheet and the Jalali day strip (no month calendar for now); detail; home section; admin preview — §4.3, §4.9, §4.10. No world page: the home banners are not links |

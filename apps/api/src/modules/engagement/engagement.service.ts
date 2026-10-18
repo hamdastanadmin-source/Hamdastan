@@ -40,6 +40,7 @@ import { AppError, NotFoundError, ValidationError } from '../../shared/errors';
 import { requestHash, type StoredIdempotency } from '../../shared/idempotency';
 import type { AdminRecord } from '../admin';
 import { mediaService } from '../media';
+import { notificationsService, uniqueKey } from '../notifications';
 import { progressService } from '../progress';
 import type { UserRecord } from '../users';
 
@@ -616,7 +617,18 @@ export const engagementService = {
           : null,
     });
 
-    if (outcome.status === 'reviewed') return { xpAwarded: outcome.xpAwarded };
+    if (outcome.status === 'reviewed') {
+      if (target.userId) {
+        await notificationsService.submissionReviewed(target.userId, {
+          responseId,
+          activityId: target.activityId,
+          activityTitle: target.activityTitle,
+          approved: decision === 'approve',
+          xp: outcome.xpAwarded,
+        });
+      }
+      return { xpAwarded: outcome.xpAwarded };
+    }
     if (outcome.status === 'not_found') throw new NotFoundError('پاسخ پیدا نشد');
     throw new AppError(409, CODES.SUBMISSION_ALREADY_REVIEWED, 'این پاسخ قبلاً بررسی شده');
   },
@@ -783,6 +795,15 @@ export const engagementService = {
     });
 
     if (outcome.status === 'key_mismatch') throw keyReused();
+    // Only this, the first answer to the write, notifies; a retry is answered from its record above.
+    if (outcome.status === 'submitted') {
+      await notificationsService.xpEarned(user.id, {
+        xp: outcome.xpAwarded,
+        reason: `برای «${activity.title}»`,
+        dedupeKey: uniqueKey(`submit:${activity.id}`, idempotencyKey),
+        destination: { kind: 'activity', activityId: activity.id },
+      });
+    }
     return answerSubmission(user, outcome);
   },
   /**
@@ -857,6 +878,17 @@ export const engagementService = {
     const freshEntry = fresh ?? entry;
     if (result.status === 'already_answered') {
       return this.repeatedAnswer(user, freshEntry, freshProgress, result.value, value, now);
+    }
+
+    // A day's or the journey's end is worth a notification; a single answer is not.
+    if (result.dayCompleted || result.journeyCompleted) {
+      const { question, day: dayXp, journey } = result.xpAwarded;
+      await notificationsService.xpEarned(user.id, {
+        xp: question + dayXp + journey,
+        reason: result.journeyCompleted ? `پایان چالش «${activity.title}»` : `پایان ${dayLabel} «${activity.title}»`,
+        dedupeKey: result.journeyCompleted ? `journey:${activity.id}` : `journey-day:${activity.id}:${day.id}`,
+        destination: { kind: 'activity', activityId: activity.id },
+      });
     }
 
     // The journey's last answer decides the result, here and once.

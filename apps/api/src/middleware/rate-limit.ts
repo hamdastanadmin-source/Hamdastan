@@ -87,6 +87,16 @@ export const rateLimits = {
     keyGenerator: (request) =>
       `submit:${request.user?.id ?? request.ip}:${(request.params as { id?: string }).id ?? ''}`,
   },
+  /**
+   * Per admin: sending or scheduling a campaign. A bulk send is a few clicks
+   * a day; a loop of them is a mistake or abuse, refused before it reaches
+   * the dispatcher.
+   */
+  campaignSend: {
+    max: 10,
+    timeWindow: MINUTE,
+    keyGenerator: (request) => `campaign-send:${request.admin?.id ?? request.ip}`,
+  },
 } satisfies Record<string, RateLimitOptions>;
 
 export async function registerRateLimit(app: FastifyInstance): Promise<void> {

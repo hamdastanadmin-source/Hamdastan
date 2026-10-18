@@ -9,6 +9,8 @@ import { ActivitiesSection } from '@/features/activities';
 import { SoonEventsSection, UpcomingEventsSection } from '@/features/events';
 import { getSoonEvents, getUpcomingEvents } from '@/features/events/server';
 import { getMyActivities } from '@/features/activities/server';
+import { NotificationBell } from '@/features/notifications';
+import { getUnreadCount } from '@/features/notifications/server';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
 import { getAccountOverview } from '@/features/profile/server';
 
@@ -35,11 +37,12 @@ const WORLD_BANNERS = [
  * Signing out is not here; it lives in the profile's settings.
  */
 export default async function HomePage() {
-  const [{ profile, socialProfile }, activities, events, soon] = await Promise.all([
+  const [{ profile, socialProfile }, activities, events, soon, unread] = await Promise.all([
     getAccountOverview(),
     getMyActivities(),
     getUpcomingEvents(),
     getSoonEvents(),
+    getUnreadCount(),
   ]);
 
   return (
@@ -60,6 +63,7 @@ export default async function HomePage() {
             {profile.username ? <bdi dir="ltr">@{profile.username}</bdi> : profile.displayName}
           </h1>
         </Link>
+        <NotificationBell unread={unread} />
       </ScreenHeader>
 
       <ScreenBody className="gap-6 pt-4">

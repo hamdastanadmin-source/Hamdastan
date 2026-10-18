@@ -20,6 +20,7 @@ export const SECTIONS = [
   { href: '/engagement', label: 'استودیو', permission: 'activities.read' },
   { href: '/events', label: 'رویدادها', permission: 'events.read' },
   { href: '/worlds', label: 'دنیاها', permission: 'events.read' },
+  { href: '/notifications', label: 'اعلان‌ها', permission: 'notifications.read' },
   { href: '/media', label: 'کتابخانه‌ی رسانه', permission: 'activities.read' },
   { href: '/sessions', label: 'نشست‌های کاربران', permission: 'sessions.manage' },
 ] as const satisfies ReadonlyArray<{ href: string; label: string; permission: AdminPermission }>;
@@ -33,4 +34,5 @@ export const ROLE_LABELS: Record<AdminRole, string> = {
   system_admin: 'مدیر سیستم',
   content_manager: 'مدیر محتوا',
   mission_reviewer: 'بازبین مأموریت',
+  notification_manager: 'مدیر اعلان‌ها',
 };

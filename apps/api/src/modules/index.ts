@@ -10,7 +10,7 @@ import { engagementAdminRoutes, engagementRoutes } from './engagement';
 import { eventsAdminRoutes, eventsRoutes, myEventsRoutes } from './events';
 import { mediaAdminRoutes, mediaRoutes } from './media';
 import { missionsRoutes } from './missions';
-import { notificationsRoutes } from './notifications';
+import { notificationsAdminRoutes, notificationsRoutes } from './notifications';
 import { onboardingRoutes } from './onboarding';
 import { progressRoutes } from './progress';
 import { searchRoutes } from './search';
@@ -58,5 +58,7 @@ export const moduleRoutes: ReadonlyArray<{
   // Events, their categories and bookings; the world list they are filed under.
   { prefix: '/admin/events', routes: eventsAdminRoutes },
   { prefix: '/admin/worlds', routes: worldsAdminRoutes },
+  // Notification campaigns: compose, target, schedule, report.
+  { prefix: '/admin/notifications', routes: notificationsAdminRoutes },
   { prefix: '/media', routes: mediaRoutes },
 ];

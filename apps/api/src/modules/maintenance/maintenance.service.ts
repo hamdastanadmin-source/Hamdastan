@@ -3,6 +3,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { env } from '../../config';
 import { adminService } from '../admin';
 import { authService } from '../auth';
+import { notificationsService } from '../notifications';
 
 import { maintenanceRepository } from './maintenance.repository';
 
@@ -17,6 +18,8 @@ import { maintenanceRepository } from './maintenance.repository';
  *   • sessions (product and admin) only `SESSION_RETENTION_DAYS` after they
  *     *ended*, and the log of sent codes after `OTP_SEND_RETENTION_DAYS` —
  *     both are kept that long as the record support and security ask about.
+ *
+ *   • notifications after 180 days, and finished push records after 30.
  *
  * Nothing that holds value is touched: the XP ledger, responses, the audit
  * log and live sessions are outside its reach. Every run logs what it
@@ -39,6 +42,7 @@ export const maintenanceService = {
         })),
         admin_sessions: await adminService.purgeEnded(env.SESSION_RETENTION_DAYS),
         idempotency_keys: await maintenanceRepository().purgeIdempotencyKeys(new Date()),
+        ...(await notificationsService.purge(new Date())),
       };
       return counts;
     });
@@ -76,5 +80,38 @@ export const maintenanceService = {
       clearTimeout(first);
       clearInterval(every);
     };
+  },
+
+  /**
+   * The notification dispatcher's timer: due campaigns, the next day's
+   * event reminders and a batch of queued pushes, every
+   * `NOTIFICATIONS_DISPATCH_INTERVAL_SECONDS`. It needs no lock — every
+   * claim inside it is `SKIP LOCKED` and every insert deduplicated, so two
+   * instances share the work rather than repeat it. Like the cleanup, a
+   * slow pass is never overlapped, and a failure is logged without
+   * stopping the next.
+   */
+  startDispatch(log: FastifyBaseLogger): () => void {
+    if (!env.NOTIFICATIONS_DISPATCH_ENABLED) return () => {};
+
+    let running = false;
+    const run = async () => {
+      if (running) return;
+      running = true;
+      try {
+        const report = await notificationsService.dispatchOnce(new Date(), env.NOTIFICATIONS_PUSH_BATCH);
+        if (report.campaigns || report.reminders || report.push.sent || report.push.failed || report.push.retried) {
+          log.info({ notifications: report }, 'notifications: dispatched');
+        }
+      } catch (error) {
+        log.error({ err: error }, 'notifications: dispatch failed');
+      } finally {
+        running = false;
+      }
+    };
+
+    const every = setInterval(run, env.NOTIFICATIONS_DISPATCH_INTERVAL_SECONDS * 1000);
+    every.unref();
+    return () => clearInterval(every);
   },
 };

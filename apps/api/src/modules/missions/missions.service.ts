@@ -1,6 +1,7 @@
 import { BADGES, MISSION_BY_ID, MISSIONS, type MissionId } from '@hamdastan/config';
 import type { EarnedBadge, Mission } from '@hamdastan/types';
 
+import { notificationsService } from '../notifications';
 import { progressService, type XpTransaction } from '../progress';
 
 /**
@@ -57,9 +58,25 @@ export const missionsService = {
    * Marks a mission done and grants its reward, once. Safe to call every
    * time the triggering action happens: the second call grants nothing.
    * Answers with the XP this call added.
+   *
+   * Only the call that paid notifies: the XP, any level it reached, and any
+   * badge this mission was the last one missing for.
    */
-  complete(userId: string, id: MissionId): Promise<number> {
+  async complete(userId: string, id: MissionId): Promise<number> {
     const mission = MISSION_BY_ID.get(id)!;
-    return progressService.grant(userId, { ...sourceOf(id), xp: mission.xpReward });
+    const xp = await progressService.grant(userId, { ...sourceOf(id), xp: mission.xpReward });
+    if (xp > 0) {
+      await notificationsService.xpEarned(userId, {
+        xp,
+        reason: mission.doneTitle,
+        dedupeKey: `mission:${id}`,
+        destination: { kind: 'profile' },
+      });
+      const earned = badgesFor(missionsFor(await progressService.listTransactions(userId)));
+      for (const badge of earned.filter((b) => BADGES.find((d) => d.id === b.id)?.requires.includes(id))) {
+        await notificationsService.badgeEarned(userId, badge);
+      }
+    }
+    return xp;
   },
 };

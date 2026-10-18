@@ -202,6 +202,28 @@ const envSchema = z.object({
    */
   SMS_TIMEOUT_MS: z.coerce.number().int().min(500).default(5_000),
 
+  // ─── Notifications ──────────────────────────────────────────
+  /**
+   * Web Push (VAPID). All three or none: without them the API sends no
+   * push at all, says so to the panel and the product, and in-app
+   * notifications work as before. Generate a pair with
+   * `npx web-push generate-vapid-keys`. The subject is a `mailto:` or
+   * `https:` address the push services can reach the operator at.
+   */
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
+  /** How long one push request may take before it is retried later. */
+  PUSH_TIMEOUT_MS: z.coerce.number().int().min(500).default(10_000),
+  /**
+   * The delivery job: due campaigns, event reminders and queued pushes.
+   * Off in the test suite, which drives `dispatchOnce` itself.
+   */
+  NOTIFICATIONS_DISPATCH_ENABLED: z.stringbool().default(true),
+  NOTIFICATIONS_DISPATCH_INTERVAL_SECONDS: z.coerce.number().int().min(5).default(30),
+  /** Pushes sent per pass — the job's rate limit towards the push services. */
+  NOTIFICATIONS_PUSH_BATCH: z.coerce.number().int().min(1).max(5000).default(500),
+
   // ─── Media library ──────────────────────────────────────────
   /**
    * Where uploaded images and motions are kept. Defaults to `storage/media`
@@ -224,6 +246,12 @@ const isProduction = parsed.data.NODE_ENV === 'production';
 
 if (parsed.data.SMS_PROVIDER === 'kavenegar' && !parsed.data.KAVENEGAR_API_KEY) {
   console.error('Invalid environment: SMS_PROVIDER=kavenegar requires KAVENEGAR_API_KEY.');
+  process.exit(1);
+}
+
+const vapid = [parsed.data.VAPID_PUBLIC_KEY, parsed.data.VAPID_PRIVATE_KEY, parsed.data.VAPID_SUBJECT];
+if (vapid.some(Boolean) && !vapid.every(Boolean)) {
+  console.error('Invalid environment: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT go together.');
   process.exit(1);
 }
 

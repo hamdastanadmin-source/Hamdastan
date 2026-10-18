@@ -14,6 +14,7 @@ import {
   createConsoleSmsSender,
   createKavenegarSmsSender,
   createLocalMediaStorage,
+  createWebPushSender,
   type SmsSender,
 } from './integrations';
 import { setAdminRepository, sqlAdminRepository } from './modules/admin';
@@ -26,6 +27,12 @@ import {
   sqlMaintenanceRepository,
 } from './modules/maintenance';
 import { setMediaRepository, setMediaStorage, sqlMediaRepository } from './modules/media';
+import {
+  setNotificationsLogger,
+  setNotificationsRepository,
+  setPushSender,
+  sqlNotificationsRepository,
+} from './modules/notifications';
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
@@ -81,9 +88,10 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setMediaRepository(sqlMediaRepository);
   setEventsRepository(sqlEventsRepository);
   setWorldsRepository(sqlWorldsRepository);
+  setNotificationsRepository(sqlNotificationsRepository);
   setMaintenanceRepository(sqlMaintenanceRepository);
 
-  log('database connected — users, auth, onboarding, progress, admin, engagement and media repositories bound');
+  log('database connected — every module repository bound');
 }
 
 /**
@@ -111,11 +119,13 @@ function chooseSmsSender(log: FastifyBaseLogger): SmsSender | null {
 async function main(): Promise<void> {
   const app = await buildApp();
   let stopMaintenance = () => {};
+  let stopDispatch = () => {};
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(signal, () => {
       app.log.info({ signal }, 'shutting down');
       stopMaintenance();
+      stopDispatch();
       void app
         .close()
         // After the server stops accepting requests, so in-flight statements
@@ -128,6 +138,23 @@ async function main(): Promise<void> {
   // The media library's files: the API's `api-media` volume in production.
   setMediaStorage(createLocalMediaStorage(env.MEDIA_DIR));
   app.log.info({ directory: env.MEDIA_DIR }, 'media storage bound');
+
+  // Web Push, only with all three VAPID values (checked in `config/env.ts`).
+  // Without them nothing is queued for push, and the panel and the product say so.
+  setNotificationsLogger(app.log);
+  if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT) {
+    setPushSender(
+      createWebPushSender({
+        publicKey: env.VAPID_PUBLIC_KEY,
+        privateKey: env.VAPID_PRIVATE_KEY,
+        subject: env.VAPID_SUBJECT,
+        timeoutMs: env.PUSH_TIMEOUT_MS,
+      })
+    );
+    app.log.info('push sender bound (web push)');
+  } else {
+    app.log.warn('no VAPID keys — push notifications are off; in-app notifications still work');
+  }
 
   const smsSender = chooseSmsSender(app.log);
   setSmsSender(smsSender);
@@ -156,6 +183,8 @@ async function main(): Promise<void> {
 
   // Expired tokens, codes and long-ended sessions, hourly.
   if (dataLayerOpen) stopMaintenance = maintenanceService.start(app.log);
+  // Due campaigns, event reminders and queued pushes, every few seconds.
+  if (dataLayerOpen) stopDispatch = maintenanceService.startDispatch(app.log);
 }
 
 void main();

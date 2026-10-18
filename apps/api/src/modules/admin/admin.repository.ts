@@ -66,6 +66,7 @@ const ROLE_TO_DB: Record<AdminRole, string> = {
   system_admin: 'SYSTEM_ADMIN',
   content_manager: 'CONTENT_MANAGER',
   mission_reviewer: 'MISSION_REVIEWER',
+  notification_manager: 'NOTIFICATION_MANAGER',
 };
 const ROLE_FROM_DB = Object.fromEntries(
   Object.entries(ROLE_TO_DB).map(([role, db]) => [db, role])

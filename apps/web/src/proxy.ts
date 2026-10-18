@@ -217,5 +217,6 @@ export const config = {
    * Everything the visitor navigates to, and nothing they merely download:
    * a session check on a font or an icon is latency spent on no decision.
    */
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|images/|fonts/|api/).*)'],
+  // `sw.js` is the push service worker: the browser re-fetches it on its own, signed in or not.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/|images/|fonts/|api/).*)'],
 };

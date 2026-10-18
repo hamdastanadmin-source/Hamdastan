@@ -52,8 +52,9 @@ const FIELDS = ['firstName', 'lastName', 'phone', 'status', 'role'] as const;
 /** One line on what each role opens, so the choice is an informed one. */
 const ROLE_HINTS: Record<(typeof ADMIN_ROLES)[number], string> = {
   system_admin: 'همه‌ی بخش‌ها، از جمله مدیریت کاربران پنل، نشست‌ها، خروجی و لغو XP.',
-  content_manager: 'ساخت، ویرایش و انتشار فعالیت‌ها و رویدادها، مدیریت دنیاها و دیدن آمار کلی.',
+  content_manager: 'ساخت، ویرایش و انتشار فعالیت‌ها و رویدادها، مدیریت دنیاها، دیدن آمار کلی و ارسال اعلان به مخاطب انتخابی (نه همه).',
   mission_reviewer: 'بررسی مأموریت‌ها و دیدن پاسخ‌های فردی؛ بدون ویرایش و انتشار.',
+  notification_manager: 'ساخت، زمان‌بندی و ارسال کمپین‌های اعلان، از جمله به همه‌ی کاربران، و دیدن گزارش‌ها.',
 };
 
 /**

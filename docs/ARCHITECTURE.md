@@ -62,6 +62,8 @@ the apps can use them; Next compiles them via `transpilePackages`.
 | A permission an admin route needs | `ADMIN_PERMISSIONS` / `ADMIN_ROLE_PERMISSIONS` in `packages/types/admin.ts`, guarded with `requireAdminPermission` |
 | Making a write safe to retry | an `Idempotency-Key` claimed through `apps/api/src/data/idempotency.ts`, on the write's own transaction |
 | A job that runs on a timer | `apps/api/src/modules/maintenance`, started from `server.ts` |
+| A notification the system sends when something happens | the producing module's service calls the `notificationsService` method named after the event; the words, category and dedupe key are in `notifications.messages.ts` |
+| The browser's service worker | `apps/web/public/sw.js` — push only, no caching |
 | How a front-end client retries and times out | `packages/shared/http.ts` (the rule); the numbers in `packages/config/app/http.config.ts` |
 | A hook two features of one app use | `apps/<app>/src/hooks` |
 | A helper one feature uses | that feature's `utils/` |
@@ -117,6 +119,9 @@ page, which makes it the only place a fifteen-minute access token can be
 refreshed without the visitor noticing. A server component reads the session;
 `proxy.ts` is what keeps it fresh.
 
+Its matcher skips `sw.js`: the browser re-fetches the push service worker on
+its own, signed in or not, and a redirect would break its update.
+
 It also brings an invitee back: a visitor sent to the door (or to their
 profile or onboarding) from an activity's address has that address kept in
 the `hd_return_to` cookie, and is taken there — once — the first time the
@@ -151,6 +156,15 @@ rule that picks the character is `traitScores`/`pickCharacter` in
 `/preview/activities/:id` is the admin's full journey preview: the proxy
 lets it through without a product session, and the API decides by the
 admin session it carries.
+
+`notifications` is the Notification Center (`/notifications`), the opener
+every row and every tapped push lead through (`/notifications/:id` — it asks
+the API where the notification goes, in an effect, so a prefetch records
+nothing), the home header's `NotificationBell`, and the settings screen with
+this device's push subscription. Subscribing is the browser's own
+`PushManager`; the subscription goes to `apps/api` and nowhere else. The
+settings rows (`ListGroup`, `ListRow`, `SettingSwitch`) are borrowed from
+`@/features/profile`'s public surface.
 
 A feature grows the directories it needs and no others:
 
@@ -188,7 +202,9 @@ Like `apps/web`, the admin root layout wraps everything in
 `Tabs` — and on portalled overlays, and without the provider it writes
 `ltr`: a toggle group of cards then lays out and punctuates left-to-right
 inside an RTL page.
-There are four: `users` (the admin allow-list and roles), `engagement`
+There are six: `users` (the admin allow-list and roles), `events`, `worlds`,
+`notifications` (campaigns: list and figures, the editor with its audience
+count, preview and send confirmation, the report and history), `engagement`
 (Engagement Studio — the builder, the list and the results dashboard),
 `media` (the media & motion library, and the fields the builder picks files
 with — `MediaField`, `MotionSettingField`, imported by `engagement` through
@@ -399,12 +415,29 @@ computation: `onboarding` keeps its questionnaire scoring in
 which time zone — in `engagement.journey.ts`. They import no repository and no HTTP, so they are
 tested as plain functions.
 
+**`notifications`** is one pipeline for what the system sends and what an
+admin sends: every notification is created by the repository's `deliver`,
+one statement that applies the audience, the preferences and the
+destination's access rule and queues pushes, deduplicated by
+`(user_id, dedupe_key)`. Producers depend on it, never the other way:
+`missions`, `engagement` and `events` call `notificationsService` after their
+own write has committed, and a failure there is logged, not thrown, so it can
+never fail the action. It depends on `progress` (levels) and `media`, and
+reads the event, activity and world tables in SQL only. It keeps the words in
+`notifications.messages.ts`, a pure file beside the service. Push goes
+through the `PushSender` integration; delivery is the dispatcher below.
+
 **`maintenance`** is the cleanup job, and the one module with no routes,
 controller or schema: nothing about it is reachable over HTTP. Its service
 composes the purges the owning modules expose (`authService.purgeExpired`,
 `adminService.purgeEnded`) plus the idempotency record, and its repository
 holds the advisory lock that keeps two instances from running it at once.
-`server.ts` starts its timer once the data layer is open.
+`server.ts` starts its timer once the data layer is open. It also owns the
+notification dispatcher's timer (`startDispatch`, every
+`NOTIFICATIONS_DISPATCH_INTERVAL_SECONDS`): due campaigns, event reminders,
+queued pushes — with no lock, because every claim inside is
+`FOR UPDATE SKIP LOCKED`. The cleanup also purges old notifications and
+finished push records.
 
 **`engagement`** is Engagement Studio: one engine for surveys, missions and
 assessments. It mounts two route plugins — `/admin/engagement` behind
@@ -531,7 +564,9 @@ bound once in `server.ts`. A service depends on the capability and never on
 the vendor, which is the same rule as the repositories. `MediaStorage` is
 the same shape for files: a local-directory adapter today (`MEDIA_DIR`, the
 `api-media` volume in Docker), and object storage later would be a second
-adapter bound in `server.ts`, nothing else.
+adapter bound in `server.ts`, nothing else. `PushSender` is Web Push with
+VAPID (`web-push`), bound only when the three `VAPID_*` variables are set;
+unbound, nothing is queued for push and the API says push is unavailable.
 
 ### The data layer seam
 

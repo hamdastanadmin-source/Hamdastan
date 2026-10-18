@@ -1,18 +1,42 @@
-import { z } from '@hamdastan/validation';
+import { CAMPAIGN_CATEGORIES } from '@hamdastan/config';
+import {
+  campaignInputSchema,
+  campaignListQuerySchema,
+  campaignSendSchema,
+  notificationAudienceSchema,
+  notificationDestinationSchema,
+  notificationInboxQuerySchema,
+  notificationPreferencesSchema,
+  pushSubscriptionSchema,
+  pushUnsubscribeSchema,
+  z,
+} from '@hamdastan/validation';
 
 /**
- * Request validation for the Notifications module.
- *
- * Every route validates its input here before the controller runs. Rules the
- * front-end also enforces live in `@hamdastan/validation` — import them
- * rather than restating them, so the two sides cannot drift.
+ * Request validation for the Notifications module. The bodies are the
+ * shared schemas `apps/web` and `apps/admin` parse with; only the path
+ * parameters and two small bodies are local.
  */
+
+// A malformed id would otherwise reach a `uuid` column and fail as a 500.
+const idParams = z.object({ id: z.uuid({ error: 'شناسه معتبر نیست' }) });
+
 export const notificationsSchemas = {
-  // e.g. list: { querystring: paginationQuerySchema },
+  byId: { params: idParams },
+  inbox: { query: notificationInboxQuerySchema },
+  read: { body: z.object({ ids: z.array(z.uuid()).max(100).optional() }) },
+  preferences: { body: notificationPreferencesSchema },
+  subscribe: { body: pushSubscriptionSchema },
+  unsubscribe: { body: pushUnsubscribeSchema },
+
+  campaigns: { query: campaignListQuerySchema },
+  campaign: { body: campaignInputSchema },
+  send: { body: campaignSendSchema },
+  estimate: {
+    body: z.object({
+      audience: notificationAudienceSchema,
+      category: z.enum(CAMPAIGN_CATEGORIES),
+      destination: notificationDestinationSchema,
+    }),
+  },
 } satisfies Record<string, unknown>;
-
-export type NotificationsSchemas = typeof notificationsSchemas;
-
-// Re-exported so this module's own schemas can be written without a second
-// zod import.
-export { z };

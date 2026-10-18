@@ -8,3 +8,4 @@ export * from './admin.config';
 export * from './engagement.config';
 export * from './http.config';
 export * from './events.config';
+export * from './notifications.config';

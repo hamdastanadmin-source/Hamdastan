@@ -4,6 +4,7 @@ import { closePool, getPool, runMigrations } from '../data';
 import { setAdminRepository, sqlAdminRepository } from '../modules/admin';
 import { setAuthRepository, sqlAuthRepository } from '../modules/auth';
 import { maintenanceService, setMaintenanceRepository, sqlMaintenanceRepository } from '../modules/maintenance';
+import { setNotificationsRepository, sqlNotificationsRepository } from '../modules/notifications';
 
 /**
  * The cleanup job against a real PostgreSQL: it deletes what can never be
@@ -26,6 +27,7 @@ describe.skipIf(!hasDatabase)('maintenance', () => {
     setAuthRepository(sqlAuthRepository);
     setAdminRepository(sqlAdminRepository);
     setMaintenanceRepository(sqlMaintenanceRepository);
+    setNotificationsRepository(sqlNotificationsRepository);
 
     const pool = getPool();
     userId = (await pool.query(`INSERT INTO v2_users (phone) VALUES ('09990000777') RETURNING id`)).rows[0].id;

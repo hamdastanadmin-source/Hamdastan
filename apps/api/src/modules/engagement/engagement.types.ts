@@ -138,6 +138,8 @@ export type SubmissionRow = {
 
 export type ReviewTarget = {
   activityId: string;
+  /** Who answered; null for an anonymous response. */
+  userId: string | null;
   activityTitle: string;
   definition: ActivityDefinition;
   versionId: string;

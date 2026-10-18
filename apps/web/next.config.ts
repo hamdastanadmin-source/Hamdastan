@@ -63,6 +63,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // The push service worker: always the current file, never a stale copy.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         // Cache for optimized images
         source: "/_next/image(.*)",
         headers: [

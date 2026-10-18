@@ -34,3 +34,4 @@ process.env.OTP_MAX_SENDS_PER_IP = '1000';
 // back on; everywhere else one address signing in dozens of times is the test.
 process.env.RATE_LIMIT_ENABLED = 'false';
 process.env.MAINTENANCE_ENABLED = 'false';
+process.env.NOTIFICATIONS_DISPATCH_ENABLED = 'false';

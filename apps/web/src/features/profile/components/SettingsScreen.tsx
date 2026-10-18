@@ -1,11 +1,10 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Bell, CircleHelp, Moon, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { AccountSettings } from '@hamdastan/config';
-import { Switch } from '@hamdastan/ui';
 import { setTheme, useTheme } from '@hamdastan/ui/tokens/theme.store';
 
 import { Screen, ScreenBack, ScreenBody, ScreenHeader, ScreenTitle } from '@/components';
@@ -13,40 +12,18 @@ import { Screen, ScreenBack, ScreenBody, ScreenHeader, ScreenTitle } from '@/com
 import { accountErrorMessage, useAccountActions } from '../hooks/use-account-actions';
 import { ListGroup, ListRow } from './ListGroup';
 import { LogoutButton } from './LogoutButton';
+import { SettingSwitch } from './SettingSwitch';
 
 /**
  * «تنظیمات» — kept to what the product has: the theme,
- * notifications, privacy, help, and signing out, set apart at the bottom.
+ * notifications (a screen of their own), privacy, help, and signing out,
+ * set apart at the bottom.
  *
  * An account switch saves as it is flipped and flips back if the save fails.
  * The theme switch is per device: it goes through the theme store, not the
  * account. A switch's "on" is the stock primary — a black track vanishes on
  * the dark surfaces.
  */
-
-function SettingSwitch({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const id = useId();
-  return (
-    // The whole row is the label, so the target is the row and not the 32px switch.
-    <label htmlFor={id} className="flex w-full cursor-pointer items-center gap-3">
-      <span className="flex flex-1 flex-col gap-0.5">
-        <span>{label}</span>
-        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-      </span>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
-    </label>
-  );
-}
 
 export function SettingsScreen({ settings: saved }: { settings: AccountSettings }) {
   const { saveSettings } = useAccountActions();
@@ -86,14 +63,7 @@ export function SettingsScreen({ settings: saved }: { settings: AccountSettings 
         </ListGroup>
 
         <ListGroup title="اعلان‌ها">
-          <ListRow>
-            <Bell aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-            <SettingSwitch
-              label="ماموریت‌ها و پیشرفت"
-              checked={settings.notifications}
-              onChange={(notifications) => void update({ notifications })}
-            />
-          </ListRow>
+          <ListRow icon={Bell} label="اعلان‌ها و اعلان گوشی" href="/profile/settings/notifications" />
         </ListGroup>
 
         <ListGroup title="حریم خصوصی">

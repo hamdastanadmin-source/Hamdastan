@@ -36,6 +36,7 @@ import { AppError, NotFoundError, ValidationError } from '../../shared/errors';
 import type { AdminRecord } from '../admin';
 import { engagementService } from '../engagement';
 import { mediaService } from '../media';
+import { notificationsService } from '../notifications';
 import type { UserRecord } from '../users';
 
 import { eventsRepository } from './events.repository';
@@ -261,6 +262,15 @@ async function checkMedia(fields: EventFields): Promise<void> {
   });
 }
 
+/** What a notification about a changed event compares: its times and where it is. */
+const changeView = (record: EventRecord) => ({
+  id: record.id,
+  title: record.title,
+  startAt: record.startAt,
+  endAt: record.endAt,
+  venue: record.type === 'online' ? '' : [record.venueName, record.address, record.city].join('|'),
+});
+
 const newSlug = () => `event-${randomUUID().slice(0, 8)}`;
 
 /** Which stored statuses each action may start from, and where it goes. */
@@ -409,6 +419,11 @@ export const eventsService = {
     if (mustStayComplete(current.status)) assertPublishable(fields);
     await checkMedia(fields);
     await eventsRepository().update(id, { ...fields, slug: fields.slug || current.slug }, actor.id);
+    // People who planned around a live, upcoming event hear when its time or place moves.
+    const updated = await eventsRepository().findById(id);
+    if (updated && current.status === 'published' && phaseOf(current, new Date()) === 'upcoming') {
+      await notificationsService.eventChanged(changeView(current), changeView(updated));
+    }
     return this.adminGet(id);
   },
 
@@ -425,6 +440,7 @@ export const eventsService = {
     if (!(await eventsRepository().setStatus(id, to, from, when, actor.id, auditAction))) {
       throw new AppError(409, CODES.EVENT_INVALID_TRANSITION, 'این تغییر وضعیت برای این رویداد ممکن نیست');
     }
+    if (action === 'cancel') await notificationsService.eventCancelled(id);
     return this.adminGet(id);
   },
 
@@ -488,6 +504,8 @@ export const eventsService = {
     if (!(await eventsRepository().reviewBooking(bookingId, input.status, input.externalRef, actor.id))) {
       throw new AppError(409, CODES.EVENT_INVALID_TRANSITION, 'این رزرو در وضعیتی نیست که بشه تغییرش داد');
     }
+    // The partner's answer, recorded by an operator, is the verified outcome — the person hears it.
+    await notificationsService.bookingReviewed(bookingId, input.status);
     return { updated: true };
   },
 

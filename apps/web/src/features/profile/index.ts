@@ -18,3 +18,5 @@ export { SocialProfileLoader, SocialProfilePending } from './components/SocialPr
 export { AvatarFigure } from './components/AvatarFigure';
 export { PersonalityTestCard } from './components/PersonalityTestCard';
 export { RewardChip } from './components/RewardChip';
+export { ListGroup, ListRow } from './components/ListGroup';
+export { SettingSwitch } from './components/SettingSwitch';

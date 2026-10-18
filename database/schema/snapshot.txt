@@ -186,6 +186,63 @@ column v2_media_assets.size_bytes integer nullable=NO default=
 column v2_media_assets.updated_at timestamp with time zone nullable=NO default=now()
 column v2_media_assets.updated_by uuid nullable=YES default=
 column v2_media_assets.version integer nullable=NO default=1
+column v2_notification_audit_log.action character varying nullable=NO default=
+column v2_notification_audit_log.admin_id uuid nullable=YES default=
+column v2_notification_audit_log.campaign_id uuid nullable=NO default=
+column v2_notification_audit_log.created_at timestamp with time zone nullable=NO default=now()
+column v2_notification_audit_log.details jsonb nullable=NO default='{}'::jsonb
+column v2_notification_audit_log.id bigint nullable=NO default=
+column v2_notification_campaigns.audience jsonb nullable=NO default='{"kind": "all"}'::jsonb
+column v2_notification_campaigns.body character varying nullable=NO default=''::character varying
+column v2_notification_campaigns.category character varying nullable=NO default=
+column v2_notification_campaigns.created_at timestamp with time zone nullable=NO default=now()
+column v2_notification_campaigns.created_by uuid nullable=YES default=
+column v2_notification_campaigns.destination jsonb nullable=NO default='{"kind": "none"}'::jsonb
+column v2_notification_campaigns.error character varying nullable=NO default=''::character varying
+column v2_notification_campaigns.id uuid nullable=NO default=gen_random_uuid()
+column v2_notification_campaigns.image_media_id uuid nullable=YES default=
+column v2_notification_campaigns.push boolean nullable=NO default=false
+column v2_notification_campaigns.recipient_count integer nullable=YES default=
+column v2_notification_campaigns.scheduled_at timestamp with time zone nullable=YES default=
+column v2_notification_campaigns.sent_at timestamp with time zone nullable=YES default=
+column v2_notification_campaigns.started_at timestamp with time zone nullable=YES default=
+column v2_notification_campaigns.status USER-DEFINED nullable=NO default='draft'::v2_notification_campaign_status
+column v2_notification_campaigns.title character varying nullable=NO default=''::character varying
+column v2_notification_campaigns.updated_at timestamp with time zone nullable=NO default=now()
+column v2_notification_campaigns.updated_by uuid nullable=YES default=
+column v2_notification_deliveries.attempts integer nullable=NO default=0
+column v2_notification_deliveries.campaign_id uuid nullable=YES default=
+column v2_notification_deliveries.channel character varying nullable=NO default='push'::character varying
+column v2_notification_deliveries.created_at timestamp with time zone nullable=NO default=now()
+column v2_notification_deliveries.error character varying nullable=NO default=''::character varying
+column v2_notification_deliveries.id bigint nullable=NO default=
+column v2_notification_deliveries.last_attempt_at timestamp with time zone nullable=YES default=
+column v2_notification_deliveries.next_attempt_at timestamp with time zone nullable=NO default=now()
+column v2_notification_deliveries.notification_id uuid nullable=NO default=
+column v2_notification_deliveries.provider character varying nullable=NO default='web_push'::character varying
+column v2_notification_deliveries.sent_at timestamp with time zone nullable=YES default=
+column v2_notification_deliveries.status USER-DEFINED nullable=NO default='queued'::v2_notification_delivery_status
+column v2_notification_deliveries.subscription_id uuid nullable=YES default=
+column v2_notification_preferences.category character varying nullable=NO default=
+column v2_notification_preferences.in_app boolean nullable=NO default=
+column v2_notification_preferences.push boolean nullable=NO default=
+column v2_notification_preferences.updated_at timestamp with time zone nullable=NO default=now()
+column v2_notification_preferences.user_id uuid nullable=NO default=
+column v2_notifications.body character varying nullable=NO default=''::character varying
+column v2_notifications.campaign_id uuid nullable=YES default=
+column v2_notifications.category character varying nullable=NO default=
+column v2_notifications.created_at timestamp with time zone nullable=NO default=now()
+column v2_notifications.dedupe_key character varying nullable=NO default=
+column v2_notifications.destination jsonb nullable=NO default='{"kind": "none"}'::jsonb
+column v2_notifications.dismissed_at timestamp with time zone nullable=YES default=
+column v2_notifications.expires_at timestamp with time zone nullable=YES default=
+column v2_notifications.id uuid nullable=NO default=gen_random_uuid()
+column v2_notifications.image_media_id uuid nullable=YES default=
+column v2_notifications.opened_at timestamp with time zone nullable=YES default=
+column v2_notifications.read_at timestamp with time zone nullable=YES default=
+column v2_notifications.title character varying nullable=NO default=
+column v2_notifications.type character varying nullable=NO default=
+column v2_notifications.user_id uuid nullable=NO default=
 column v2_onboarding_events.event character varying nullable=NO default=
 column v2_onboarding_events.id bigint nullable=NO default=nextval('v2_onboarding_events_id_seq'::regclass)
 column v2_onboarding_events.occurred_at timestamp with time zone nullable=NO default=now()
@@ -207,6 +264,14 @@ column v2_otp_sends.id bigint nullable=NO default=nextval('v2_otp_sends_id_seq':
 column v2_otp_sends.ip inet nullable=YES default=
 column v2_otp_sends.phone character varying nullable=NO default=
 column v2_otp_sends.sent_at timestamp with time zone nullable=NO default=now()
+column v2_push_subscriptions.auth character varying nullable=NO default=
+column v2_push_subscriptions.created_at timestamp with time zone nullable=NO default=now()
+column v2_push_subscriptions.endpoint character varying nullable=NO default=
+column v2_push_subscriptions.id uuid nullable=NO default=gen_random_uuid()
+column v2_push_subscriptions.last_success_at timestamp with time zone nullable=YES default=
+column v2_push_subscriptions.p256dh character varying nullable=NO default=
+column v2_push_subscriptions.user_agent character varying nullable=NO default=''::character varying
+column v2_push_subscriptions.user_id uuid nullable=NO default=
 column v2_questionnaire_answers.answer jsonb nullable=NO default=
 column v2_questionnaire_answers.answered_at timestamp with time zone nullable=NO default=now()
 column v2_questionnaire_answers.presentation_index smallint nullable=NO default=
@@ -401,6 +466,27 @@ constraint v2_media_assets v2_media_assets_pkey PRIMARY KEY (id)
 constraint v2_media_assets v2_media_assets_size CHECK (((size_bytes > 0) AND (size_bytes <= 256000)))
 constraint v2_media_assets v2_media_assets_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_media_assets v2_media_assets_version CHECK ((version > 0))
+constraint v2_notification_audit_log v2_notification_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_notification_audit_log v2_notification_audit_log_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES v2_notification_campaigns(id) ON DELETE CASCADE
+constraint v2_notification_audit_log v2_notification_audit_log_pkey PRIMARY KEY (id)
+constraint v2_notification_campaigns v2_notification_campaigns_category CHECK (((category)::text = ANY ((ARRAY['events'::character varying, 'worlds'::character varying, 'promotions'::character varying, 'system'::character varying])::text[])))
+constraint v2_notification_campaigns v2_notification_campaigns_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_notification_campaigns v2_notification_campaigns_image_media_id_fkey FOREIGN KEY (image_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_notification_campaigns v2_notification_campaigns_pkey PRIMARY KEY (id)
+constraint v2_notification_campaigns v2_notification_campaigns_scheduled CHECK (((status <> 'scheduled'::v2_notification_campaign_status) OR (scheduled_at IS NOT NULL)))
+constraint v2_notification_campaigns v2_notification_campaigns_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_notification_deliveries v2_notification_deliveries_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES v2_notification_campaigns(id) ON DELETE SET NULL
+constraint v2_notification_deliveries v2_notification_deliveries_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES v2_notifications(id) ON DELETE CASCADE
+constraint v2_notification_deliveries v2_notification_deliveries_once UNIQUE (notification_id, subscription_id)
+constraint v2_notification_deliveries v2_notification_deliveries_pkey PRIMARY KEY (id)
+constraint v2_notification_deliveries v2_notification_deliveries_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES v2_push_subscriptions(id) ON DELETE SET NULL
+constraint v2_notification_preferences v2_notification_preferences_pkey PRIMARY KEY (user_id, category)
+constraint v2_notification_preferences v2_notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_notifications v2_notifications_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES v2_notification_campaigns(id) ON DELETE SET NULL
+constraint v2_notifications v2_notifications_image_media_id_fkey FOREIGN KEY (image_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_notifications v2_notifications_once UNIQUE (user_id, dedupe_key)
+constraint v2_notifications v2_notifications_pkey PRIMARY KEY (id)
+constraint v2_notifications v2_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_onboarding_events v2_onboarding_events_event CHECK (((event)::text = ANY ((ARRAY['quiz_started'::character varying, 'quiz_question_viewed'::character varying, 'quiz_question_answered'::character varying, 'quiz_back_clicked'::character varying, 'quiz_section_completed'::character varying, 'quiz_abandoned'::character varying, 'quiz_resumed'::character varying, 'quiz_completed'::character varying, 'quiz_result_viewed'::character varying, 'quiz_result_continue_clicked'::character varying])::text[])))
 constraint v2_onboarding_events v2_onboarding_events_pkey PRIMARY KEY (id)
 constraint v2_onboarding_events v2_onboarding_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
@@ -408,6 +494,9 @@ constraint v2_otp_challenges v2_otp_challenges_pkey PRIMARY KEY (phone)
 constraint v2_otp_failures v2_otp_failures_failures CHECK ((failures >= 0))
 constraint v2_otp_failures v2_otp_failures_pkey PRIMARY KEY (phone)
 constraint v2_otp_sends v2_otp_sends_pkey PRIMARY KEY (id)
+constraint v2_push_subscriptions v2_push_subscriptions_endpoint UNIQUE (endpoint)
+constraint v2_push_subscriptions v2_push_subscriptions_pkey PRIMARY KEY (id)
+constraint v2_push_subscriptions v2_push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_questionnaire_answers v2_questionnaire_answers_pkey PRIMARY KEY (user_id, question_id)
 constraint v2_questionnaire_answers v2_questionnaire_answers_presentation_index CHECK (((presentation_index >= 1) AND (presentation_index <= 20)))
 constraint v2_questionnaire_answers v2_questionnaire_answers_question_id CHECK (((question_id)::text ~ '^Q([1-9]|1[0-9]|20)$'::text))
@@ -447,7 +536,7 @@ constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_
 constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK (((((source_type)::text = 'reversal'::text) AND (xp_amount < 0)) OR (((source_type)::text <> 'reversal'::text) AND (xp_amount > 0))))
 enum v2_activity_status draft,published,paused,closed,archived
 enum v2_activity_type survey,mission,assessment,journey
-enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER
+enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER,NOTIFICATION_MANAGER
 enum v2_admin_status ACTIVE,INACTIVE
 enum v2_event_booking_mode none,free_registration,external
 enum v2_event_booking_source internal,external
@@ -457,6 +546,8 @@ enum v2_event_type physical,online,hybrid
 enum v2_event_visibility public,world,restricted
 enum v2_gender MALE,FEMALE
 enum v2_media_kind image,motion
+enum v2_notification_campaign_status draft,scheduled,sending,sent,cancelled,failed,archived
+enum v2_notification_delivery_status queued,sent,failed,cancelled
 enum v2_onboarding_step basic_info,onboarding,done
 enum v2_participation_status in_progress,pending_review,completed,rejected
 enum v2_review_status none,pending,approved,rejected
@@ -517,6 +608,21 @@ index v2_journey_day_completions_pkey CREATE UNIQUE INDEX v2_journey_day_complet
 index v2_journey_results_pkey CREATE UNIQUE INDEX v2_journey_results_pkey ON public.v2_journey_results USING btree (activity_id, user_id)
 index v2_media_assets_pkey CREATE UNIQUE INDEX v2_media_assets_pkey ON public.v2_media_assets USING btree (id)
 index v2_media_assets_shelf CREATE INDEX v2_media_assets_shelf ON public.v2_media_assets USING btree (category, created_at DESC)
+index v2_notification_audit_log_campaign CREATE INDEX v2_notification_audit_log_campaign ON public.v2_notification_audit_log USING btree (campaign_id, created_at DESC)
+index v2_notification_audit_log_pkey CREATE UNIQUE INDEX v2_notification_audit_log_pkey ON public.v2_notification_audit_log USING btree (id)
+index v2_notification_campaigns_due CREATE INDEX v2_notification_campaigns_due ON public.v2_notification_campaigns USING btree (scheduled_at) WHERE (status = ANY (ARRAY['scheduled'::v2_notification_campaign_status, 'sending'::v2_notification_campaign_status]))
+index v2_notification_campaigns_pkey CREATE UNIQUE INDEX v2_notification_campaigns_pkey ON public.v2_notification_campaigns USING btree (id)
+index v2_notification_campaigns_updated CREATE INDEX v2_notification_campaigns_updated ON public.v2_notification_campaigns USING btree (updated_at DESC)
+index v2_notification_deliveries_campaign CREATE INDEX v2_notification_deliveries_campaign ON public.v2_notification_deliveries USING btree (campaign_id, status) WHERE (campaign_id IS NOT NULL)
+index v2_notification_deliveries_due CREATE INDEX v2_notification_deliveries_due ON public.v2_notification_deliveries USING btree (next_attempt_at) WHERE (status = 'queued'::v2_notification_delivery_status)
+index v2_notification_deliveries_once CREATE UNIQUE INDEX v2_notification_deliveries_once ON public.v2_notification_deliveries USING btree (notification_id, subscription_id)
+index v2_notification_deliveries_pkey CREATE UNIQUE INDEX v2_notification_deliveries_pkey ON public.v2_notification_deliveries USING btree (id)
+index v2_notification_preferences_pkey CREATE UNIQUE INDEX v2_notification_preferences_pkey ON public.v2_notification_preferences USING btree (user_id, category)
+index v2_notifications_campaign CREATE INDEX v2_notifications_campaign ON public.v2_notifications USING btree (campaign_id) WHERE (campaign_id IS NOT NULL)
+index v2_notifications_inbox CREATE INDEX v2_notifications_inbox ON public.v2_notifications USING btree (user_id, created_at DESC, id DESC) WHERE (dismissed_at IS NULL)
+index v2_notifications_once CREATE UNIQUE INDEX v2_notifications_once ON public.v2_notifications USING btree (user_id, dedupe_key)
+index v2_notifications_pkey CREATE UNIQUE INDEX v2_notifications_pkey ON public.v2_notifications USING btree (id)
+index v2_notifications_unread CREATE INDEX v2_notifications_unread ON public.v2_notifications USING btree (user_id) WHERE ((read_at IS NULL) AND (dismissed_at IS NULL))
 index v2_onboarding_events_funnel CREATE INDEX v2_onboarding_events_funnel ON public.v2_onboarding_events USING btree (event, occurred_at)
 index v2_onboarding_events_pkey CREATE UNIQUE INDEX v2_onboarding_events_pkey ON public.v2_onboarding_events USING btree (id)
 index v2_onboarding_events_user CREATE INDEX v2_onboarding_events_user ON public.v2_onboarding_events USING btree (user_id, occurred_at)
@@ -527,6 +633,9 @@ index v2_otp_failures_window CREATE INDEX v2_otp_failures_window ON public.v2_ot
 index v2_otp_sends_ip_window CREATE INDEX v2_otp_sends_ip_window ON public.v2_otp_sends USING btree (ip, sent_at DESC)
 index v2_otp_sends_phone_window CREATE INDEX v2_otp_sends_phone_window ON public.v2_otp_sends USING btree (phone, sent_at DESC)
 index v2_otp_sends_pkey CREATE UNIQUE INDEX v2_otp_sends_pkey ON public.v2_otp_sends USING btree (id)
+index v2_push_subscriptions_endpoint CREATE UNIQUE INDEX v2_push_subscriptions_endpoint ON public.v2_push_subscriptions USING btree (endpoint)
+index v2_push_subscriptions_pkey CREATE UNIQUE INDEX v2_push_subscriptions_pkey ON public.v2_push_subscriptions USING btree (id)
+index v2_push_subscriptions_user CREATE INDEX v2_push_subscriptions_user ON public.v2_push_subscriptions USING btree (user_id)
 index v2_questionnaire_answers_pkey CREATE UNIQUE INDEX v2_questionnaire_answers_pkey ON public.v2_questionnaire_answers USING btree (user_id, question_id)
 index v2_refresh_tokens_expires_at CREATE INDEX v2_refresh_tokens_expires_at ON public.v2_refresh_tokens USING btree (expires_at)
 index v2_refresh_tokens_pkey CREATE UNIQUE INDEX v2_refresh_tokens_pkey ON public.v2_refresh_tokens USING btree (token_hash)

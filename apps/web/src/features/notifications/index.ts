@@ -1,20 +1,14 @@
 /**
- * Notifications — اعلان‌ها: مرکز اعلان، خوانده‌شدن و تنظیمات.
+ * Notifications — اعلان‌ها: the Notification Center, the opener every row
+ * and push lead through, the header's bell, and the notification settings
+ * with this device's push subscription.
  *
- * Public surface of the feature. Nothing outside it imports past this file.
- *
- * Add the directories below as the feature needs them, not before:
- *   components/  UI that only this feature uses
- *   hooks/       React state and effects for this feature
- *   services/    calls to apps/api, through `@/services`
- *   types/       types private to this feature
- *   utils/       helpers private to this feature
- *
- * Anything a second feature starts needing moves out: shared UI to
- * `@hamdastan/ui`, shared types to `@hamdastan/types`, shared helpers to
- * `@hamdastan/shared`. See docs/ARCHITECTURE.md.
- *
- * A server-only surface, when one is needed, goes in `./server.ts`.
+ * Public surface of the feature; the server-side reads are in `./server`.
+ * What a person is sent, and where a notification may lead them, is decided
+ * by `apps/api`; this feature shows it and sends the person's choices back.
  */
 
-export {};
+export { NotificationBell } from './components/NotificationBell';
+export { NotificationOpener } from './components/NotificationOpener';
+export { NotificationSettingsScreen } from './components/NotificationSettingsScreen';
+export { NotificationsScreen } from './components/NotificationsScreen';

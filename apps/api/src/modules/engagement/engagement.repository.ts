@@ -605,12 +605,13 @@ export const sqlEngagementRepository: EngagementRepository = {
   async findReviewTarget(responseId) {
     const row = await queryOne<{
       activity_id: string;
+      user_id: string | null;
       title: string;
       definition: ActivityDefinition;
       version_id: string;
       review_status: ReviewStatus;
     }>(
-      `SELECT r.activity_id, a.title, v.definition, r.version_id, r.review_status
+      `SELECT r.activity_id, r.user_id, a.title, v.definition, r.version_id, r.review_status
          FROM v2_engagement_responses r
          JOIN v2_engagement_activities a ON a.id = r.activity_id
          JOIN v2_engagement_versions v ON v.id = r.version_id
@@ -620,6 +621,7 @@ export const sqlEngagementRepository: EngagementRepository = {
     return row
       ? {
           activityId: row.activity_id,
+          userId: row.user_id,
           activityTitle: row.title,
           definition: row.definition,
           versionId: row.version_id,
