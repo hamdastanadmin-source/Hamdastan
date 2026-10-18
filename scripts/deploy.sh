@@ -58,7 +58,7 @@ if [[ -z "$DEPLOY_HOST" ]]; then
 fi
 
 TARGET="${DEPLOY_USER}@${DEPLOY_HOST}"
-SSH_OPTS=(-o ConnectTimeout=15)
+SSH_OPTS=(-o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=6)
 
 echo "▸ deploying to ${TARGET}:${DEPLOY_PATH}"
 
@@ -81,8 +81,8 @@ rsync -az --delete \
   --exclude 'playwright-report' \
   --exclude 'e2e/.auth' \
   --exclude '.claude' \
-  --exclude 'assets' \
-  --exclude 'storage' \
+  --exclude '/assets' \
+  --exclude '/storage' \
   -e "ssh ${SSH_OPTS[*]}" \
   ./ "${TARGET}:${DEPLOY_PATH}/"
 
