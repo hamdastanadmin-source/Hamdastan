@@ -57,7 +57,8 @@ writing a migration, not after.
     ignored, the console sender is never bound, and without
     `SMS_PROVIDER=kavenegar` asking for a code is a 503 — no code is issued,
     stored or logged. There is no production exception, for test numbers or
-    anyone else.
+    anyone else. `OTP_FIXED_CODE` (development only, ignored in production)
+    makes every code that value and sends and logs nothing.
 
 6.  **The client never decides where a user goes.** `nextStep` comes from the
     server on every response that carries a session, and `apps/web/src/

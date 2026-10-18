@@ -228,7 +228,7 @@ export const authService = {
       }
     }
 
-    const code = generateNumericCode(OTP.LENGTH);
+    const code = env.otpFixedCode ?? generateNumericCode(OTP.LENGTH);
     const resendAvailableAt = new Date(now.getTime() + seconds(OTP.RESEND_AFTER_SECONDS));
 
     await repository.saveChallenge({
@@ -241,7 +241,8 @@ export const authService = {
       attempts: 0,
     });
     await repository.recordSend(phone, ip);
-    await sms.sendOtp(phone, code);
+    // A fixed development code is known in advance: nothing to send or log.
+    if (!env.otpFixedCode) await sms.sendOtp(phone, code);
 
     return {
       resendIn: OTP.RESEND_AFTER_SECONDS,

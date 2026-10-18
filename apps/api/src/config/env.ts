@@ -163,6 +163,12 @@ const envSchema = z.object({
    * number can also read it.
    */
   OTP_DEBUG_DISPLAY: z.stringbool().default(false),
+  /**
+   * Every one-time code is this value, and none is sent or logged — sign-in
+   * without an SMS provider and without the code appearing anywhere.
+   * Development only: production ignores it.
+   */
+  OTP_FIXED_CODE: z.string().regex(/^\d{6}$/).optional(),
 
   /**
    * Wrong codes one number may enter, across every code it is sent, inside
@@ -263,6 +269,9 @@ if (vapid.some(Boolean) && !vapid.every(Boolean)) {
 if (isProduction && parsed.data.OTP_DEBUG_DISPLAY) {
   console.error('[env] OTP_DEBUG_DISPLAY is ignored in production: codes are never returned to callers.');
 }
+if (isProduction && parsed.data.OTP_FIXED_CODE) {
+  console.error('[env] OTP_FIXED_CODE is ignored in production: codes are always random and sent by SMS.');
+}
 if (isProduction && parsed.data.SMS_PROVIDER === 'console') {
   console.error(
     '[env] SMS_PROVIDER=console in production: no SMS provider, so sign-in is refused (503) ' +
@@ -277,6 +286,8 @@ export const env = {
    * production, and only with the switch on. There is no production exception.
    */
   otpEchoAllowed: !isProduction && parsed.data.OTP_DEBUG_DISPLAY,
+  /** The fixed development code, if any. Never set in production. */
+  otpFixedCode: isProduction ? undefined : parsed.data.OTP_FIXED_CODE,
   /** Lifetimes in seconds: the environment's override, else the shared constant. */
   session: {
     idleSeconds: parsed.data.SESSION_IDLE_TTL_SECONDS ?? SESSION.REFRESH_TOKEN_TTL_SECONDS,
