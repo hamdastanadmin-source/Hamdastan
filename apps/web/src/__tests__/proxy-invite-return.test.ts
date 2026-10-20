@@ -71,9 +71,18 @@ describe('the way back from an invitation', () => {
     expect(decodeURIComponent(returnCookie(response) ?? '')).toContain('hd_return_to=/events/hogwarts-music-night');
   });
 
-  it('never remembers or follows anything but an activity’s or an event’s address', async () => {
+  it('remembers a world’s and an article’s page the same way', async () => {
+    for (const path of ['/worlds/hogwarts', '/articles/news-1a2b3c4d']) {
+      const response = await run(path);
+      expect(location(response)).toBe('/welcome');
+      expect(decodeURIComponent(returnCookie(response) ?? '')).toContain(`hd_return_to=${path}`);
+    }
+  });
+
+  it('never remembers or follows anything but an activity’s, event’s, world’s or article’s address', async () => {
     expect(returnCookie(await run('/profile'))).toBeUndefined();
     expect(returnCookie(await run('/events/../profile'))).toBeUndefined();
+    expect(returnCookie(await run('/worlds/hogwarts/../../profile'))).toBeUndefined();
     const response = await run('/', `${signedIn}; hd_return_to=https://evil.example`);
     expect(response.headers.get('location')).toBeNull();
   });

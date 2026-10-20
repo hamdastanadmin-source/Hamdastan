@@ -106,6 +106,7 @@ function activity(overrides: Partial<ActivityInput> = {}): ActivityInput {
     audience: { kind: 'all' },
     startsAt: null,
     endsAt: null,
+    worldIds: [],
     ...overrides,
   };
 }
@@ -452,6 +453,7 @@ describe.skipIf(!hasDatabase)('Engagement Studio against a migrated database', (
             ],
             passingScore: null,
             showResult: true,
+      revealAnswers: false,
           },
           xp: { ...XP, amount: 30 },
         }),
@@ -490,7 +492,7 @@ describe.skipIf(!hasDatabase)('Engagement Studio against a migrated database', (
               ],
             },
           ],
-          assessment: { mode: 'knowledge', dimensions: [], passingScore: 100, showResult: true },
+          assessment: { mode: 'knowledge', dimensions: [], passingScore: 100, showResult: true, revealAnswers: false },
           xp: { ...XP, requirePass: true },
         }),
       })

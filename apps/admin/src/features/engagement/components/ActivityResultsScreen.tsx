@@ -39,6 +39,7 @@ import { errorMessage, formatCount, formatDateTime, formatPercent } from '@/lib'
 import { useActivityResults } from '../hooks/use-activity-results';
 import { ACTION_LABELS, ACTIONS_FOR, CONFIRM_COPY, describeAudience, STATUS_BADGE, STATUS_LABELS } from '../utils/labels';
 import { GrantsPanel } from './results/GrantsPanel';
+import { LeaderboardPanel } from './results/LeaderboardPanel';
 import { HistoryPanel } from './results/HistoryPanel';
 import { AssessmentSummary, QuestionStats } from './results/QuestionStats';
 import { SubmissionsPanel } from './results/SubmissionsPanel';
@@ -258,6 +259,11 @@ export function ActivityResultsScreen({ id }: { id: string }) {
               )}
             </TabsTrigger>
           )}
+          {activity?.type === 'competition' && individual && (
+            <TabsTrigger value="leaderboard" className={TAB_TRIGGER}>
+              جدول امتیازات
+            </TabsTrigger>
+          )}
           {seesXp && (
             <TabsTrigger value="xp" className={TAB_TRIGGER}>
               تراکنش‌های XP
@@ -285,6 +291,12 @@ export function ActivityResultsScreen({ id }: { id: string }) {
             onReview={can('submissions.review') ? view.review : undefined}
           />
         </TabsContent>
+
+        {activity?.type === 'competition' && individual && (
+          <TabsContent value="leaderboard" className="mt-4">
+            <LeaderboardPanel activityId={activity.id} />
+          </TabsContent>
+        )}
 
         <TabsContent value="xp" className="mt-4">
           <GrantsPanel

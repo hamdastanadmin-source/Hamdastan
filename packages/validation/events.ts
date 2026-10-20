@@ -197,7 +197,7 @@ export const eventBookingReviewSchema = z.object({
   externalRef: line(L.PARTNER_REF_MAX, null),
 });
 
-// ─── Categories and worlds ───────────────────────────────────────────────────
+// ─── Categories ─────────────────────────────────────────────────────────────
 
 export const eventCategoryInputSchema = z.object({
   slug: slug(60).refine((value) => value !== '', { error: 'نامک را وارد کنید' }),
@@ -205,14 +205,6 @@ export const eventCategoryInputSchema = z.object({
   description: line(L.CATEGORY_DESCRIPTION_MAX, null),
   icon: z.enum(EVENT_CATEGORY_ICONS),
   imageId: mediaIdSchema.nullable(),
-  isActive: z.boolean(),
-});
-
-export const worldInputSchema = z.object({
-  slug: slug(60).refine((value) => value !== '', { error: 'نامک را وارد کنید' }),
-  name: line(L.WORLD_NAME_MAX, 'نام دنیا را وارد کنید'),
-  summary: line(L.WORLD_SUMMARY_MAX, null),
-  coverId: mediaIdSchema.nullable(),
   isActive: z.boolean(),
 });
 
@@ -282,4 +274,3 @@ export type EventListQueryOutput = z.output<typeof eventListQuerySchema>;
 export type EventCalendarQueryOutput = z.output<typeof eventCalendarQuerySchema>;
 export type AdminEventListQueryOutput = z.output<typeof adminEventListQuerySchema>;
 export type EventCategoryInputOutput = z.output<typeof eventCategoryInputSchema>;
-export type WorldInputOutput = z.output<typeof worldInputSchema>;

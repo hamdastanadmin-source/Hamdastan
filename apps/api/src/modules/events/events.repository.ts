@@ -35,6 +35,12 @@ export interface EventsRepository {
   findVisible(slugOrId: { slug: string } | { id: string }, userId: string): Promise<EventRecord | null>;
   related(event: EventRecord, userId: string): Promise<EventRecord[]>;
   listMine(userId: string, tab: MyEventsTab): Promise<EventRecord[]>;
+  /**
+   * A world's events, soonest first — for its home and the panel's picker.
+   * `live`: only what the person (or, with no person, anyone) may see and
+   * can still attend; otherwise every status.
+   */
+  forWorld(worldId: string, query: { ids?: string[]; q?: string; live: boolean; userId: string | null; limit: number }): Promise<EventRecord[]>;
   findInterest(eventId: string, userId: string): Promise<{ remindInApp: boolean } | null>;
   findLatestBooking(eventId: string, userId: string): Promise<BookingRecord | null>;
   setInterest(eventId: string, userId: string, remindInApp: boolean): Promise<void>;
@@ -151,7 +157,7 @@ const columns = (user: string) => `
             ORDER BY c.position, c.name), '[]')
      FROM v2_event_category_links cl JOIN v2_event_categories c ON c.id = cl.category_id
     WHERE cl.event_id = e.id) AS categories,
-  (SELECT coalesce(json_agg(json_build_object('id', w.id, 'slug', w.slug, 'name', w.name, 'isActive', w.is_active)
+  (SELECT coalesce(json_agg(json_build_object('id', w.id, 'slug', w.slug, 'name', w.name, 'isActive', w.status = 'published')
             ORDER BY w.position, w.name), '[]')
      FROM v2_event_world_links wl JOIN v2_worlds w ON w.id = wl.world_id
     WHERE wl.event_id = e.id) AS worlds,
@@ -300,7 +306,7 @@ function filterClauses(filter: EventFilter, user: string, add: (value: unknown) 
 
   if (filter.world) {
     clauses.push(`EXISTS (SELECT 1 FROM v2_event_world_links wl JOIN v2_worlds w ON w.id = wl.world_id
-      WHERE wl.event_id = e.id AND w.slug = ${add(filter.world)} AND w.is_active)`);
+      WHERE wl.event_id = e.id AND w.slug = ${add(filter.world)} AND w.status = 'published')`);
   } else {
     clauses.push(`e.visibility <> 'world'`);
   }
@@ -520,6 +526,21 @@ export const sqlEventsRepository: EventsRepository = {
     const match = 'slug' in key ? `e.slug = ${add(key.slug)}` : `e.id = ${add(key.id)}`;
     const row = await queryOne<Row>(`SELECT ${columns(user)} FROM v2_events e WHERE ${match} AND ${visible(user)}`, values);
     return row ? toRecord(row) : null;
+  },
+
+  async forWorld(worldId, { ids, q, live, userId, limit }) {
+    const { values, add } = params();
+    const user = userId ? add(userId) : NOBODY;
+    const clauses = [`EXISTS (SELECT 1 FROM v2_event_world_links wl WHERE wl.event_id = e.id AND wl.world_id = ${add(worldId)})`];
+    if (live) clauses.push(`${visible(user)} AND e.status = 'published' AND e.end_at > now()`);
+    if (ids) clauses.push(`e.id = ANY(${add(ids)}::uuid[])`);
+    if (q) clauses.push(`e.title ILIKE ${add(`%${escapeLike(q)}%`)}`);
+    const rows = await query<Row>(
+      `SELECT ${columns(user)} FROM v2_events e WHERE ${clauses.join(' AND ')}
+        ORDER BY e.start_at NULLS LAST, e.id LIMIT ${add(limit)}`,
+      values
+    );
+    return rows.map(toRecord);
   },
 
   async related(event, userId) {

@@ -2,8 +2,11 @@ import type {
   ActivityAnswers,
   ActivityDefinition,
   ActivityQuestion,
+  ActivityType,
+  AnswerReview,
   AssessmentResult,
   ChoiceQuestion,
+  MatchingQuestion,
 } from '@hamdastan/types';
 
 /**
@@ -12,7 +15,8 @@ import type {
  * same result, which is what lets a result be recomputed and tested.
  *
  * Knowledge: a choice question is right when the picks are exactly its
- * correct options; the score is the share right, 0–100.
+ * correct options, a matching question when every prompt has its own match;
+ * the score is the share right, 0–100. A matching question scores as one.
  *
  * Personality: every answered item is put on 0–1 (a rating or scale by its
  * position on the range, a choice by its option's points relative to the
@@ -24,13 +28,27 @@ import type {
 const isChoice = (question: ActivityQuestion): question is ChoiceQuestion =>
   question.kind === 'single' || question.kind === 'multiple';
 
+/** The questions a knowledge quiz scores: the ones with a key. */
+const isKeyed = (question: ActivityQuestion): question is ChoiceQuestion | MatchingQuestion =>
+  isChoice(question) || question.kind === 'matching';
+
+/** The key: a choice question's correct options, a matching question's match per prompt. */
+const keyOf = (question: ChoiceQuestion | MatchingQuestion): string[] =>
+  question.kind === 'matching'
+    ? question.pairs.map((pair) => pair.matchId)
+    : question.options.filter((option) => option.correct).map((option) => option.id);
+
 const allQuestions = (definition: ActivityDefinition) =>
   definition.steps.flatMap((step) => step.questions);
 
-function isCorrect(question: ChoiceQuestion, value: ActivityAnswers[string] | undefined): boolean {
+function isCorrect(question: ChoiceQuestion | MatchingQuestion, value: ActivityAnswers[string] | undefined): boolean {
   const picked = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
-  const correct = question.options.filter((option) => option.correct).map((option) => option.id);
-  return picked.length === correct.length && correct.every((id) => picked.includes(id));
+  const correct = keyOf(question);
+  if (picked.length !== correct.length) return false;
+  // A match is right only against its own prompt; a choice's picks in any order.
+  return question.kind === 'matching'
+    ? correct.every((id, i) => picked[i] === id)
+    : correct.every((id) => picked.includes(id));
 }
 
 /** One answered item on 0–1, before reverse-keying; null when it does not score. */
@@ -54,6 +72,7 @@ function itemValue(question: ActivityQuestion, value: ActivityAnswers[string] | 
       return range === 0 ? 0.5 : (mean - low) / range;
     }
     case 'text':
+    case 'matching':
       return null;
   }
 }
@@ -64,7 +83,7 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
   const questions = allQuestions(definition);
 
   if (settings.mode === 'knowledge') {
-    const scored = questions.filter(isChoice);
+    const scored = questions.filter(isKeyed);
     const right = scored.filter((question) => isCorrect(question, answers[question.id])).length;
     const score = scored.length ? Math.round((right / scored.length) * 100) : 0;
     return {
@@ -113,4 +132,33 @@ export function earnsXp(definition: ActivityDefinition, result: AssessmentResult
   if (!xp.enabled || xp.amount <= 0) return false;
   if (xp.requirePass) return result?.passed === true;
   return true;
+}
+
+/**
+ * Whether a knowledge quiz may show this person its answers: the admin
+ * allowed it, and nothing the person could still submit would profit — they
+ * have used every submission, or, for a competition, it has ended (so no
+ * one still playing can be told).
+ */
+export function mayRevealAnswers(
+  activity: { type: ActivityType; definition: ActivityDefinition; endsAt: Date | null },
+  submissions: number,
+  now: Date
+): boolean {
+  const settings = activity.definition.assessment;
+  if (!settings?.revealAnswers || settings.mode !== 'knowledge' || submissions === 0) return false;
+  if (activity.type === 'competition') return activity.endsAt !== null && activity.endsAt <= now;
+  return submissions >= activity.definition.maxSubmissions;
+}
+
+/** Each scored question after the fact: the right answer, whether the person had it, and why. */
+export function reviewAnswers(definition: ActivityDefinition, answers: ActivityAnswers): AnswerReview[] {
+  return allQuestions(definition)
+    .filter(isKeyed)
+    .map((question) => ({
+      questionId: question.id,
+      correct: isCorrect(question, answers[question.id]),
+      correctOptionIds: keyOf(question),
+      explanation: question.explanation ?? '',
+    }));
 }

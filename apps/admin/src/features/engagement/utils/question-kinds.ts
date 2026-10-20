@@ -1,4 +1,4 @@
-import { CircleDot, ListChecks, SlidersHorizontal, Star, Type, type LucideIcon } from 'lucide-react';
+import { ArrowLeftRight, CircleDot, ListChecks, SlidersHorizontal, Star, Type, type LucideIcon } from 'lucide-react';
 
 import type { QuestionKindId } from '@hamdastan/config';
 
@@ -9,4 +9,5 @@ export const QUESTION_KIND_UI: Record<QuestionKindId, { icon: LucideIcon }> = {
   text: { icon: Type },
   rating: { icon: Star },
   scale: { icon: SlidersHorizontal },
+  matching: { icon: ArrowLeftRight },
 };

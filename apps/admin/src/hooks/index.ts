@@ -6,3 +6,4 @@
  */
 
 export { useOrderedList } from './use-ordered-list';
+export { useWorldOptions } from './use-world-options';

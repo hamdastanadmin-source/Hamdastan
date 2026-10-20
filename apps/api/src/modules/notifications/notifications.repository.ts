@@ -764,7 +764,7 @@ export const sqlNotificationsRepository: NotificationsRepository = {
       query<{ id: string; title: string }>(
         `SELECT id, title FROM v2_engagement_activities WHERE status = 'published' ORDER BY created_at DESC LIMIT 200`
       ),
-      query<{ id: string; name: string }>(`SELECT id, name FROM v2_worlds WHERE is_active ORDER BY position, name`),
+      query<{ id: string; name: string }>(`SELECT id, name FROM v2_worlds WHERE status = 'published' ORDER BY position, name`),
     ]);
     return { events, activities, worlds };
   },

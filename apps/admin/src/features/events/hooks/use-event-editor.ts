@@ -19,8 +19,11 @@ import { emptyState, fromDetail, sectionOfPath, toInput, type EditorSectionId, t
  *
  * A new event is created on its first save; from then on saves update it.
  */
-export function useEventEditor(initial?: AdminEventDetail) {
-  const [state, setState] = useState<EditorState>(() => (initial ? fromDetail(initial) : emptyState()));
+/** `worldId`: a new event opened from a world's page starts filed under it. */
+export function useEventEditor(initial?: AdminEventDetail, worldId?: string) {
+  const [state, setState] = useState<EditorState>(() =>
+    initial ? fromDetail(initial) : { ...emptyState(), worldIds: worldId ? [worldId] : [] }
+  );
   const [saved, setSaved] = useState<AdminEventDetail | null>(initial ?? null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);

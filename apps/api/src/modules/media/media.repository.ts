@@ -41,8 +41,8 @@ const COLUMNS = `m.id, m.kind, m.format, m.category, m.name, m.size_bytes, m.sha
 
 /**
  * Places that use this file: activities whose definitions — in any version —
- * name it, and events (cover, organizer logo, gallery), event categories and
- * worlds that point at it.
+ * name it, and events (cover, organizer logo, gallery), event categories,
+ * worlds (cover, logo) and articles (cover, thumbnail) that point at it.
  */
 const USAGE = `(
     (SELECT count(DISTINCT v.activity_id) FROM v2_engagement_versions v
@@ -50,7 +50,8 @@ const USAGE = `(
   + (SELECT count(*) FROM v2_events e WHERE m.id IN (e.cover_media_id, e.organizer_logo_media_id))
   + (SELECT count(*) FROM v2_event_media g WHERE g.media_id = m.id)
   + (SELECT count(*) FROM v2_event_categories c WHERE c.image_media_id = m.id)
-  + (SELECT count(*) FROM v2_worlds w WHERE w.cover_media_id = m.id))::int`;
+  + (SELECT count(*) FROM v2_worlds w WHERE m.id IN (w.cover_media_id, w.logo_media_id))
+  + (SELECT count(*) FROM v2_articles a WHERE m.id IN (a.cover_media_id, a.thumbnail_media_id)))::int`;
 
 type Row = {
   id: string;

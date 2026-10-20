@@ -29,6 +29,8 @@ export const engagementAdminRoutes: FastifyPluginAsync = async (app) => {
   app.get('/activities/:id/results', guard('results.read'), c.results);
   app.get('/activities/:id/export', guard('results.export'), c.exportCsv);
   app.get('/activities/:id/submissions', guard('results.individual'), c.submissions);
+  // A competition's ranking names people: it is individual results.
+  app.get('/activities/:id/leaderboard', guard('results.individual'), c.adminLeaderboard);
   app.get('/activities/:id/grants', guard('xp.read'), c.grants);
   app.get('/activities/:id/history', guard('activities.read'), c.history);
   app.post('/audience/preview', guard('activities.read'), c.previewAudience);
@@ -42,6 +44,9 @@ export const engagementRoutes: FastifyPluginAsync = async (app) => {
   app.get('/', user, c.listMine);
   app.get('/:id', user, c.getMine);
   app.put('/:id/draft', user, c.saveDraft);
+  // Starting records the moment a competition's time is measured from.
+  app.post('/:id/start', user, c.start);
+  app.get('/:id/leaderboard', user, c.leaderboard);
   app.post('/:id/submit', { ...user, config: { rateLimit: rateLimits.submit } }, c.submit);
   // A journey's answers: one at a time, safe to repeat — an answer is written once.
   app.post('/:id/answers', user, c.answerJourney);

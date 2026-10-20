@@ -8,6 +8,7 @@ import type {
 } from '@hamdastan/config';
 
 import type { ActivityAudience } from './engagement';
+import type { World } from './worlds';
 
 /**
  * Events (رویدادها) — the wire contract. One event model serves global
@@ -37,7 +38,7 @@ export type EventAvailability = 'available' | 'limited' | 'sold_out' | 'none';
 export type EventBookingStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
 export type EventBookingSource = 'internal' | 'external';
 
-// ─── Categories and worlds ───────────────────────────────────────────────────
+// ─── Categories ──────────────────────────────────────────────────────────────
 
 export type EventCategory = {
   id: string;
@@ -62,29 +63,6 @@ export type EventCategoryInput = {
   description: string;
   icon: EventCategoryIconId;
   imageId: string | null;
-  isActive: boolean;
-};
-
-export type World = {
-  id: string;
-  slug: string;
-  name: string;
-  summary: string;
-  coverId: string | null;
-};
-
-export type AdminWorld = World & {
-  position: number;
-  isActive: boolean;
-  eventCount: number;
-};
-
-/** `POST /admin/worlds`, `PUT /admin/worlds/:id`. */
-export type WorldInput = {
-  slug: string;
-  name: string;
-  summary: string;
-  coverId: string | null;
   isActive: boolean;
 };
 

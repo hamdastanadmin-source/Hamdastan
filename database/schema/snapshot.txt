@@ -17,6 +17,30 @@ column v2_admin_users.phone character varying nullable=NO default=
 column v2_admin_users.role USER-DEFINED nullable=NO default='SYSTEM_ADMIN'::v2_admin_role
 column v2_admin_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_admin_status
 column v2_admin_users.updated_at timestamp with time zone nullable=NO default=now()
+column v2_article_audit_log.action character varying nullable=NO default=
+column v2_article_audit_log.admin_id uuid nullable=YES default=
+column v2_article_audit_log.article_id uuid nullable=NO default=
+column v2_article_audit_log.created_at timestamp with time zone nullable=NO default=now()
+column v2_article_audit_log.details jsonb nullable=NO default='{}'::jsonb
+column v2_article_audit_log.id bigint nullable=NO default=
+column v2_article_world_links.article_id uuid nullable=NO default=
+column v2_article_world_links.world_id uuid nullable=NO default=
+column v2_articles.body text nullable=NO default=''::text
+column v2_articles.category character varying nullable=NO default=''::character varying
+column v2_articles.cover_alt character varying nullable=NO default=''::character varying
+column v2_articles.cover_media_id uuid nullable=YES default=
+column v2_articles.created_at timestamp with time zone nullable=NO default=now()
+column v2_articles.created_by uuid nullable=YES default=
+column v2_articles.id uuid nullable=NO default=gen_random_uuid()
+column v2_articles.kind USER-DEFINED nullable=NO default=
+column v2_articles.publish_at timestamp with time zone nullable=YES default=
+column v2_articles.slug character varying nullable=NO default=
+column v2_articles.status USER-DEFINED nullable=NO default='draft'::v2_article_status
+column v2_articles.summary character varying nullable=NO default=''::character varying
+column v2_articles.thumbnail_media_id uuid nullable=YES default=
+column v2_articles.title character varying nullable=NO default=''::character varying
+column v2_articles.updated_at timestamp with time zone nullable=NO default=now()
+column v2_articles.updated_by uuid nullable=YES default=
 column v2_engagement_activities.audience jsonb nullable=NO default='{"kind": "all"}'::jsonb
 column v2_engagement_activities.created_at timestamp with time zone nullable=NO default=now()
 column v2_engagement_activities.created_by uuid nullable=YES default=
@@ -32,6 +56,8 @@ column v2_engagement_activities.title character varying nullable=NO default=
 column v2_engagement_activities.type USER-DEFINED nullable=NO default=
 column v2_engagement_activities.updated_at timestamp with time zone nullable=NO default=now()
 column v2_engagement_activities.updated_by uuid nullable=YES default=
+column v2_engagement_activity_worlds.activity_id uuid nullable=NO default=
+column v2_engagement_activity_worlds.world_id uuid nullable=NO default=
 column v2_engagement_audit_log.action character varying nullable=NO default=
 column v2_engagement_audit_log.activity_id uuid nullable=YES default=
 column v2_engagement_audit_log.admin_id uuid nullable=YES default=
@@ -357,14 +383,35 @@ column v2_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_user_status
 column v2_users.telegram character varying nullable=YES default=
 column v2_users.updated_at timestamp with time zone nullable=NO default=now()
 column v2_users.username character varying nullable=YES default=
+column v2_world_home_items.activity_id uuid nullable=YES default=
+column v2_world_home_items.article_id uuid nullable=YES default=
+column v2_world_home_items.event_id uuid nullable=YES default=
+column v2_world_home_items.id uuid nullable=NO default=gen_random_uuid()
+column v2_world_home_items.position integer nullable=NO default=0
+column v2_world_home_items.section_id uuid nullable=NO default=
+column v2_world_home_sections.id uuid nullable=NO default=gen_random_uuid()
+column v2_world_home_sections.is_enabled boolean nullable=NO default=true
+column v2_world_home_sections.item_limit smallint nullable=NO default=3
+column v2_world_home_sections.kind USER-DEFINED nullable=NO default=
+column v2_world_home_sections.position integer nullable=NO default=0
+column v2_world_home_sections.source character varying nullable=NO default='latest'::character varying
+column v2_world_home_sections.title character varying nullable=NO default=''::character varying
+column v2_world_home_sections.when_empty character varying nullable=NO default='hide'::character varying
+column v2_world_home_sections.world_id uuid nullable=NO default=
 column v2_worlds.cover_media_id uuid nullable=YES default=
 column v2_worlds.created_at timestamp with time zone nullable=NO default=now()
+column v2_worlds.description text nullable=NO default=''::text
 column v2_worlds.id uuid nullable=NO default=gen_random_uuid()
-column v2_worlds.is_active boolean nullable=NO default=true
+column v2_worlds.logo_media_id uuid nullable=YES default=
 column v2_worlds.name character varying nullable=NO default=
+column v2_worlds.navigation jsonb nullable=NO default='[]'::jsonb
 column v2_worlds.position integer nullable=NO default=0
+column v2_worlds.published_at timestamp with time zone nullable=YES default=
 column v2_worlds.slug character varying nullable=NO default=
+column v2_worlds.status USER-DEFINED nullable=NO default='draft'::v2_world_status
 column v2_worlds.summary character varying nullable=NO default=''::character varying
+column v2_worlds.tagline character varying nullable=NO default=''::character varying
+column v2_worlds.theme character varying nullable=NO default='neutral'::character varying
 column v2_worlds.updated_at timestamp with time zone nullable=NO default=now()
 column v2_xp_transactions.activity_id uuid nullable=YES default=
 column v2_xp_transactions.activity_version_id uuid nullable=YES default=
@@ -384,11 +431,29 @@ constraint v2_admin_sessions v2_admin_sessions_admin_id_fkey FOREIGN KEY (admin_
 constraint v2_admin_sessions v2_admin_sessions_pkey PRIMARY KEY (token_hash)
 constraint v2_admin_users v2_admin_users_phone_key UNIQUE (phone)
 constraint v2_admin_users v2_admin_users_pkey PRIMARY KEY (id)
+constraint v2_article_audit_log v2_article_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_article_audit_log v2_article_audit_log_article_id_fkey FOREIGN KEY (article_id) REFERENCES v2_articles(id) ON DELETE CASCADE
+constraint v2_article_audit_log v2_article_audit_log_pkey PRIMARY KEY (id)
+constraint v2_article_world_links v2_article_world_links_article_id_fkey FOREIGN KEY (article_id) REFERENCES v2_articles(id) ON DELETE CASCADE
+constraint v2_article_world_links v2_article_world_links_pkey PRIMARY KEY (article_id, world_id)
+constraint v2_article_world_links v2_article_world_links_world_id_fkey FOREIGN KEY (world_id) REFERENCES v2_worlds(id) ON DELETE RESTRICT
+constraint v2_articles v2_articles_body_length CHECK ((char_length(body) <= 20000))
+constraint v2_articles v2_articles_cover_media_id_fkey FOREIGN KEY (cover_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_articles v2_articles_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_articles v2_articles_pkey PRIMARY KEY (id)
+constraint v2_articles v2_articles_published_has_date CHECK (((status <> 'published'::v2_article_status) OR (publish_at IS NOT NULL)))
+constraint v2_articles v2_articles_slug_format CHECK (((slug)::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
+constraint v2_articles v2_articles_slug_unique UNIQUE (slug)
+constraint v2_articles v2_articles_thumbnail_media_id_fkey FOREIGN KEY (thumbnail_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_articles v2_articles_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_engagement_activities v2_engagement_activities_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_engagement_activities v2_engagement_activities_current_version FOREIGN KEY (current_version_id) REFERENCES v2_engagement_versions(id)
 constraint v2_engagement_activities v2_engagement_activities_pkey PRIMARY KEY (id)
 constraint v2_engagement_activities v2_engagement_activities_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_engagement_activities v2_engagement_activities_window CHECK (((starts_at IS NULL) OR (ends_at IS NULL) OR (ends_at > starts_at)))
+constraint v2_engagement_activity_worlds v2_engagement_activity_worlds_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES v2_engagement_activities(id) ON DELETE CASCADE
+constraint v2_engagement_activity_worlds v2_engagement_activity_worlds_pkey PRIMARY KEY (activity_id, world_id)
+constraint v2_engagement_activity_worlds v2_engagement_activity_worlds_world_id_fkey FOREIGN KEY (world_id) REFERENCES v2_worlds(id) ON DELETE RESTRICT
 constraint v2_engagement_audit_log v2_engagement_audit_log_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES v2_engagement_activities(id) ON DELETE CASCADE
 constraint v2_engagement_audit_log v2_engagement_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_engagement_audit_log v2_engagement_audit_log_pkey PRIMARY KEY (id)
@@ -519,7 +584,22 @@ constraint v2_users v2_users_onboarding_stage_range CHECK (((onboarding_stage >=
 constraint v2_users v2_users_phone_key UNIQUE (phone)
 constraint v2_users v2_users_pkey PRIMARY KEY (id)
 constraint v2_users v2_users_username_lower CHECK (((username)::text = lower((username)::text)))
+constraint v2_world_home_items v2_world_home_items_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES v2_engagement_activities(id) ON DELETE CASCADE
+constraint v2_world_home_items v2_world_home_items_article_id_fkey FOREIGN KEY (article_id) REFERENCES v2_articles(id) ON DELETE CASCADE
+constraint v2_world_home_items v2_world_home_items_event_id_fkey FOREIGN KEY (event_id) REFERENCES v2_events(id) ON DELETE CASCADE
+constraint v2_world_home_items v2_world_home_items_one_target CHECK ((num_nonnulls(article_id, event_id, activity_id) = 1))
+constraint v2_world_home_items v2_world_home_items_pkey PRIMARY KEY (id)
+constraint v2_world_home_items v2_world_home_items_section_id_fkey FOREIGN KEY (section_id) REFERENCES v2_world_home_sections(id) ON DELETE CASCADE
+constraint v2_world_home_sections v2_world_home_sections_limit CHECK (((item_limit >= 1) AND (item_limit <= 12)))
+constraint v2_world_home_sections v2_world_home_sections_one_per_kind UNIQUE (world_id, kind)
+constraint v2_world_home_sections v2_world_home_sections_pkey PRIMARY KEY (id)
+constraint v2_world_home_sections v2_world_home_sections_source CHECK (((source)::text = ANY ((ARRAY['latest'::character varying, 'featured'::character varying])::text[])))
+constraint v2_world_home_sections v2_world_home_sections_when_empty CHECK (((when_empty)::text = ANY ((ARRAY['hide'::character varying, 'message'::character varying])::text[])))
+constraint v2_world_home_sections v2_world_home_sections_world_id_fkey FOREIGN KEY (world_id) REFERENCES v2_worlds(id) ON DELETE CASCADE
 constraint v2_worlds v2_worlds_cover_media_id_fkey FOREIGN KEY (cover_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_worlds v2_worlds_description_length CHECK ((char_length(description) <= 4000))
+constraint v2_worlds v2_worlds_logo_media_id_fkey FOREIGN KEY (logo_media_id) REFERENCES v2_media_assets(id) ON DELETE SET NULL
+constraint v2_worlds v2_worlds_navigation_array CHECK ((jsonb_typeof(navigation) = 'array'::text))
 constraint v2_worlds v2_worlds_pkey PRIMARY KEY (id)
 constraint v2_worlds v2_worlds_slug_format CHECK (((slug)::text ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))
 constraint v2_worlds v2_worlds_slug_unique UNIQUE (slug)
@@ -535,9 +615,11 @@ constraint v2_xp_transactions v2_xp_transactions_source_type CHECK (((source_typ
 constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK (((((source_type)::text = 'reversal'::text) AND (xp_amount < 0)) OR (((source_type)::text <> 'reversal'::text) AND (xp_amount > 0))))
 enum v2_activity_status draft,published,paused,closed,archived
-enum v2_activity_type survey,mission,assessment,journey
+enum v2_activity_type survey,mission,assessment,journey,competition
 enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER,NOTIFICATION_MANAGER
 enum v2_admin_status ACTIVE,INACTIVE
+enum v2_article_kind news,knowledge
+enum v2_article_status draft,published,unpublished,archived
 enum v2_event_booking_mode none,free_registration,external
 enum v2_event_booking_source internal,external
 enum v2_event_booking_status pending,confirmed,failed,cancelled
@@ -554,6 +636,8 @@ enum v2_review_status none,pending,approved,rejected
 enum v2_ticket_availability available,limited,sold_out
 enum v2_user_role USER,ADMIN
 enum v2_user_status ACTIVE,SUSPENDED
+enum v2_world_section_kind news,knowledge,events,activities
+enum v2_world_status draft,published,unpublished,archived
 index v2_access_tokens_expires_at CREATE INDEX v2_access_tokens_expires_at ON public.v2_access_tokens USING btree (expires_at)
 index v2_access_tokens_pkey CREATE UNIQUE INDEX v2_access_tokens_pkey ON public.v2_access_tokens USING btree (token_hash)
 index v2_access_tokens_session CREATE INDEX v2_access_tokens_session ON public.v2_access_tokens USING btree (session_id)
@@ -562,8 +646,18 @@ index v2_admin_sessions_expires_at CREATE INDEX v2_admin_sessions_expires_at ON 
 index v2_admin_sessions_pkey CREATE UNIQUE INDEX v2_admin_sessions_pkey ON public.v2_admin_sessions USING btree (token_hash)
 index v2_admin_users_phone_key CREATE UNIQUE INDEX v2_admin_users_phone_key ON public.v2_admin_users USING btree (phone)
 index v2_admin_users_pkey CREATE UNIQUE INDEX v2_admin_users_pkey ON public.v2_admin_users USING btree (id)
+index v2_article_audit_log_article CREATE INDEX v2_article_audit_log_article ON public.v2_article_audit_log USING btree (article_id, created_at DESC)
+index v2_article_audit_log_pkey CREATE UNIQUE INDEX v2_article_audit_log_pkey ON public.v2_article_audit_log USING btree (id)
+index v2_article_world_links_pkey CREATE UNIQUE INDEX v2_article_world_links_pkey ON public.v2_article_world_links USING btree (article_id, world_id)
+index v2_article_world_links_world CREATE INDEX v2_article_world_links_world ON public.v2_article_world_links USING btree (world_id)
+index v2_articles_live CREATE INDEX v2_articles_live ON public.v2_articles USING btree (kind, publish_at DESC) WHERE (status = 'published'::v2_article_status)
+index v2_articles_pkey CREATE UNIQUE INDEX v2_articles_pkey ON public.v2_articles USING btree (id)
+index v2_articles_slug_unique CREATE UNIQUE INDEX v2_articles_slug_unique ON public.v2_articles USING btree (slug)
+index v2_articles_updated CREATE INDEX v2_articles_updated ON public.v2_articles USING btree (updated_at DESC)
 index v2_engagement_activities_pkey CREATE UNIQUE INDEX v2_engagement_activities_pkey ON public.v2_engagement_activities USING btree (id)
 index v2_engagement_activities_status CREATE INDEX v2_engagement_activities_status ON public.v2_engagement_activities USING btree (status, created_at DESC)
+index v2_engagement_activity_worlds_pkey CREATE UNIQUE INDEX v2_engagement_activity_worlds_pkey ON public.v2_engagement_activity_worlds USING btree (activity_id, world_id)
+index v2_engagement_activity_worlds_world CREATE INDEX v2_engagement_activity_worlds_world ON public.v2_engagement_activity_worlds USING btree (world_id)
 index v2_engagement_audit_log_activity CREATE INDEX v2_engagement_audit_log_activity ON public.v2_engagement_audit_log USING btree (activity_id, created_at DESC)
 index v2_engagement_audit_log_pkey CREATE UNIQUE INDEX v2_engagement_audit_log_pkey ON public.v2_engagement_audit_log USING btree (id)
 index v2_engagement_participations_pkey CREATE UNIQUE INDEX v2_engagement_participations_pkey ON public.v2_engagement_participations USING btree (activity_id, user_id)
@@ -649,9 +743,17 @@ index v2_user_interests_pkey CREATE UNIQUE INDEX v2_user_interests_pkey ON publi
 index v2_users_phone_key CREATE UNIQUE INDEX v2_users_phone_key ON public.v2_users USING btree (phone)
 index v2_users_pkey CREATE UNIQUE INDEX v2_users_pkey ON public.v2_users USING btree (id)
 index v2_users_username CREATE UNIQUE INDEX v2_users_username ON public.v2_users USING btree (username)
+index v2_world_home_items_activity CREATE UNIQUE INDEX v2_world_home_items_activity ON public.v2_world_home_items USING btree (section_id, activity_id) WHERE (activity_id IS NOT NULL)
+index v2_world_home_items_article CREATE UNIQUE INDEX v2_world_home_items_article ON public.v2_world_home_items USING btree (section_id, article_id) WHERE (article_id IS NOT NULL)
+index v2_world_home_items_event CREATE UNIQUE INDEX v2_world_home_items_event ON public.v2_world_home_items USING btree (section_id, event_id) WHERE (event_id IS NOT NULL)
+index v2_world_home_items_order CREATE INDEX v2_world_home_items_order ON public.v2_world_home_items USING btree (section_id, "position")
+index v2_world_home_items_pkey CREATE UNIQUE INDEX v2_world_home_items_pkey ON public.v2_world_home_items USING btree (id)
+index v2_world_home_sections_one_per_kind CREATE UNIQUE INDEX v2_world_home_sections_one_per_kind ON public.v2_world_home_sections USING btree (world_id, kind)
+index v2_world_home_sections_pkey CREATE UNIQUE INDEX v2_world_home_sections_pkey ON public.v2_world_home_sections USING btree (id)
 index v2_worlds_order CREATE INDEX v2_worlds_order ON public.v2_worlds USING btree ("position", name)
 index v2_worlds_pkey CREATE UNIQUE INDEX v2_worlds_pkey ON public.v2_worlds USING btree (id)
 index v2_worlds_slug_unique CREATE UNIQUE INDEX v2_worlds_slug_unique ON public.v2_worlds USING btree (slug)
+index v2_worlds_status CREATE INDEX v2_worlds_status ON public.v2_worlds USING btree (status, "position")
 index v2_xp_transactions_activity CREATE INDEX v2_xp_transactions_activity ON public.v2_xp_transactions USING btree (activity_id) WHERE (activity_id IS NOT NULL)
 index v2_xp_transactions_once CREATE UNIQUE INDEX v2_xp_transactions_once ON public.v2_xp_transactions USING btree (user_id, source_type, source_id)
 index v2_xp_transactions_pkey CREATE UNIQUE INDEX v2_xp_transactions_pkey ON public.v2_xp_transactions USING btree (id)

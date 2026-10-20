@@ -49,6 +49,15 @@ function QuestionStatCard({ stat, number }: { stat: QuestionStat; number: number
             total={stat.answered}
           />
         )}
+        {stat.pairs && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">سهم کسانی که هر جفت را درست وصل کرده‌اند:</p>
+            <Bars
+              rows={stat.pairs.map((pair) => ({ key: pair.id, label: pair.label, count: pair.count }))}
+              total={stat.answered}
+            />
+          </div>
+        )}
         {stat.distribution && (
           <div className="flex flex-col gap-3">
             <p className="text-sm">

@@ -9,7 +9,13 @@
  * added. Ids come from the caller, so the result is deterministic in tests.
  */
 
-import { ENGAGEMENT_LIMITS as L, QUESTION_KIND_LABELS, QUESTION_KINDS, type QuestionKindId } from '@hamdastan/config';
+import {
+  ENGAGEMENT_LIMITS as L,
+  QUESTION_KIND_LABELS,
+  QUESTION_KINDS,
+  type QuestionKindId,
+  UNDIMENSIONED_KINDS,
+} from '@hamdastan/config';
 import { normalizePersianText, toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityQuestion, ActivityType, AssessmentMode } from '@hamdastan/types';
 
@@ -17,13 +23,14 @@ import { activityQuestionSchema } from './engagement';
 
 /** The template's columns, in order. A header is recognised by its title; order and extra columns do not matter. */
 export const QUESTION_IMPORT_COLUMNS = [
-  { key: 'type', title: 'نوع', hint: 'تک‌گزینه‌ای، چندگزینه‌ای، متنی، امتیازی یا طیفی' },
+  { key: 'type', title: 'نوع', hint: 'تک‌گزینه‌ای، چندگزینه‌ای، متنی، امتیازی، طیفی یا تطبیقی' },
   { key: 'title', title: 'متن سؤال', hint: 'الزامی' },
   { key: 'description', title: 'توضیح', hint: 'اختیاری' },
   { key: 'required', title: 'الزامی', hint: 'بله / خیر — پیش‌فرض بله' },
-  { key: 'options', title: 'گزینه‌ها', hint: 'با | جدا کنید: کتاب | فیلم | هر دو' },
+  { key: 'options', title: 'گزینه‌ها', hint: 'با | جدا کنید: کتاب | فیلم | هر دو — تطبیقی: سیب = قرمز | موز = زرد' },
   { key: 'maxSelections', title: 'حداکثر انتخاب', hint: 'فقط چندگزینه‌ای' },
-  { key: 'correct', title: 'پاسخ درست', hint: 'آزمون دانشی: متن یا شماره‌ی گزینه' },
+  { key: 'correct', title: 'پاسخ درست', hint: 'آزمون دانشی و مسابقه: متن یا شماره‌ی گزینه' },
+  { key: 'explanation', title: 'توضیح پاسخ', hint: 'آزمون دانشی و مسابقه: چرا پاسخ درست، درست است' },
   { key: 'scores', title: 'امتیاز گزینه‌ها', hint: 'آزمون شخصیت‌شناسی: 0 | 2 | 4' },
   { key: 'range', title: 'بازه', hint: 'امتیازی: 5 یا 10 — طیفی: 1-5' },
   { key: 'minLabel', title: 'برچسب ابتدا', hint: 'فقط طیفی' },
@@ -79,6 +86,7 @@ const KIND_BY_NAME = new Map<string, QuestionKindId>([
   ['تشریحی', 'text'],
   ['ستاره', 'rating'],
   ['لیکرت', 'scale'],
+  ['جفتکردنی', 'matching'],
 ]);
 
 const YES = new Set(['بله', 'آره', 'yes', 'y', 'true', '1', '✓']);
@@ -131,10 +139,12 @@ function rowToQuestion(
   const reverse = flag(cells.reverse, false);
   if (reverse === null) errors.push('ستون «معکوس» باید «بله» یا «خیر» باشد');
 
+  // A competition is always a knowledge quiz.
   const personality = context.type === 'assessment' && context.mode === 'personality';
-  const knowledge = context.type === 'assessment' && context.mode === 'knowledge';
-  const dimensionTitle = personality && kind !== 'text' ? text(cells.dimension) || null : null;
-  if (personality && kind !== 'text' && !dimensionTitle) errors.push('آزمون شخصیت‌شناسی: ستون «بُعد» را پر کنید');
+  const knowledge = context.type === 'competition' || (context.type === 'assessment' && context.mode === 'knowledge');
+  const dimensioned = !UNDIMENSIONED_KINDS.includes(kind);
+  const dimensionTitle = personality && dimensioned ? text(cells.dimension) || null : null;
+  if (personality && dimensioned && !dimensionTitle) errors.push('آزمون شخصیت‌شناسی: ستون «بُعد» را پر کنید');
 
   const base = {
     id: context.newId(),
@@ -179,11 +189,28 @@ function rowToQuestion(
             ...(personality ? { score: scores[i] ?? 0 } : {}),
           })),
           ...(kind === 'multiple' && maxSelections && !Number.isNaN(maxSelections) ? { maxSelections } : {}),
+          ...(knowledge && text(cells.explanation) ? { explanation: text(cells.explanation) } : {}),
         },
       };
     }
     case 'text':
       return { dimensionTitle, errors, question: { ...base, kind, multiline: true } };
+    case 'matching': {
+      const pairs = options.map((option) => option.split('=').map((side) => side.trim()));
+      if (pairs.some((sides) => sides.length !== 2 || !sides[0] || !sides[1])) {
+        errors.push('هر جفت را به شکل «مورد = جفت» بنویسید و با | جدا کنید');
+      }
+      return {
+        dimensionTitle,
+        errors,
+        question: {
+          ...base,
+          kind,
+          pairs: pairs.map(([prompt = '', match = '']) => ({ id: context.newId(), prompt, matchId: context.newId(), match })),
+          ...(knowledge && text(cells.explanation) ? { explanation: text(cells.explanation) } : {}),
+        },
+      };
+    }
     case 'rating': {
       const range = toLatinDigits(text(cells.range));
       const max = Number(range.split('-').pop() || 5);
@@ -263,4 +290,9 @@ export const QUESTION_IMPORT_EXAMPLES: Partial<Record<ColumnKey, string>>[] = [
   { type: 'امتیازی', title: 'چقدر از خوندن لذت می‌بری؟', range: '5' },
   { type: 'طیفی', title: 'از جمع انرژی می‌گیرم', range: '1-5', minLabel: 'اصلاً', maxLabel: 'کاملاً' },
   { type: 'متنی', title: 'آخرین کتابی که خوندی چی بود؟', required: 'خیر' },
+  {
+    type: 'تطبیقی',
+    title: 'هر کتاب رو به نویسنده‌اش وصل کن',
+    options: 'بوف کور = صادق هدایت | سووشون = سیمین دانشور | کلیدر = محمود دولت‌آبادی | شازده احتجاب = هوشنگ گلشیری',
+  },
 ];

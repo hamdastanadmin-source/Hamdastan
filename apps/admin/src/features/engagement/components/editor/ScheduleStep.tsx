@@ -18,7 +18,12 @@ export function ScheduleStep({ editor }: { editor: ActivityEditorApi }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="شروع" htmlFor="starts-at" error={errors.startsAt} hint="اگر خالی بماند، از لحظه‌ی انتشار.">
+        <Field
+          label="شروع"
+          htmlFor="starts-at"
+          error={errors.startsAt}
+          hint={state.type === 'competition' ? 'لازم است: همه در یک بازه مسابقه می‌دهند.' : 'اگر خالی بماند، از لحظه‌ی انتشار.'}
+        >
           <Input
             id="starts-at"
             type="datetime-local"
@@ -32,7 +37,11 @@ export function ScheduleStep({ editor }: { editor: ActivityEditorApi }) {
           label={state.type === 'mission' ? 'پایان (مهلت انجام)' : 'پایان'}
           htmlFor="ends-at"
           error={errors.endsAt}
-          hint="اگر خالی بماند، تا زمانی که آن را ببندید."
+          hint={
+            state.type === 'competition'
+              ? 'لازم است. پس از پایان، رتبه‌ها قطعی می‌شوند و — اگر روشن باشد — پاسخ‌های درست نمایش داده می‌شوند.'
+              : 'اگر خالی بماند، تا زمانی که آن را ببندید.'
+          }
         >
           <Input
             id="ends-at"

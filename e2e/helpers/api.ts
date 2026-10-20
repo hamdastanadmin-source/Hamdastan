@@ -22,10 +22,12 @@ export async function requireApi(): Promise<void> {
   test.skip(
     !healthy,
     `apps/api is not reachable at ${API_BASE_URL}. Start it with:\n` +
-      `  OTP_DEBUG_DISPLAY=true OTP_MAX_SENDS_PER_IP=500 npm run dev:api\n` +
+      `  OTP_DEBUG_DISPLAY=true OTP_MAX_SENDS_PER_IP=500 OTP_MAX_SENDS_PER_PHONE=50 \\\n` +
+      `  RATE_LIMIT_OTP_VERIFY_PER_15_MINUTES=500 RATE_LIMIT_ADMIN_WRITE_PER_MINUTE=300 npm run dev:api\n` +
       `against a database that has had \`npm run db:migrate\` run on it. The ` +
-      `raised IP cap is the point: one machine signing in dozens of times is ` +
-      `exactly the shape the production limit exists to stop.`
+      `raised caps are the point: one machine signing in dozens of times — the ` +
+      `same admin number among them — and one admin seeding every spec's ` +
+      `content is exactly the shape the production limits exist to stop.`
   );
 }
 

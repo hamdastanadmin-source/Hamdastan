@@ -141,6 +141,10 @@ export const IMAGE_FRAMES = {
   logo: { width: 256, height: 256 },
   /** A world's cover: the banner across the top of its page, 3:1. */
   worldCover: { width: 1290, height: 430 },
+  /** An article's cover, across the top of its page, 16:9. */
+  articleCover: { width: 1280, height: 720 },
+  /** An article's thumbnail, beside its title in a list, square. */
+  articleThumbnail: { width: 480, height: 480 },
 } as const;
 
 export type ImageFrame = { width: number; height: number };

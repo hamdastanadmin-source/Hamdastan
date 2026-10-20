@@ -1,10 +1,17 @@
 'use client';
 
-import { Copy, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeftRight, Copy, Plus, Trash2, X } from 'lucide-react';
 
-import { ENGAGEMENT_LIMITS, MOTION_DURATION, QUESTION_KIND_LABELS, QUESTION_KINDS } from '@hamdastan/config';
+import {
+  ENGAGEMENT_LIMITS,
+  EXPLANATION_MAX,
+  MOTION_DURATION,
+  QUESTION_KIND_LABELS,
+  QUESTION_KINDS,
+  UNDIMENSIONED_KINDS,
+} from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityQuestion, AssessmentSettings, ChoiceOption, JourneyTrait } from '@hamdastan/types';
+import type { ActivityQuestion, AssessmentSettings, ChoiceOption, JourneyTrait, MatchingPair } from '@hamdastan/types';
 import { motionOff } from '@hamdastan/validation';
 import {
   Accordion,
@@ -28,7 +35,7 @@ import {
 
 import { MediaField, MotionSettingField } from '@/features/media';
 
-import { emptyQuestion, newKey } from '../../utils/draft';
+import { emptyPair, emptyQuestion, newKey } from '../../utils/draft';
 import { QUESTION_KIND_UI } from '../../utils/question-kinds';
 import { Field, invalid, motionErrors, NEUTRAL_CHECKBOX, SwitchRow } from './Field';
 import { OptionTraitPoints } from './OptionTraitPoints';
@@ -59,7 +66,8 @@ type QuestionEditorProps = {
  * The selected question, in the builder's editing panel — beside the list
  * that orders, duplicates and removes them (Porsline's layout). The kinds are the ones the product's player
  * draws with its existing controls: options as toggle rows, a rating as a
- * row of numbers, a scale as the slider, text as a text area.
+ * row of numbers, a scale as the slider, text as a text area, matching as
+ * two columns of tiles to pair.
  *
  * In a knowledge assessment each option can be marked correct; in a
  * personality assessment each question is tied to a dimension, can be
@@ -85,6 +93,7 @@ export function QuestionEditor({
 
   const setOptions = (options: ChoiceOption[]) =>
     (question.kind === 'single' || question.kind === 'multiple') && onChange({ ...question, options });
+  const setPairs = (pairs: MatchingPair[]) => question.kind === 'matching' && onChange({ ...question, pairs });
 
   const KindIcon = QUESTION_KIND_UI[question.kind].icon;
 
@@ -293,6 +302,82 @@ export function QuestionEditor({
           </Field>
         )}
 
+        {question.kind === 'matching' && (
+          <Field
+            label="جفت‌ها"
+            error={error('pairs')}
+            hint="هر ردیف یک جفت درست است. ستون دوم برای کاربر جابه‌جا نمایش داده می‌شود."
+          >
+            <ul className="flex flex-col gap-2">
+              {question.pairs.map((pair, index) => (
+                <li key={pair.id} className="flex items-center gap-2">
+                  <span className="w-5 shrink-0 text-center text-xs tabular-nums text-muted-foreground">
+                    {toPersianDigits(index + 1)}
+                  </span>
+                  <Input
+                    value={pair.prompt}
+                    maxLength={ENGAGEMENT_LIMITS.MATCHING_LABEL_MAX}
+                    placeholder="مورد"
+                    aria-label={`مورد ${toPersianDigits(index + 1)}`}
+                    onChange={(event) =>
+                      setPairs(question.pairs.map((p) => (p.id === pair.id ? { ...p, prompt: event.target.value } : p)))
+                    }
+                    {...invalid(error(`pairs.${index}.prompt`))}
+                  />
+                  <ArrowLeftRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                  <Input
+                    value={pair.match}
+                    maxLength={ENGAGEMENT_LIMITS.MATCHING_LABEL_MAX}
+                    placeholder="جفت آن"
+                    aria-label={`جفت مورد ${toPersianDigits(index + 1)}`}
+                    onChange={(event) =>
+                      setPairs(question.pairs.map((p) => (p.id === pair.id ? { ...p, match: event.target.value } : p)))
+                    }
+                    {...invalid(error(`pairs.${index}.match`))}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={question.pairs.length <= ENGAGEMENT_LIMITS.MATCHING_PAIRS_MIN}
+                    onClick={() => setPairs(question.pairs.filter((p) => p.id !== pair.id))}
+                    aria-label={`حذف جفت ${toPersianDigits(index + 1)}`}
+                  >
+                    <X aria-hidden="true" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              disabled={question.pairs.length >= ENGAGEMENT_LIMITS.MATCHING_PAIRS_MAX}
+              onClick={() => setPairs([...question.pairs, emptyPair()])}
+            >
+              <Plus aria-hidden="true" />
+              جفت جدید
+            </Button>
+          </Field>
+        )}
+
+        {knowledge && (question.kind === 'single' || question.kind === 'multiple' || question.kind === 'matching') && (
+          <Field
+            label="توضیح پاسخ (اختیاری)"
+            htmlFor={`${id}-explanation`}
+            error={error('explanation')}
+            hint="چرا پاسخ درست، درست است. فقط وقتی نمایش داده می‌شود که «نمایش پاسخ درست و توضیح» روشن باشد."
+          >
+            <Textarea
+              id={`${id}-explanation`}
+              rows={2}
+              maxLength={EXPLANATION_MAX}
+              value={question.explanation ?? ''}
+              onChange={(event) => onChange({ ...question, explanation: event.target.value || undefined })}
+              {...invalid(error('explanation'))}
+            />
+          </Field>
+        )}
+
         {question.kind === 'multiple' && (
           <Field
             label="سقف انتخاب (اختیاری)"
@@ -374,7 +459,7 @@ export function QuestionEditor({
           </div>
         )}
 
-        {personality && question.kind !== 'text' && (
+        {personality && !UNDIMENSIONED_KINDS.includes(question.kind) && (
           <div className="flex flex-wrap items-end gap-4">
             <Field label="بُعد مورد سنجش" htmlFor={`${id}-dimension`} error={error('dimensionId')}>
               <Select

@@ -1,6 +1,6 @@
 'use client';
 
-import { ENGAGEMENT_LIMITS, JOURNEY_LIMITS } from '@hamdastan/config';
+import { ENGAGEMENT_LIMITS, isQuizType, JOURNEY_LIMITS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityType, JourneySettings, XpSettings } from '@hamdastan/types';
 import { Alert, AlertDescription, Input, Switch } from '@hamdastan/ui';
@@ -28,7 +28,7 @@ export function XpStep({ editor }: { editor: ActivityEditorApi }) {
   const { state, updateDefinition, errors } = editor;
   const { xp, assessment, maxSubmissions, review } = state.definition;
   const setXp = (patch: Partial<XpSettings>) => updateDefinition({ xp: { ...xp, ...patch } });
-  const passMarkSet = state.type === 'assessment' && assessment?.mode === 'knowledge' && assessment.passingScore !== null;
+  const passMarkSet = isQuizType(state.type) && assessment?.mode === 'knowledge' && assessment.passingScore !== null;
   const journey = state.definition.journey;
   const setRewards = (patch: Partial<JourneySettings['rewards']>) =>
     journey && updateDefinition({ journey: { ...journey, rewards: { ...journey.rewards, ...patch } } });

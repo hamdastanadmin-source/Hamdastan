@@ -11,6 +11,7 @@
 
 export { ActivitiesScreen } from './components/ActivitiesScreen';
 export { ActivitiesSection } from './components/ActivitiesSection';
+export { ActivityCard } from './components/ActivityCard';
 export { ActivityPlayer } from './components/ActivityPlayer';
 export { JourneyPlayer } from './components/journey/JourneyPlayer';
 export { JourneyPreview } from './components/journey/JourneyPreview';

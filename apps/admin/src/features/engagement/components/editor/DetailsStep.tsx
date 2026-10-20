@@ -6,6 +6,9 @@ import { ENGAGEMENT_LIMITS, JOURNEY_LIMITS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from '@hamdastan/ui';
 
+import { WorldsField } from '@/components';
+import { useWorldOptions } from '@/hooks';
+
 import type { ActivityEditorApi } from '../../hooks/use-activity-editor';
 import { dayTitle, emptyStep, isUntouchedStep } from '../../utils/draft';
 import { Field, invalid, SwitchRow } from './Field';
@@ -19,6 +22,7 @@ const int = (value: string, min: number) => Math.max(min, Math.trunc(Number(valu
 export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
   const { state, update, updateDefinition, errors } = editor;
   const { definition } = state;
+  const worlds = useWorldOptions();
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -45,6 +49,14 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
           onChange={(event) => update({ summary: event.target.value })}
           {...invalid(errors.summary)}
         />
+      </Field>
+      <Field
+        label="دنیاها"
+        error={errors.worldIds}
+        hint="فعالیت در صفحه‌ی این دنیاها نمایش داده می‌شود و می‌تواند در خانه‌ی آن‌ها ویژه شود. اختیاری است و جزو نسخه‌ی فعالیت نیست."
+        className="lg:col-span-2"
+      >
+        <WorldsField worlds={worlds} value={state.worldIds} onChange={(worldIds) => update({ worldIds })} />
       </Field>
       <Field
         label="توضیحات و دستورالعمل"

@@ -2,7 +2,7 @@
 
 **Product:** هم‌داستان (Hamdastan)
 **Version:** 1.0
-**Last Updated:** 2026-10-18
+**Last Updated:** 2026-10-20
 **Status:** Active Development
 
 ---
@@ -79,7 +79,7 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
 | **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
 | **Badge (نشان)** | A mark of achievement, earned once every mission it requires is finished. Derived, never stored. |
-| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت), assessment (آزمون) or multi-day journey (چالش چندروزه) designed in Engagement Studio (§4.7). |
+| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت), assessment (آزمون), multi-day journey (چالش چندروزه) or competition (مسابقه) designed in Engagement Studio (§4.7). |
 | **Activity version** | An activity's questions and scoring/XP settings, frozen. Editing a published or answered activity makes a new version; responses and rewards point at the one they belong to. |
 | **Participation** | One person's progress on one activity: saved draft, how many times they submitted and were rewarded. |
 | **MobileShell** | The 430px column every screen renders inside. |
@@ -429,7 +429,7 @@ Notification Center with the unread count (§4.11); the bottom nav holds خان�
   attend — not ended, not cancelled, not sold out — each a whole-card link,
   and «همه» → `/events`. Absent when there are none; home never fails
   because of it.
-- Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن». Today it shows four banners, in this order: Hogwarts, GTA, Game of Thrones (بازی تاج و تخت), and Liverpool (لیورپول). They are pictures, not links — a world's events are not shown from here (§4.10).
+- Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن»: every published world, in the admin's order (§4.10), each a banner linking to `/worlds/:slug` — its cover, or for the four seeded worlds (Hogwarts, GTA, Game of Thrones, Liverpool) the artwork they shipped with, or a plain tile with its name. Absent when no world is published; home never fails because of it.
 
 ### 4.4 Account — حساب من
 
@@ -557,8 +557,12 @@ profile, and who sees it.
 
 ### 4.5 Worlds, Play, Community, …
 
-Worlds have a minimal list today (§4.10) — no membership, follow or world
-page content beyond its events. Play, community and the rest are skeletons. Each has a directory under `apps/web/src/features` and a module
+Worlds are managed as a CMS (§4.10): lifecycle, identity, menu, home page,
+and the news, knowledge articles, events and activities filed under them.
+Membership and following are not built. Play, community and the rest are
+skeletons — **community moderation is not built because there is no
+community in the product yet** (no posts, comments or reports to moderate);
+it arrives with the community feature itself. Each has a directory under `apps/web/src/features` and a module
 under `apps/api/src/modules`, and each returns 501 until its repository is
 bound.
 
@@ -623,7 +627,11 @@ reads the same table only to hide what would be refused.
 | `events.read` — events, categories, bookings, history | ✓ | ✓ | |
 | `events.write` — create, edit, duplicate; categories; record a booking's outcome | ✓ | ✓ | |
 | `events.publish` — publish, schedule, unpublish, cancel, archive | ✓ | ✓ | |
-| `worlds.manage` — the world list | ✓ | ✓ | |
+| `worlds.read` — the worlds, a world's home, its preview; the world pickers in every editor | ✓ | ✓ | |
+| `worlds.manage` — create, edit, order, publish, archive worlds; their menu and home | ✓ | ✓ | |
+| `content.read` — articles and the central content index | ✓ | ✓ | |
+| `content.write` — create and edit articles | ✓ | ✓ | |
+| `content.publish` — publish, schedule, unpublish, archive articles | ✓ | ✓ | |
 | `notifications.read` — campaigns, reports, history | ✓ | ✓ | |
 | `notifications.write` — create, edit a draft, duplicate, archive | ✓ | ✓ | |
 | `notifications.send` — send, schedule, cancel, stop pushes | ✓ | ✓ | |
@@ -647,7 +655,7 @@ hidden in the panel.
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
 start), with the panel's name at the top, the sections the admin's role opens
 — مدیریت کاربران, استودیو (Engagement Studio, §4.7), رویدادها (§4.9),
-دنیاها (§4.10), اعلان‌ها (§4.11), کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
+دنیاها and محتوا (§4.10), اعلان‌ها (§4.11), کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
 the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
@@ -702,8 +710,15 @@ and `apps/api/src/modules/engagement`. Schema: migration `0010`.
 an assessment are one list of questions; a mission is up to ten titled steps,
 each with its own questions. The question kinds are the ones the product
 already draws: تک‌گزینه‌ای and چندگزینه‌ای (toggle rows, optional cap), متنی
-(one line or many), امتیازی (1–5 or 1–10 as a row of numbers) and طیفی (a slider
-between two labels, bounds 0–10). Any question may be required or optional.
+(one line or many), امتیازی (1–5 or 1–10 as a row of numbers), طیفی (a slider
+between two labels, bounds 0–10) and تطبیقی (Duolingo-style matching: 4–8
+pairs, each side ≤ 60 characters; the product shows two columns of tiles —
+the prompts in the admin's order, the matches reordered — and the person taps
+one tile in each to pair them; a pair carries the same number on both tiles
+and tapping either takes it apart; the answer counts only once every prompt
+is paired, and right or wrong is told only after submitting, like any other
+question). Each pair's match has its own random id, so the product receives
+both columns without the key. Any question may be required or optional.
 Limits are `ENGAGEMENT_LIMITS` in `@hamdastan/config` (50 questions, 2–12
 options, …).
 
@@ -719,13 +734,15 @@ it, and how many submissions may be rewarded (1 by default, never more than
 the submissions allowed).
 
 **Scoring** (`engagement.scoring.ts`, pure). *Knowledge:* a choice question is
-right when the picks are exactly its correct options; the score is the share
-right, 0–100; passed when ≥ the pass mark. *Personality:* each answered item
+right when the picks are exactly its correct options, a matching question when
+every prompt has its own match (all or nothing — it counts as one question);
+the score is the share right, 0–100; passed when ≥ the pass mark. *Personality:* each answered item
 is put on 0–1 — a rating or scale by its position on its range, a choice by
 its option's points relative to the question's lowest and highest — turned
 round when the item is reverse-keyed, and averaged per dimension (0–100). The
 dimension on top is the outcome (ties to the first listed); the person sees
 its title and description and every dimension's share, if «نمایش نتیجه» is on.
+Text and matching questions measure no dimension.
 The answer key and the points never leave the API.
 
 **The admin panel — «استودیو», `/engagement`.** The list shows, per activity: title and
@@ -763,7 +780,7 @@ duplicate (a new draft, «(کپی)», no dates), and the status moves.
   template (`.xlsx`, right-to-left, bold headers, one example row per kind),
   fill it, choose it. Columns are recognised by their header, in any order:
   نوع، متن سؤال (required)، توضیح، الزامی (بله/خیر, default بله)، گزینه‌ها
-  (separated by `|`)، حداکثر انتخاب، پاسخ درست (knowledge: an option's text
+  (separated by `|`; matching: `مورد = جفت | …`)، حداکثر انتخاب، پاسخ درست (knowledge: an option's text
   or number)، امتیاز گزینه‌ها (personality, `|`-separated)، بازه (rating 5 or
   10; scale `1-5`)، برچسب ابتدا/انتها، بُعد (personality: matched by title,
   or created)، معکوس، مرحله (mission: matched by title, or created). Every
@@ -786,7 +803,8 @@ duplicate (a new draft, «(کپی)», no dates), and the status moves.
 - **Results — `/engagement/:id`.** Eight figures (کاربران هدف, شروع‌کننده,
   تکمیل‌کننده, نرخ تکمیل, پاسخ معتبر, در انتظار تأیید, مجموع XP اعطاشده,
   دریافت‌کنندگان XP), then tabs: per-question statistics (option counts,
-  rating/scale average and distribution, the latest twenty text answers) and
+  rating/scale average and distribution, the latest twenty text answers, the
+  share who matched each pair right) and
   the assessment outcome (mean score and pass rate, or how many people each
   dimension came out on top for); the mission review queue — each submission
   with its answers, «تأیید» (completes it and pays) or «رد» with an optional
@@ -863,6 +881,44 @@ respondents in a day, who answered can still be guessed from who was paid;
 that is inherent to rewarding an anonymous survey.) For other activities,
 names and numbers appear only in the review queue, the XP list and the CSV,
 all behind the admin session.
+
+**Trivia — answers and explanations.** A knowledge quiz (a knowledge
+assessment, or a competition) may give each choice question an «توضیح
+پاسخ» (`explanation`, up to 500 characters) — in the question editor and
+the Excel import's «توضیح پاسخ» column. With «نمایش پاسخ درست و توضیح هر
+سؤال» on (`assessment.revealAnswers`, off by default), the person sees,
+for their latest submission, each question's right answer, whether they had
+it and its explanation (`answerReview`) — but only once nothing they could
+still submit would profit: a knowledge assessment after its last allowed
+submission; a competition once it has ended, so no one still playing can be
+told. Until then neither the key nor the explanation leaves the API.
+
+**Competitions — مسابقه** (`type = 'competition'`, migration `0021`). A
+trivia race: a knowledge quiz scored like an assessment (no mode to choose;
+optional pass mark; result shown or not), taken **once**, inside a window
+that is required (start and end). XP is paid on submission as for an
+assessment; there are no rank prizes.
+
+- **The clock.** «شروع» records the moment the person starts (`POST
+  /me/activities/:id/start`, kept from the first time); the time ranked is
+  from then to the submission. If that call is lost, the first saved answer
+  starts it.
+- **The ranking** is read from what is already stored — the response's
+  score and time, the participation's start: score, then time taken, then
+  who submitted first. No table holds it.
+- **The product.** The intro says until when it is open («فقط یک بار…
+  زمانت از لحظه‌ی «شروع» حساب می‌شه») or that it has ended, and shows the
+  leaderboard: the first 20, each by `@username` (else first name) —
+  never a number — with score and time; the person's own row in weight and
+  «(تو)», added under the list when it is below it; «تا پایان مسابقه تغییر
+  می‌کنه» or «نتیجه‌ی نهایی». The done screen says the person's place now,
+  with «جدول امتیازات» back to the intro. After the end, the revealed
+  answers follow the board.
+- **The panel.** «مسابقه» in the builder's first step; the window is
+  required in ۶ زمان‌بندی; the results page has a «جدول امتیازات» tab (the
+  first 100, with full names — `results.individual`).
+- **Not built:** prizes by rank, a live (pushed) board, mini-games (no
+  playable game exists to manage).
 
 **The multi-day journey — چالش چندروزه** (`type = 'journey'`, migration
 `0015`). *All six phases are built: the data model and unlock clock, the builder,
@@ -1038,13 +1094,13 @@ Schema: migration `0016`.
 - **The section — «کتابخانه‌ی رسانه», `/media`** (`activities.read`; changes
   need `activities.write`). A grid of files — preview (a motion plays; held
   still for anyone whose system asks for reduced motion), name, shelf,
-  format, size, and «در n جا» (activities in any version, events, event categories, worlds) or «استفاده‌نشده». Filters: name, shelf
+  format, size, and «در n جا» (activities in any version, events, event categories, worlds, articles) or «استفاده‌نشده». Filters: name, shelf
   (مسکات، کاور، تصویر سؤال، موشن پاسخ، جشن و پایان، کارت نتیجه، سایر), kind.
   «بارگذاری فایل» (name, shelf, a local preview first); on a file, «ویرایش
   نام و دسته», «جایگزینی فایل» — the same id, so the new file shows
   everywhere it is used; an image stays an image (`409 MEDIA_KIND_CHANGED`)
   — and «حذف», only for a file nothing uses — no activity in any of its
-  versions, no event, event category or world (`409 MEDIA_IN_USE`).
+  versions, no event, event category, world or article (`409 MEDIA_IN_USE`).
 - **Choosing in the builder.** A file field opens the library as a picker
   (choose, or upload and it is chosen), then shows the file with «جایگزینی»
   and «حذف». On save, the API checks every id the definition names exists,
@@ -1307,22 +1363,173 @@ reminders, world managers scoped to their worlds (needs admins assigned to
 worlds). An event's participants are an audience for notification campaigns
 (§4.11), not yet for activities.
 
-### 4.10 Worlds — the minimal list — دنیاها
+### 4.10 Worlds and content — دنیاها و محتوا
 
-The worlds events are filed under: `v2_worlds` (slug, name, summary,
-optional cover from the media library, order, on/off), kept by an admin
-with `worlds.manage`. The four on home are seeded (`hogwarts`, `gta`,
-`game-of-thrones`, `liverpool`). `GET /worlds` lists the active ones;
-`GET /worlds/:slug` answers one. Switching a world off hides it from the
-product without touching its events; one with events cannot be deleted
-(`409 WORLD_IN_USE`). Membership and following are not built — they need
-their own migration. Code in `apps/api/src/modules/worlds` and
-`apps/admin/src/features/worlds`: the panel's «دنیاها» (`/worlds`) lists
-them with cover, slug, event count and status, adds and edits in a dialog,
-orders them with up/down, and deletes only one without events. The
-product has no world page: the home banners are not links, and an event's
-page names its worlds as text. A world's events — including its
-world-only ones — are found through the «دنیا» filter on `/events`.
+**Purpose:** let an operator run each story world as a small site of its own —
+its identity, its menu, its home page — and file news, knowledge articles,
+events and activities under it, from one panel. Code in
+`apps/api/src/modules/worlds`, `apps/api/src/modules/content` and
+`apps/admin/src/features/worlds` and `apps/admin/src/features/content`.
+Product code in `apps/web/src/features/worlds` and `apps/web/src/features/content`.
+Schema: migrations `0018` (the list) and `0020` (the CMS). *Phases 1 (the
+data model and the API), 2 (the admin screens) and 3 (the product's world
+and article pages) are built. Trivia explanations and competitions with a
+leaderboard (phase 4) and end-to-end tests (phase 5) follow.*
+
+**A world** (`v2_worlds`): slug, name, short summary, tagline, long
+description (plain text), cover and logo from the media library, a theme
+preset (`WORLD_THEMES`: neutral, emerald, amber, rose, sky, indigo — drawn
+from tokens, never a colour an admin types), its menu, and its place in the
+list.
+
+- **Lifecycle.** `draft` → publish → `published` ⇄ `unpublished`; any of
+  them → `archived`; archived → restore → `unpublished`. A new world is a
+  draft. Publishing needs a name and a summary (`worldPublishProblems`,
+  `400 WORLD_INCOMPLETE`), and a published world must stay complete when
+  edited. A cover is not required: without one the product draws the
+  world's built-in artwork (the four seeded worlds) or a quiet tile — the
+  built-in banners are larger than the library's 250 KB limit, so requiring
+  a cover would lock those worlds until their art was re-encoded. An archived world cannot be edited
+  (`409 WORLD_ARCHIVED`) until restored. Only a published world exists for
+  the product; anything else is a 404. Archiving keeps every link and every
+  record; a world anything is filed under cannot be deleted
+  (`409 WORLD_IN_USE`) — only an empty one can. The four worlds `0018`
+  seeded were active, so `0020` made them `published`.
+- **Menu** (`navigation`): every section once — خانه, اخبار, دانستنی‌ها,
+  رویدادها, فعالیت‌ها (`WORLD_SECTIONS`) — in the admin's order and with the
+  admin's labels; خانه is always first and on. Switching a section off is
+  how a world «does not support» it: its tab and its home section both go.
+- **Home** (`v2_world_home_sections`, one per kind — news, knowledge,
+  events, activities — in the admin's order). Each section: on or off, a
+  title (empty: the default), how many items (1–12), where the items come
+  from — **latest** (the newest eligible ones) or **featured** (only the
+  ones the admin chose, in their order, `v2_world_home_items`) — and what an
+  empty section does: hide, or show its empty state. A featured item must be
+  of the section's kind and filed under the world (`400
+  WORLD_HOME_ITEM_INVALID`); it may be chosen while still a draft, and the
+  panel shows whether it is live.
+- **What may appear** is decided by the module that owns the item, the same
+  rule as everywhere else in the product: an article that is published and
+  whose publication date has come; an event the person may see that is
+  published and not over (a cancelled one is not); an activity that is
+  published, inside its window and meant for the person. Unpublishing,
+  archiving or ending an item takes it off every home at once.
+- **Preview.** `GET /admin/worlds/:id/preview` builds the home of a world in
+  any status as anyone would see it (restricted events and audiences aside);
+  nothing is recorded.
+
+**Articles** (`v2_articles`): a news item (خبر) or a knowledge article
+(دانستنی) — title, slug, summary, body (plain text; a blank line starts a
+paragraph — never HTML), an optional free-text category, cover with alt
+text, thumbnail, and the worlds it is filed under (one or more).
+`draft` → publish (now, or at a date ahead: «scheduled», read off the clock)
+→ `published` ⇄ `unpublished`; any → `archived` (no more edits). Publishing
+needs a title, summary, body and at least one world (`400
+ARTICLE_INCOMPLETE`). History in `v2_article_audit_log`.
+
+**Activities** are filed under worlds too (`v2_engagement_activity_worlds`,
+`worldIds` on the activity) — outside the version, so filing one changes
+nothing anyone answered. The Studio list filters by world.
+
+**The content index** — `GET /admin/content`: articles, events and
+activities in one list, newest change first, filtered by type, world, status
+and a title search. Every kind's lifecycle is folded into one vocabulary
+(draft, scheduled, published, paused, unpublished, ended, archived); editing
+happens in each kind's own editor.
+
+**The admin screens.**
+
+- **«دنیاها» — `/worlds`** (`worlds.read`; changes need `worlds.manage`).
+  Every world with cover, slug, status, how many events / articles /
+  activities are filed under it, up/down to order the list, and a row menu:
+  «مدیریت دنیا», the status moves its status allows (unpublishing and
+  archiving ask first), and «حذف» — disabled, with the reason, for a world
+  anything is filed under. «دنیای جدید» asks only for a name and a slug,
+  creates a draft with the default menu and home, and opens its page.
+- **One world — `/worlds/:id`** (`?tab=` opens a tab). The name, status and
+  counts, the status buttons — «انتشار» is the screen's primary action while
+  it is offered, saves what is on the screen first, and is disabled with a
+  «برای انتشار:» checklist until the world is complete — and five tabs:
+  - **هویت** — name, slug, tagline, short summary, description, cover
+    (3:1), logo (square) and theme (presets as neutral toggles).
+  - **منو** — every section with its label, on/off switch and up/down;
+    خانه is fixed first and on. هویت and منو are one form and one
+    «ذخیره‌ی تغییرات», checked with `worldInputSchema`.
+  - **خانه** — the four sections in order (up/down), each on/off, with its
+    title, size (1–12), source (جدیدترین / فقط موارد ویژه), what an empty
+    section does, and its featured items: added from a picker that offers
+    only items of that kind filed under this world (in any status, with a
+    search), ordered with up/down, removed with ×, each with its status and
+    «نمایش داده نمی‌شود» when it is not live. A section whose tab is off in
+    the menu says so. «ذخیره‌ی چیدمان» saves the whole home; a problem lands
+    on its section.
+  - **محتوا** — the content index for this world only, with «ایجاد» → خبر,
+    دانستنی, رویداد or فعالیت, each opening its editor with this world
+    already chosen (`?world=` on the «new» pages).
+  - **پیش‌نمایش** — the home as the server builds it for a person, from
+    saved settings, in the product's 430px column: cover, name, tagline, the
+    menu's tabs and every section with its items or its empty state.
+- **«محتوا» — `/content`** (`content.read`). The index of everything filed
+  under worlds: title (to its editor), type, status, worlds, last change;
+  search, type, status and world filters; pages of 20; «ایجاد» for each
+  kind the admin may create.
+- **The article editor — `/content/articles/new?kind=&world=`,
+  `/content/articles/:id`** (`content.read`; saving `content.write`,
+  status moves `content.publish`). Kind (خبر / دانستنی), title, summary,
+  body, worlds (checkboxes; an archived one only if already chosen), cover
+  with alt text, thumbnail, category and slug — one form checked with
+  `articleInputSchema`. «ذخیره» keeps a draft as it is; «انتشار» saves and
+  publishes, now or at a date ahead (scheduled), behind the same «برای
+  انتشار:» checklist the API applies; «لغو انتشار» and «بایگانی» ask first.
+  Tabs: محتوا, پیش‌نمایش (the article in the product's column, from what is
+  on the screen) and تاریخچه.
+- **Filing events and activities.** The event editor's «دنیاها» is as
+  before; Engagement Studio's ۲ اطلاعات step has the same world checkboxes
+  (`worldIds`, outside the version).
+
+**The product screens.**
+
+- **`/worlds/:slug`** — back to خانه; the hero: cover (or the seeded
+  world's built-in artwork, or a quiet tile), then a band in the world's
+  theme tint (`--world-*` tokens; the words stay the foreground, so every
+  theme reads in light and dark) with the logo, name and tagline (the
+  summary when there is no tagline); then the menu — the tabs left on, in
+  the admin's order and with their labels, each an address (`?tab=`), the
+  current one a foreground rule, never violet; then the open tab:
+  - **خانه** — the sections the API sent, in order, each with «همه» to its
+    tab; a section kept when empty says «فعلاً چیزی نیست»; then «درباره‌ی
+    …» with the description, paragraph by paragraph.
+  - **اخبار / دانستنی‌ها** — the world's live articles, newest first, pages
+    of 20 (`?page=`).
+  - **رویدادها** — the world's events (`GET /events?world=`, newest first,
+    pages of 20) and a link to the same filter in «رویدادها».
+  - **فعالیت‌ها** — every open activity filed under the world that the
+    person may take part in (`GET /worlds/:slug/activities`).
+  Every list has its empty state and, if it cannot be read, «تلاش دوباره»;
+  the page still opens. A world that is not published, and a tab that is
+  off, is the 404 page / the home tab.
+- **`/articles/:slug`** — back to the article's first world (its tab), or
+  home; cover, kind and category, the Jalali publication day, title,
+  summary, the body paragraph by paragraph, and «از دنیای …» linking to
+  each world. An article that is not live is the 404 page.
+- A signed-out visitor who opens a world's or an article's link is brought
+  back to it after signing in (`hd_return_to`, like events and journeys).
+- **Previews for the panel** — `/preview/worlds/:id` (the world's home, any
+  status, tabs shown but not followed, with a banner saying where it
+  stands) and `/preview/articles/:id` (the article page, any status), opened
+  from the panel's «نمای کامل در اپلیکیشن». The API checks the admin
+  session they carry; nothing is recorded.
+
+**Product reads.** `GET /worlds` (published, in order), `GET /worlds/:slug`
+(identity and the tabs that are on), `GET /worlds/:slug/home`, `GET
+/worlds/:slug/activities`, `GET
+/content/articles?world=&kind=` and `GET /content/articles/:slug`. A
+world's events tab reads `GET /events?world=`, as before.
+
+**Not built:** community moderation (no community exists yet), world
+membership and following, world-scoped admins, drafts of a published world
+(edits to a published world are live on save — preview first), rich text in
+articles, and article categories as a managed list.
 
 ### 4.11 Notifications — اعلان‌ها
 
@@ -1632,6 +1839,13 @@ Events and worlds (0018):
                                                                    └--1:N-- v2_event_bookings       (user; ticket option)
 v2_event_audit_log — events, categories, worlds and bookings, by entity id.
 Covers, logos, category images and gallery items point at v2_media_assets.
+
+The world CMS (0020):
+
+v2_worlds --1:N-- v2_world_home_sections --1:N-- v2_world_home_items
+                                                  (exactly one of article_id / event_id / activity_id)
+v2_worlds --1:N-- v2_article_world_links --N:1-- v2_articles --1:N-- v2_article_audit_log
+v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
 ```
 
 ### 6.2 Key relationships and why they are shaped that way
@@ -1767,7 +1981,21 @@ Covers, logos, category images and gallery items point at v2_media_assets.
   operator records the outcome). Partial unique indexes allow one confirmed
   registration and one open handoff per person and event.
 - **`v2_event_interests` (0018)** — (user, event), with `remind_in_app`.
-- **`v2_worlds` (0018)** — the minimal world list; no membership yet.
+- **`v2_worlds` (0018, 0020)** — a world: identity, theme preset, menu
+  (`navigation`, jsonb, checked by `worldInputSchema`), `status` (which
+  replaced `is_active` in `0020`, with every value carried over) and
+  `published_at`. No membership yet.
+- **`v2_world_home_sections` / `v2_world_home_items` (0020)** — one section
+  per (world, kind); a featured item has a real foreign key per kind and a
+  check that exactly one is set, so a deleted item leaves the home and an id
+  of the wrong kind cannot be stored. Partial unique indexes refuse the same
+  item twice in a section.
+- **`v2_articles` (0020)** — news and knowledge; `publish_at` is the
+  publication date and is required once published (a check constraint).
+  Linked to worlds many-to-many; a world in use cannot be deleted (`ON
+  DELETE RESTRICT`).
+- **`v2_engagement_activity_worlds` (0020)** — activity ↔ world, outside the
+  versioned definition.
 - **`v2_notifications` (0019)** — one row per recipient: category, type,
   title, body, image, destination (jsonb), campaign, `dedupe_key` (unique
   with the user — «only once» is the database's job), expiry, and
@@ -1879,6 +2107,7 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/admin/engagement/activities/:id/results` | `?from=&to=&categoryId=` | `ActivityResults` |
 | GET | `/admin/engagement/activities/:id/export` | same | `{ filename, csv }` |
 | GET | `/admin/engagement/activities/:id/submissions` | `?status=pending\|approved\|rejected&page=` | `Paginated<AdminSubmission>` |
+| GET | `/admin/engagement/activities/:id/leaderboard` | — | `AdminLeaderboardEntry[]` — a competition's first 100, with full names — `results.individual` |
 | GET | `/admin/engagement/activities/:id/grants` | `?page=` | `Paginated<AdminXpGrant>` |
 | GET | `/admin/engagement/activities/:id/history` | — | `AdminActivityEvent[]` (latest 100) |
 | POST | `/admin/engagement/audience/preview` | `{ audience }` | `{ eligible }` |
@@ -1909,11 +2138,25 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | PUT | `/admin/events/categories/order` | `{ ids }` | `AdminEventCategory[]` — `events.write` |
 | PUT | `/admin/events/categories/:id` | `EventCategoryInput` | `AdminEventCategory` — `events.write` |
 | DELETE | `/admin/events/categories/:id` | — | `{ deleted: true }`; 409 `EVENT_CATEGORY_IN_USE` — `events.write` |
-| GET | `/admin/worlds` | — | `AdminWorld[]` — `events.read` |
-| POST | `/admin/worlds` | `WorldInput` | `AdminWorld` (201); 409 `WORLD_SLUG_TAKEN` — `worlds.manage` |
+| GET | `/admin/worlds` | — | `AdminWorld[]` — `worlds.read` |
+| POST | `/admin/worlds` | `WorldInput` | `AdminWorldDetail` (201), a draft with the default home; 409 `WORLD_SLUG_TAKEN` — `worlds.manage` |
 | PUT | `/admin/worlds/order` | `{ ids }` | `AdminWorld[]` — `worlds.manage` |
-| PUT | `/admin/worlds/:id` | `WorldInput` | `AdminWorld` — `worlds.manage` |
-| DELETE | `/admin/worlds/:id` | — | `{ deleted: true }`; 409 `WORLD_IN_USE` — `worlds.manage` |
+| GET | `/admin/worlds/:id` | — | `AdminWorldDetail` — `worlds.read` |
+| PUT | `/admin/worlds/:id` | `WorldInput` | `AdminWorldDetail`; 400 `WORLD_INCOMPLETE` while published; 409 `WORLD_ARCHIVED` — `worlds.manage` |
+| POST | `/admin/worlds/:id/status` | `{ action: publish \| unpublish \| archive \| restore }` | `AdminWorldDetail`; 400 `WORLD_INCOMPLETE`; 409 `WORLD_INVALID_TRANSITION` — `worlds.manage` |
+| DELETE | `/admin/worlds/:id` | — | `{ deleted: true }`; 409 `WORLD_IN_USE` when anything is filed under it — `worlds.manage` |
+| GET | `/admin/worlds/:id/home` | — | `AdminWorldHome`: every section, featured items with status and `live` — `worlds.read` |
+| PUT | `/admin/worlds/:id/home` | `WorldHomeInput` | `AdminWorldHome`; 400 `WORLD_HOME_ITEM_INVALID` — `worlds.manage` |
+| GET | `/admin/worlds/:id/home/candidates` | `?kind=&q=` | `WorldHomeCandidate[]` — items of that kind filed under the world — `worlds.read` |
+| GET | `/admin/worlds/:id/preview` | — | `WorldHome` with `preview.status` — `worlds.read` |
+| GET | `/admin/content` | `?q=&type=news\|knowledge\|event\|activity&status=&world=&page=&pageSize=` | `Paginated<ContentIndexItem>` — `content.read` |
+| GET | `/admin/content/articles` | `?q=&kind=&status=&world=&page=&pageSize=` | `Paginated<AdminArticleSummary>` — `content.read` |
+| POST | `/admin/content/articles` | `ArticleInput` | `AdminArticleDetail` (201); 409 `ARTICLE_SLUG_TAKEN` — `content.write` |
+| GET | `/admin/content/articles/:id` | — | `AdminArticleDetail` — `content.read` |
+| PUT | `/admin/content/articles/:id` | `ArticleInput` | `AdminArticleDetail`; 400 `ARTICLE_INCOMPLETE` while published; 409 `ARTICLE_ARCHIVED` — `content.write` |
+| POST | `/admin/content/articles/:id/status` | `{ action: publish \| unpublish \| archive, publishAt? }` | `AdminArticleDetail`; 400 `ARTICLE_INCOMPLETE`; 409 `ARTICLE_INVALID_TRANSITION` — `content.publish` |
+| GET | `/admin/content/articles/:id/preview` | — | `ArticleDetail` with `preview.status` — `content.read` |
+| GET | `/admin/content/articles/:id/history` | — | `AdminArticleHistoryEntry[]` (latest 100) — `content.read` |
 | GET | `/admin/notifications/overview` | — | `NotificationsOverview` — `notifications.read` |
 | GET | `/admin/notifications/options` | — | `CampaignOptions`: events, activities, worlds, `pushAvailable` — `notifications.write` |
 | POST | `/admin/notifications/audience` | `{ audience, category, destination }` | `AudienceEstimate`: `{ eligible, push }` — `notifications.write` |
@@ -1928,8 +2171,12 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | POST | `/admin/notifications/campaigns/:id/archive` | — | `AdminCampaign` — `notifications.write` |
 | GET | `/admin/notifications/campaigns/:id/report` | — | `CampaignReport` — `notifications.read` |
 | GET | `/admin/notifications/campaigns/:id/history` | — | `CampaignHistoryEntry[]` (latest 100) — `notifications.read` |
-| GET | `/worlds` | — | `World[]` (active) |
-| GET | `/worlds/:slug` | — | `World`; 404 when switched off |
+| GET | `/worlds` | — | `World[]` (published) |
+| GET | `/worlds/:slug` | — | `WorldDetail`; 404 unless published |
+| GET | `/worlds/:slug/home` | — | `WorldHome`: the sections that are on, each with the items that may appear now |
+| GET | `/worlds/:slug/activities` | — | `ActivityCard[]` — open activities filed under the world, for this person; 404 when the tab is off |
+| GET | `/content/articles` | `?world=&kind=news\|knowledge&page=&pageSize=` | `Paginated<ArticleCard>` — live only |
+| GET | `/content/articles/:slug` | — | `ArticleDetail`; 404 unless live |
 | GET | `/events` | `?q=&category=a,b&type=&world=&from=&to=&city=&price=free\|paid&available=&interested=&sort=&page=&pageSize=` | `Paginated<EventCard>` |
 | GET | `/events/calendar` | the same filters; `from` and `to` required (≤ 62 days) | `EventCalendarDay[]` |
 | GET | `/events/categories` | — | `EventCategory[]` (active) |
@@ -1953,7 +2200,9 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/me/activities` | — | `ActivityCard[]` |
 | GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
 | PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
-| POST | `/me/activities/:id/submit` | `{ versionId, answers }`, header `Idempotency-Key` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`, `JOURNEY_ANSWER_ONLY`; 404 outside the audience |
+| POST | `/me/activities/:id/start` | — | `{ started: true }` — records when the person started (first time only); 409 `ACTIVITY_CLOSED` |
+| GET | `/me/activities/:id/leaderboard` | — | `Leaderboard`: the first 20, the person's own place, total, final; 404 unless a competition the person may see |
+| POST | `/me/activities/:id/submit` | `{ versionId, answers }`, header `Idempotency-Key` | `ActivitySubmission`: `{ status: completed \| pending_review, xpAwarded, xpTotal, result, answerReview, rank }`; 400 per-question errors; 409 `ACTIVITY_CLOSED`, `ACTIVITY_LIMIT_REACHED`, `ACTIVITY_PENDING_REVIEW`, `ACTIVITY_VERSION_CHANGED`, `JOURNEY_ANSWER_ONLY`; 404 outside the audience |
 | POST | `/me/activities/:id/answers` | `{ questionId, value }` — `value` null skips an optional question. Journeys only; safe to repeat | `JourneyAnswerOutcome`: `{ status: recorded \| already_answered, xpAwarded: { question, day, journey }, dayCompleted, journeyCompleted, xpTotal, journey }`; 400 per-question error; 409 `JOURNEY_DAY_LOCKED`, `JOURNEY_ALREADY_ANSWERED`, `ACTIVITY_CLOSED`, `ACTIVITY_VERSION_CHANGED` |
 
 **Retrying a submission.** The player sends an `Idempotency-Key` (16–100
@@ -2005,11 +2254,11 @@ against the same objects, including the Persian messages.
 | Bio | Optional, at most 160 characters; empty clears it | «حداکثر ۱۶۰ کاراکتر» |
 | Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
 | Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
-| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options; scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); personality: ≥ 1 dimension and every non-text question tied to one; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
+| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options; scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension and every non-text, non-matching question tied to one; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
 | Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
 | Media file | ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم فایل باید حداکثر ۲۵۰ کیلوبایت باشه» / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
 | Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
-| Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
+| Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; matching: one distinct match per prompt, in the prompts' order; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 | XP revocation reason | Required, ≤ 300 | «دلیل ابطال رو بنویس» |
 | Questionnaire answer | Shape by question: one option code, a list of codes (≥ 1, no repeats, within the cap), a ranked list, or an integer 1–10 (`packages/validation/questionnaire.ts`) | «یک گزینه رو انتخاب کن» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 
@@ -2035,6 +2284,7 @@ whitespace is dropped.
 | Toast feedback | `--success-soft*` (soft green) and `--destructive-soft*` (soft red): a tint, a hairline and a ≥4.5:1 text colour per theme |
 | Avatar | `--avatar-*` — skin tones, hair and muted clothing colours; content, never interface |
 | Role character backdrop | `--avatar-backdrop` (white, both themes) — the tile behind the role illustrations |
+| World themes | `--world-neutral`, `-emerald`, `-amber`, `-rose`, `-sky`, `-indigo` — soft tints (light and dark) for a world page's header band; a mood, never an action, so none is the brand violet |
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
 | Radius | `--radius: 0.75rem` |
 | Column width | `--shell-max-width: 430px`, as `max-w-shell` and the `shell:` breakpoint |
@@ -2228,7 +2478,13 @@ app background; re-export them all when the master changes.
 | Level-gated avatar items | Low | `unlockLevel` is enforced by the API; the dress-up studio is gone and no item uses it |
 | «ساخت آواتار» mission | Low | No longer reachable — there is no avatar screen. Earned XP and «خوش‌استایل» badges stay; missions are not listed on the profile |
 | More missions | Medium | Add to `MISSIONS`; a mission beyond the three one-offs records `source_type = 'mission'` with its id |
-| Worlds, play, community, commerce | Medium | Module skeletons exist on both sides |
+| World CMS — data model and API (phase 1) | Done — apply `0020` | World lifecycle, identity, theme preset, menu, home sections with latest/featured items and eligibility, articles (news, knowledge) with scheduling, activities filed under worlds, central content index, permissions — §4.10 |
+| World CMS — admin screens (phase 2) | Done | World list and page (identity, menu, home with featured picker, content, preview), central content area, article editor with scheduling and preview, worlds in the Studio editor, `?world=` preselection — §4.10 |
+| World CMS — e2e tests (phase 5) | Done | `worlds.spec` (home banner → world, featured order, empty section, tabs, article and back, unpublishing), `competition.spec` (one try, place, board, answers after the end), `admin-worlds.spec` (draft → published world, menu, article from the world's tab, featured, preview, content filter) — at 390×844 and 1440×900 |
+| World CMS — product screens (phase 3) | Done | `/worlds/:slug` with theme, tabs and home; `/articles/:slug`; home banners linking to published worlds; previews for the panel; return after sign-in — §4.3, §4.10 |
+| Trivia explanations, competitions and leaderboard (phase 4) | Done — apply `0021` | Explanations and answer reveal for knowledge quizzes; «مسابقه» — one try in a window, ranked by score then time, leaderboard in the product and the panel — §4.7 |
+| Community and its moderation | Medium | No community exists in the product; moderation comes with it |
+| Play, commerce | Medium | Module skeletons exist on both sides |
 | Admin sign-in and user management | Done | OTP sign-in limited to active admins; create, edit, (de)activate and delete at `/users` in `apps/admin` — see §4.6 |
 | Serve `apps/admin` in production | Done | nginx routes `/admin` to the `admin` container; the app is built with `basePath: '/admin'` |
 | Admin roles and permissions | Done — apply `0014` | System admin, content manager, mission reviewer; permission per route — §4.6 |

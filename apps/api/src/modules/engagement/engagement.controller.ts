@@ -99,6 +99,18 @@ export const engagementController = {
     return reply.send(ok(await service.getMine(currentUser(request), idOf(request))));
   },
 
+  async start(request: FastifyRequest, reply: FastifyReply) {
+    return reply.send(ok(await service.start(currentUser(request), idOf(request))));
+  },
+
+  async leaderboard(request: FastifyRequest, reply: FastifyReply) {
+    return reply.send(ok(await service.leaderboard(currentUser(request), idOf(request))));
+  },
+
+  async adminLeaderboard(request: FastifyRequest, reply: FastifyReply) {
+    return reply.send(ok(await service.adminLeaderboard(idOf(request))));
+  },
+
   async saveDraft(request: FastifyRequest, reply: FastifyReply) {
     const id = idOf(request);
     const { answers } = parseBody(schemas.draft.body, request.body);

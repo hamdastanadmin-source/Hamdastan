@@ -56,10 +56,10 @@ const SUCCESS: Record<EventStatusAction, string> = {
  * as it is (a draft may be incomplete); the «انتشار» section publishes,
  * schedules and takes it back. A problem opens the section it is in.
  */
-export function EventEditor({ initial, initialTab = 'basics' }: { initial?: AdminEventDetail; initialTab?: TabId }) {
+export function EventEditor({ initial, initialTab = 'basics', worldId }: { initial?: AdminEventDetail; initialTab?: TabId; worldId?: string }) {
   const router = useRouter();
   const can = useAdminCan();
-  const editor = useEventEditor(initial);
+  const editor = useEventEditor(initial, worldId);
   const { categories, worlds } = useEventOptions();
   const [tab, setTab] = useState<TabId>(initialTab);
   const [confirming, setConfirming] = useState<EventStatusAction | null>(null);

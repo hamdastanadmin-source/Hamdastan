@@ -7,3 +7,4 @@ export { errorCode, errorMessage, fieldErrors } from './error-message';
 export { formatCount, formatDate, formatDateTime, formatDayTimeIn, formatPercent } from './format';
 export { can, homeFor, ROLE_LABELS, SECTIONS } from './access';
 export { BASE_PATH, withBasePath } from './base-path';
+export { worldIdParam } from './world-param';

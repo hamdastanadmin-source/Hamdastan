@@ -36,6 +36,8 @@ export type ActivityRecord = {
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  /** The worlds it is filed under. Not part of a version. */
+  worlds: { id: string; name: string }[];
 };
 
 export type AdminActivityRecord = ActivityRecord & { stats: ActivityStats };
@@ -50,12 +52,15 @@ export type ActivityFields = {
   audience: ActivityAudience;
   startsAt: Date | null;
   endsAt: Date | null;
+  worldIds: string[];
 };
 
 export type ActivityListQuery = {
   status?: 'draft' | 'scheduled' | 'published' | 'paused' | 'closed' | 'archived';
   type?: ActivityType;
   search?: string;
+  /** Only activities filed under this world. */
+  world?: string;
   page: number;
   pageSize: number;
 };
@@ -76,6 +81,8 @@ export type UserActivityRecord = {
   participation: ParticipationRecord | null;
   /** The latest response's result, if it carried one. */
   lastResult: AssessmentResult | null;
+  /** The answers of the person's latest submission — for revealing a quiz's answers. */
+  lastAnswers: ActivityAnswers | null;
 };
 
 /** What a submission writes, every decision already made by the service. */
@@ -107,6 +114,16 @@ export type SubmissionWrite = {
  * retry of it is answered with, so a `submitted` carries what the response
  * is built from.
  */
+/** One ranked participant of a competition. */
+export type LeaderboardRow = {
+  userId: string;
+  rank: number;
+  name: string;
+  fullName: string;
+  score: number;
+  durationMs: number | null;
+};
+
 export type SubmissionOutcome =
   | { status: 'submitted'; xpAwarded: number; completes: boolean; result: AssessmentResult | null }
   | { status: 'limit_reached' | 'pending_review' };

@@ -45,3 +45,26 @@ export const paragraph = (max: number) =>
     .string()
     .transform((value) => cleanText(value, true))
     .refine((value) => value.length <= max, { error: `حداکثر ${fa(max)} کاراکتر` });
+
+// ─── Identifiers ─────────────────────────────────────────────────────────────
+
+export const uuidSchema = z.uuid({ error: 'شناسه معتبر نیست' });
+
+/** A de-duplicated list of ids, at most `max` of them. */
+export const uniqueIdsSchema = (max: number, label: string) =>
+  z
+    .array(uuidSchema)
+    .max(max, { error: `حداکثر ${fa(max)} ${label}` })
+    .transform((ids) => [...new Set(ids)]);
+
+/** Lower-case Latin letters, digits and single hyphens: it is part of a URL. */
+export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** A slug as an admin types it. Empty is allowed here; a schema that needs one says so. */
+export const slugSchema = (max: number, reserved: readonly string[] = []) =>
+  z
+    .string()
+    .transform((value) => value.trim().toLowerCase())
+    .refine((value) => value === '' || SLUG_PATTERN.test(value), { error: 'فقط حروف کوچک انگلیسی، عدد و خط تیره' })
+    .refine((value) => value.length <= max, { error: `حداکثر ${fa(max)} کاراکتر` })
+    .refine((value) => !reserved.includes(value), { error: 'این نامک رزرو شده است؛ نامک دیگری انتخاب کنید' });

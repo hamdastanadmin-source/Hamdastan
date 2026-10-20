@@ -48,6 +48,12 @@ export const invalid = (error: string | undefined) => (error ? { 'aria-invalid':
 export const NEUTRAL_CHECKBOX =
   'data-[state=checked]:border-foreground data-[state=checked]:bg-foreground data-[state=checked]:text-background dark:data-[state=checked]:bg-foreground';
 
+/** A selected toggle reads by its foreground border, never the brand colour. */
+export const NEUTRAL_TOGGLE = 'h-10 rounded-lg border px-4 data-[state=on]:border-foreground data-[state=on]:bg-accent';
+
+/** The selected tab is told by weight and a foreground rule — never the brand colour. */
+export const NEUTRAL_TAB = 'shrink-0 px-3 data-[state=active]:border-foreground data-[state=active]:text-foreground';
+
 /** Switches between a row's label and its control. */
 export function SwitchRow({ id, label, hint, children }: { id: string; label: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (

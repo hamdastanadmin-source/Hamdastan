@@ -1,4 +1,4 @@
-import { ENGAGEMENT_LIMITS } from '@hamdastan/config';
+import { ENGAGEMENT_LIMITS, LEADERBOARD_SIZE } from '@hamdastan/config';
 import {
   ENGAGEMENT_ERROR_CODES as CODES,
   type ActivityAnswers,
@@ -18,12 +18,16 @@ import {
   type JourneyAnswerInput,
   type JourneyAnswerOutcome,
   type JourneyPreview,
+  type AdminLeaderboardEntry,
+  type Leaderboard,
+  type LeaderboardEntry,
   type Paginated,
   type ParticipationStatus,
   type PlayerActivity,
   type PlayerJourney,
   type PlayerQuestion,
   type ReviewStatus,
+  type WorldHomeCandidate,
 } from '@hamdastan/types';
 import { MOTION_DURATION } from '@hamdastan/config';
 import {
@@ -48,7 +52,7 @@ import { engagementRepository } from './engagement.repository';
 import { isAnswerable, isReadable, journeyDays, nextUnlockAt, type JourneyDayState } from './engagement.journey';
 import { mediaRefs } from './engagement.media';
 import { assessmentStats, describeAnswer, questionStats, toCsv } from './engagement.results';
-import { earnsXp, scoreAssessment } from './engagement.scoring';
+import { earnsXp, mayRevealAnswers, reviewAnswers, scoreAssessment } from './engagement.scoring';
 import type {
   ActivityFields,
   ActivityListQuery,
@@ -60,6 +64,7 @@ import type {
   StoredActivityStatus,
   SubmissionOutcome,
   UserActivityRecord,
+  LeaderboardRow,
 } from './engagement.types';
 
 /**
@@ -108,6 +113,7 @@ function toSummary(record: AdminActivityRecord, now: Date): AdminActivitySummary
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     stats: record.stats,
+    worlds: record.worlds,
   };
 }
 
@@ -134,7 +140,22 @@ function toPlayerQuestion(question: ActivityQuestion): PlayerQuestion {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { dimensionId, reverse, ...rest } = question;
   if (rest.kind === 'single' || rest.kind === 'multiple') {
-    return { ...rest, options: rest.options.map(({ id, label }) => ({ id, label })) };
+    // The explanation is part of the answer key: it is sent only once answers may be revealed.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { explanation, ...choice } = rest;
+    return { ...choice, options: choice.options.map(({ id, label }) => ({ id, label })) };
+  }
+  if (rest.kind === 'matching') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { explanation, pairs, ...matching } = rest;
+    return {
+      ...matching,
+      prompts: pairs.map((pair) => ({ id: pair.id, label: pair.prompt })),
+      // Ordered by their own random ids: stable across reads, and unrelated to the prompts' order.
+      matches: pairs
+        .map((pair) => ({ id: pair.matchId, label: pair.match }))
+        .sort((a, b) => (a.id < b.id ? -1 : 1)),
+    };
   }
   return rest;
 }
@@ -408,8 +429,23 @@ async function answerSubmission(user: UserRecord, outcome: SubmissionOutcome): P
     xpAwarded: outcome.xpAwarded,
     xpTotal: await progressService.total(user.id),
     result: outcome.result,
+    // Added by `submit` on the first answer; a retry finds them on the activity's page.
+    answerReview: null,
+    rank: null,
   };
 }
+
+const toEntry = (row: LeaderboardRow, userId: string | null): LeaderboardEntry => ({
+  rank: row.rank,
+  name: row.name,
+  score: row.score,
+  durationMs: row.durationMs,
+  me: row.userId === userId,
+});
+
+const notCompetition = () => new NotFoundError('جدول امتیازات پیدا نشد');
+
+const ADMIN_LEADERBOARD_SIZE = 100;
 
 function responseFilter(record: AdminActivityRecord, query: { from?: string; to?: string; categoryId?: string }): ResponseFilter {
   return {
@@ -509,7 +545,7 @@ export const engagementService = {
     const scheduled = journeyDays({ settings, days: definition.steps, progress: new Map(), campaignStart: start, now: start });
     const states: JourneyDayState[] = scheduled.map((state) => ({ ...state, status: 'available', lockReason: null }));
 
-    const entry: UserActivityRecord = { activity: record, eligible: true, participation: null, lastResult: null };
+    const entry: UserActivityRecord = { activity: record, eligible: true, participation: null, lastResult: null, lastAnswers: null };
     const journey = toPlayerJourney(entry, empty, states, now);
     const media = await mediaService.describe(mediaRefs(definition).map((ref) => ref.id));
 
@@ -527,6 +563,7 @@ export const engagementService = {
         maxSubmissions: 1,
         draft: null,
         lastResult: null,
+        answerReview: null,
         journey,
         media,
       },
@@ -668,6 +705,34 @@ export const engagementService = {
     }
   },
 
+  // ─── For a world's home ────────────────────────────────────────────────
+
+  /**
+   * Open activities filed under the world that the person may take part in:
+   * the featured ones in their order, else the newest. With no person (an
+   * admin's preview), every open one.
+   */
+  async worldCards(userId: string | null, worldId: string, options: { ids?: string[]; limit: number }): Promise<ActivityCard[]> {
+    const now = new Date();
+    const entries = await engagementRepository().listOpenForWorld(worldId, userId, { ids: options.ids, limit: options.ids?.length ?? options.limit, now });
+    const byId = new Map(entries.map((entry) => [entry.activity.id, entry]));
+    const ordered = options.ids ? options.ids.flatMap((id) => byId.get(id) ?? []) : entries;
+    return ordered.slice(0, options.limit).map((entry) => toCard(entry, now));
+  },
+
+  /** What the panel may feature: activities filed under the world, in any status. */
+  async worldItems(worldId: string, options: { ids?: string[]; q?: string }): Promise<WorldHomeCandidate[]> {
+    const now = new Date();
+    const records = await engagementRepository().listForWorld(worldId, { ...options, limit: options.ids?.length ?? 30 });
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const ordered = options.ids ? options.ids.flatMap((id) => byId.get(id) ?? []) : records;
+    return ordered.map((record) => {
+      const status = effectiveStatus(record, now);
+      // In the content index's words: a closed activity has ended.
+      return { id: record.id, title: record.title, status: status === 'closed' ? 'ended' : status, live: status === 'published' };
+    });
+  },
+
   // ─── Product ───────────────────────────────────────────────────────────
 
   async listMine(user: UserRecord): Promise<ActivityCard[]> {
@@ -707,6 +772,10 @@ export const engagementService = {
       maxSubmissions: activity.definition.maxSubmissions,
       draft: participation?.draft ?? null,
       lastResult: activity.definition.assessment?.showResult ? entry.lastResult : null,
+      answerReview:
+        entry.lastAnswers && mayRevealAnswers(activity, participation?.submissions ?? 0, now)
+          ? reviewAnswers(activity.definition, entry.lastAnswers)
+          : null,
       journey,
       media: await mediaService.describe([...refs.map((ref) => ref.id), ...resultIds]),
     };
@@ -804,7 +873,50 @@ export const engagementService = {
         destination: { kind: 'activity', activityId: activity.id },
       });
     }
-    return answerSubmission(user, outcome);
+    const answer = await answerSubmission(user, outcome);
+    if (outcome.status !== 'submitted') return answer;
+    const submissions = (entry.participation?.submissions ?? 0) + 1;
+    return {
+      ...answer,
+      answerReview: mayRevealAnswers(activity, submissions, now) ? reviewAnswers(definition, checked.answers) : null,
+      rank:
+        activity.type === 'competition'
+          ? (await engagementRepository().leaderboard(activity.id, 0, user.id)).rows.map((row) => toEntry(row, user.id))[0] ?? null
+          : null,
+    };
+  },
+
+  /** The person starts: the clock a competition ranks by runs from here. Starting again changes nothing. */
+  async start(user: UserRecord, id: string): Promise<{ started: true }> {
+    const now = new Date();
+    const entry = await engagementRepository().findForUser(id, user.id);
+    if (!visibleTo(entry, now) || !entry.eligible) throw notFound();
+    if (!canSubmit(entry, now)) throw new AppError(409, CODES.ACTIVITY_CLOSED, 'این فعالیت الان پاسخ نمی‌پذیره');
+    await engagementRepository().markStarted(id, user.id);
+    return { started: true };
+  },
+
+  /** A competition's ranking for the panel: the first hundred, with full names. */
+  async adminLeaderboard(id: string): Promise<AdminLeaderboardEntry[]> {
+    const record = await requireActivity(id);
+    if (record.type !== 'competition') throw notCompetition();
+    const { rows } = await engagementRepository().leaderboard(id, ADMIN_LEADERBOARD_SIZE, null);
+    return rows.map(({ userId, rank, name, fullName, score, durationMs }) => ({ userId, rank, name, fullName, score, durationMs }));
+  },
+
+  /** A competition's leaderboard, for anyone who may see the competition — with their own place. */
+  async leaderboard(user: UserRecord, id: string): Promise<Leaderboard> {
+    const now = new Date();
+    const entry = await engagementRepository().findForUser(id, user.id);
+    if (!visibleTo(entry, now) || entry.activity.type !== 'competition') throw notCompetition();
+    const { rows, total } = await engagementRepository().leaderboard(id, LEADERBOARD_SIZE, user.id);
+    const entries = rows.map((row) => toEntry(row, user.id));
+    return {
+      entries: entries.filter((row) => row.rank <= LEADERBOARD_SIZE),
+      me: entries.find((row) => row.me) ?? null,
+      total,
+      final: effectiveStatus(entry.activity, now) === 'closed',
+    };
   },
   /**
    * One answer to a journey question. Every check is made here, on the

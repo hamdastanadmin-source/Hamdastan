@@ -8,6 +8,7 @@ import {
   type AdminEventDetail,
   type AdminEventHistoryEntry,
   type AdminEventSummary,
+  type ContentStatus,
   type EventBookingInput,
   type EventCalendarDay,
   type EventCard,
@@ -23,6 +24,7 @@ import {
   type MyEventBooking,
   type MyEventsTab,
   type Paginated,
+  type WorldHomeCandidate,
 } from '@hamdastan/types';
 import {
   eventPublishProblems,
@@ -273,6 +275,19 @@ const changeView = (record: EventRecord) => ({
 
 const newSlug = () => `event-${randomUUID().slice(0, 8)}`;
 
+/** An event's status in the content index's words. */
+function indexStatus(record: EventRecord, now: Date): ContentStatus {
+  const status = effectiveStatus(record, now);
+  if (status === 'cancelled' || (status === 'published' && phaseOf(record, now) === 'ended')) return 'ended';
+  return status;
+}
+
+/** `records` in the order of `ids`; ids with no record are dropped. */
+function inOrder(records: EventRecord[], ids: string[]): EventRecord[] {
+  const byId = new Map(records.map((record) => [record.id, record]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}
+
 /** Which stored statuses each action may start from, and where it goes. */
 const TRANSITIONS: Record<EventStatusAction, { to: EventStoredStatus; from: EventStoredStatus[] }> = {
   // From `published` too: changing a scheduled time.
@@ -392,6 +407,30 @@ export const eventsService = {
       totalToman: (ticket?.priceToman ?? 0) * input.quantity,
     });
     return { booking: toBooking(booking), url: record.externalBookingUrl };
+  },
+
+  // ─── For a world's home ────────────────────────────────────────────────
+  /**
+   * Events filed under the world that the person may see and can still
+   * attend: the featured ones in their order, else the soonest. With no
+   * person (an admin's preview), what anyone may see.
+   */
+  async worldCards(userId: string | null, worldId: string, options: { ids?: string[]; limit: number }): Promise<EventCard[]> {
+    const now = new Date();
+    const records = await eventsRepository().forWorld(worldId, { ids: options.ids, live: true, userId, limit: options.ids?.length ?? options.limit });
+    const ordered = options.ids ? inOrder(records, options.ids) : records;
+    return ordered.slice(0, options.limit).map((record) => toCard(record, now));
+  },
+
+  /** What the panel may feature: events filed under the world, in any status. */
+  async worldItems(worldId: string, options: { ids?: string[]; q?: string }): Promise<WorldHomeCandidate[]> {
+    const now = new Date();
+    const records = await eventsRepository().forWorld(worldId, { ...options, live: false, userId: null, limit: options.ids?.length ?? 30 });
+    return (options.ids ? inOrder(records, options.ids) : records).map((record) => {
+      const status = indexStatus(record, now);
+      // Live as the home reads it: published, its time come, not over — a restricted one reaches only its audience.
+      return { id: record.id, title: record.title, status, live: status === 'published' };
+    });
   },
 
   // ─── Admin ─────────────────────────────────────────────────────────────

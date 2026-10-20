@@ -19,6 +19,7 @@ import {
 } from './integrations';
 import { setAdminRepository, sqlAdminRepository } from './modules/admin';
 import { setAuthRepository, setSmsSender, sqlAuthRepository } from './modules/auth';
+import { setContentRepository, sqlContentRepository } from './modules/content';
 import { setEngagementRepository, sqlEngagementRepository } from './modules/engagement';
 import { setEventsRepository, sqlEventsRepository } from './modules/events';
 import {
@@ -88,6 +89,7 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setMediaRepository(sqlMediaRepository);
   setEventsRepository(sqlEventsRepository);
   setWorldsRepository(sqlWorldsRepository);
+  setContentRepository(sqlContentRepository);
   setNotificationsRepository(sqlNotificationsRepository);
   setMaintenanceRepository(sqlMaintenanceRepository);
 

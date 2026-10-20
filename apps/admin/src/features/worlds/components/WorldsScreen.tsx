@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, CircleAlert, Globe, Pencil, Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowDown, ArrowUp, CircleAlert, Globe, MoreHorizontal, Plus, Settings2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import type { AdminWorld, WorldInput } from '@hamdastan/types';
+import { WORLD_STATUS_LABELS } from '@hamdastan/config';
+import type { AdminWorld, WorldStatusAction } from '@hamdastan/types';
 import {
   Alert,
   AlertDescription,
@@ -19,6 +22,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Skeleton,
   Table,
   TableBody,
@@ -34,11 +42,15 @@ import { useOrderedList } from '@/hooks';
 import { errorMessage, formatCount } from '@/lib';
 import { adminWorldsService } from '@/services';
 
-import { WorldFormDialog } from './WorldFormDialog';
+import { WORLD_ACTION_DONE, WORLD_ACTION_LABELS, WORLD_ACTIONS_FOR, WORLD_STATUS_BADGE } from '../utils/labels';
+import { CreateWorldDialog } from './CreateWorldDialog';
+import { WorldStatusDialog } from './WorldStatusDialog';
 
-const COLUMNS = 6;
+const COLUMNS = 5;
 const load = () => adminWorldsService.list();
 const reorder = (ids: string[]) => adminWorldsService.reorder(ids);
+
+const inUse = (world: AdminWorld) => world.eventCount + world.articleCount + world.activityCount > 0;
 
 function Cover({ id }: { id: string | null }) {
   const { asset } = useMediaAsset(id);
@@ -50,23 +62,19 @@ function Cover({ id }: { id: string | null }) {
 }
 
 /**
- * The world list events are filed under: add, edit, order, switch off, and
- * delete one no event uses. Only names and covers for now — membership comes
- * with its own migration.
+ * Every world: where it stands, what is filed under it, its place in the
+ * list, and the way into its own page — identity, menu, home and content.
+ * A world with content is archived, never deleted.
  */
 export function WorldsScreen() {
+  const router = useRouter();
   const can = useAdminCan();
   const writable = can('worlds.manage');
   const { items, error, loading, reload, move } = useOrderedList(load, reorder);
-  const [editing, setEditing] = useState<AdminWorld | 'new' | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [confirming, setConfirming] = useState<{ world: AdminWorld; action: WorldStatusAction } | null>(null);
   const [deleting, setDeleting] = useState<AdminWorld | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const save = async (input: WorldInput) => {
-    if (editing === 'new') await adminWorldsService.create(input);
-    else if (editing) await adminWorldsService.update(editing.id, input);
-    reload();
-  };
 
   const onMove = async (id: string, by: -1 | 1) => {
     try {
@@ -75,6 +83,20 @@ export function WorldsScreen() {
       toast.error(errorMessage(caught));
     }
   };
+
+  const runStatus = async (world: AdminWorld, action: WorldStatusAction) => {
+    try {
+      await adminWorldsService.changeStatus(world.id, action);
+      toast.success(`«${world.name}» ${WORLD_ACTION_DONE[action]}`);
+      reload();
+    } catch (caught) {
+      // Publishing an incomplete world: its page says what is missing.
+      toast.error(errorMessage(caught), { action: { label: 'باز کردن', onClick: () => router.push(`/worlds/${world.id}`) } });
+    }
+  };
+
+  const onStatus = (world: AdminWorld, action: WorldStatusAction) =>
+    action === 'unpublish' || action === 'archive' ? setConfirming({ world, action }) : runStatus(world, action);
 
   const remove = async () => {
     if (!deleting) return;
@@ -97,11 +119,11 @@ export function WorldsScreen() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">دنیاها</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            دنیاهای داستانی که رویدادها به آن‌ها متصل می‌شوند. ترتیب این فهرست، ترتیب نمایش در اپلیکیشن است.
+            هر دنیا هویت، منو و صفحه‌ی خانه‌ی خودش را دارد و اخبار، دانستنی‌ها، رویدادها و فعالیت‌ها به آن متصل می‌شوند. ترتیب این فهرست، ترتیب نمایش در اپلیکیشن است.
           </p>
         </div>
         {writable && (
-          <Button onClick={() => setEditing('new')}>
+          <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden="true" />
             دنیای جدید
           </Button>
@@ -125,9 +147,8 @@ export function WorldsScreen() {
             <TableHeader>
               <TableRow>
                 <TableHead className="ps-4">دنیا</TableHead>
-                <TableHead className="hidden sm:table-cell">نامک</TableHead>
-                <TableHead>رویدادها</TableHead>
                 <TableHead>وضعیت</TableHead>
+                <TableHead className="hidden md:table-cell">رویداد / محتوا / فعالیت</TableHead>
                 <TableHead className="hidden sm:table-cell">ترتیب</TableHead>
                 <TableHead className="pe-4 text-end">
                   <span className="sr-only">عملیات</span>
@@ -159,18 +180,24 @@ export function WorldsScreen() {
 
               {items?.map((world, index) => (
                 <TableRow key={world.id}>
-                  <TableCell className="ps-4">
+                  <TableCell className="min-w-48 whitespace-normal ps-4">
                     <div className="flex items-center gap-3">
                       <Cover id={world.coverId} />
-                      <span className="font-medium">{world.name}</span>
+                      <div className="min-w-0">
+                        <Link href={`/worlds/${world.id}`} className="font-medium hover:underline">
+                          {world.name}
+                        </Link>
+                        <span className="block font-mono text-xs text-muted-foreground" dir="ltr">
+                          {world.slug}
+                        </span>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell" dir="ltr">
-                    {world.slug}
-                  </TableCell>
-                  <TableCell className="tabular-nums">{formatCount(world.eventCount)}</TableCell>
                   <TableCell>
-                    <Badge variant={world.isActive ? 'secondary' : 'outline'}>{world.isActive ? 'فعال' : 'غیرفعال'}</Badge>
+                    <Badge variant={WORLD_STATUS_BADGE[world.status]}>{WORLD_STATUS_LABELS[world.status]}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden tabular-nums md:table-cell">
+                    {formatCount(world.eventCount)} / {formatCount(world.articleCount)} / {formatCount(world.activityCount)}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {writable && (
@@ -191,24 +218,39 @@ export function WorldsScreen() {
                     )}
                   </TableCell>
                   <TableCell className="pe-4 text-end">
-                    {writable && (
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => setEditing(world)} aria-label={`ویرایش «${world.name}»`}>
-                          <Pencil aria-hidden="true" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon-sm" aria-label={`عملیات «${world.name}»`}>
+                          <MoreHorizontal aria-hidden="true" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-muted-foreground hover:text-destructive"
-                          disabled={world.eventCount > 0}
-                          title={world.eventCount > 0 ? 'این دنیا به رویدادهایی متصل است؛ به‌جای حذف، آن را غیرفعال کنید' : undefined}
-                          onClick={() => setDeleting(world)}
-                          aria-label={`حذف «${world.name}»`}
-                        >
-                          <Trash2 aria-hidden="true" />
-                        </Button>
-                      </div>
-                    )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="min-w-44">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/worlds/${world.id}`}>
+                            <Settings2 aria-hidden="true" />
+                            مدیریت دنیا
+                          </Link>
+                        </DropdownMenuItem>
+                        {writable && (
+                          <>
+                            <DropdownMenuSeparator />
+                            {WORLD_ACTIONS_FOR[world.status].map((action) => (
+                              <DropdownMenuItem
+                                key={action}
+                                onSelect={() => onStatus(world, action)}
+                                variant={action === 'publish' || action === 'restore' ? 'default' : 'destructive'}
+                              >
+                                {WORLD_ACTION_LABELS[action]}
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuItem variant="destructive" disabled={inUse(world)} onSelect={() => setDeleting(world)}>
+                              <Trash2 aria-hidden="true" />
+                              {inUse(world) ? 'حذف (محتوا دارد؛ بایگانی کنید)' : 'حذف'}
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -217,21 +259,23 @@ export function WorldsScreen() {
         </Card>
       )}
 
-      {editing && (
-        <WorldFormDialog
-          key={editing === 'new' ? 'new' : editing.id}
-          open
-          onOpenChange={(open) => !open && setEditing(null)}
-          world={editing === 'new' ? undefined : editing}
-          onSubmit={save}
-        />
-      )}
+      <CreateWorldDialog open={creating} onOpenChange={setCreating} />
+
+      <WorldStatusDialog
+        key={confirming ? `${confirming.world.id}-${confirming.action}` : 'none'}
+        pending={confirming && { action: confirming.action, name: confirming.world.name }}
+        onCancel={() => setConfirming(null)}
+        onConfirm={async () => {
+          if (confirming) await runStatus(confirming.world, confirming.action);
+          setConfirming(null);
+        }}
+      />
 
       <Dialog open={deleting !== null} onOpenChange={(open) => !open && !busy && setDeleting(null)}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{deleting && `حذف «${deleting.name}»`}</DialogTitle>
-            <DialogDescription>این دنیا برای همیشه حذف می‌شود. اگر فقط می‌خواهید نمایش داده نشود، آن را غیرفعال کنید.</DialogDescription>
+            <DialogDescription>این دنیا برای همیشه حذف می‌شود. اگر فقط می‌خواهید نمایش داده نشود، انتشار آن را لغو کنید.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>

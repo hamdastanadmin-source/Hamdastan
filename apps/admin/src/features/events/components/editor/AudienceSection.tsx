@@ -2,7 +2,7 @@
 
 import { Eye } from 'lucide-react';
 
-import { EVENT_VISIBILITY_LABELS, EVENT_VISIBILITIES } from '@hamdastan/config';
+import { EVENT_VISIBILITY_LABELS, EVENT_VISIBILITIES, WORLD_STATUS_LABELS } from '@hamdastan/config';
 import type { EventVisibility } from '@hamdastan/types';
 import { Alert, AlertDescription, AlertTitle, Checkbox, Label, ToggleGroup, ToggleGroupItem } from '@hamdastan/ui';
 
@@ -24,7 +24,7 @@ const VISIBILITY_HINTS: Record<EventVisibility, string> = {
  */
 export function AudienceSection({ editor, worlds }: SectionProps) {
   const { state, update, errors } = editor;
-  const shown = worlds.filter((world) => world.isActive || state.worldIds.includes(world.id));
+  const shown = worlds.filter((world) => world.status !== 'archived' || state.worldIds.includes(world.id));
   const chosen = worlds.filter((world) => state.worldIds.includes(world.id)).map((world) => world.name);
   const worldList = chosen.length ? chosen.map((name) => `«${name}»`).join('، ') : null;
 
@@ -58,7 +58,7 @@ export function AudienceSection({ editor, worlds }: SectionProps) {
                       }
                     />
                     {world.name}
-                    {!world.isActive && <span className="text-xs text-muted-foreground">(غیرفعال)</span>}
+                    {world.status !== 'published' && <span className="text-xs text-muted-foreground">({WORLD_STATUS_LABELS[world.status]})</span>}
                   </Label>
                 </li>
               );

@@ -26,8 +26,11 @@ import {
  * A new activity is created on its first save; from then on saves update
  * it, and the API decides whether that is an edit or a new version.
  */
-export function useActivityEditor(initial?: AdminActivityDetail) {
-  const [state, setState] = useState<EditorState>(() => (initial ? fromDetail(initial) : emptyState()));
+/** `worldId`: a new activity opened from a world's page starts filed under it. */
+export function useActivityEditor(initial?: AdminActivityDetail, worldId?: string) {
+  const [state, setState] = useState<EditorState>(() =>
+    initial ? fromDetail(initial) : { ...emptyState(), worldIds: worldId ? [worldId] : [] }
+  );
   const [saved, setSaved] = useState<AdminActivityDetail | null>(initial ?? null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);

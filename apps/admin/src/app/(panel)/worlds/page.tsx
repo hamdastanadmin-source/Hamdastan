@@ -6,6 +6,6 @@ import { WorldsScreen } from '@/features/worlds';
 export const metadata: Metadata = { title: 'دنیاها' };
 
 export default async function WorldsPage() {
-  await requireAdminPermission('events.read');
+  await requireAdminPermission('worlds.read');
   return <WorldsScreen />;
 }

@@ -88,3 +88,21 @@ export function toMobileInput(value: string): string {
     toLatinDigits(value).replace(/\D/g, '').slice(0, IRAN_MOBILE_LENGTH)
   );
 }
+
+/**
+ * A duration as a person reads it, in Persian digits: «۴۵ ثانیه»,
+ * «۲ دقیقه و ۵ ثانیه», «۱ ساعت و ۳ دقیقه». Null — an unknown time — is «—».
+ */
+export function formatDurationFa(ms: number | null): string {
+  if (ms === null || ms < 0) return '—';
+  const seconds = Math.round(ms / 1000);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  const parts: [number, string][] =
+    hours > 0 ? [[hours, 'ساعت'], [minutes, 'دقیقه']] : minutes > 0 ? [[minutes, 'دقیقه'], [rest, 'ثانیه']] : [[rest, 'ثانیه']];
+  return parts
+    .filter(([value], index) => index === 0 || value > 0)
+    .map(([value, unit]) => `${toPersianDigits(value)} ${unit}`)
+    .join(' و ');
+}

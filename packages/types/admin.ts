@@ -45,8 +45,16 @@ export const ADMIN_PERMISSIONS = [
   'events.write',
   /** Publish, schedule, unpublish, cancel, archive. */
   'events.publish',
-  /** The world list: add, edit, order, switch off. */
+  /** The worlds, for reading and for the pickers in every editor that files content under one. */
+  'worlds.read',
+  /** A world's identity, menu, home and lifecycle: create, edit, order, publish, archive. */
   'worlds.manage',
+  /** News and knowledge articles, and the central content index. */
+  'content.read',
+  /** Create and edit articles. */
+  'content.write',
+  /** Publish, schedule, unpublish, archive articles. */
+  'content.publish',
   /** Notification campaigns: see them, their reports and history. */
   'notifications.read',
   /** Create, edit a draft, duplicate, archive. */
@@ -69,7 +77,11 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[
     'events.read',
     'events.write',
     'events.publish',
+    'worlds.read',
     'worlds.manage',
+    'content.read',
+    'content.write',
+    'content.publish',
     'notifications.read',
     'notifications.write',
     'notifications.send',

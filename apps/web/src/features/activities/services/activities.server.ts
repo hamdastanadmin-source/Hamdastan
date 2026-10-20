@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-import type { ActivityCard, JourneyPreview, PlayerActivity } from '@hamdastan/types';
+import type { ActivityCard, JourneyPreview, Leaderboard, PlayerActivity } from '@hamdastan/types';
 
 import { activitiesService, HttpError } from '@/services';
 
@@ -29,6 +29,12 @@ export async function getPlayerActivity(id: string): Promise<PlayerActivity> {
     if (error instanceof HttpError && (error.status === 404 || error.status === 400)) notFound();
     throw error;
   }
+}
+
+/** A competition's leaderboard; the page still opens without it. */
+export async function getLeaderboard(id: string): Promise<Leaderboard | null> {
+  const cookie = (await cookies()).toString();
+  return activitiesService.leaderboard(id, { cookie }).catch(() => null);
 }
 
 /**

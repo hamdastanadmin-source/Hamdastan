@@ -17,7 +17,11 @@ import {
   JOURNEY_LIMITS as J,
   JOURNEY_DAY_END_DEFAULTS as DAY_END,
   MOTION_DURATION,
+  EXPLANATION_MAX,
+  isQuizType,
   RESULT_CARD,
+  UNDIMENSIONED_KINDS,
+  WORLD_LIMITS,
 } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { isTimeZone, zonedMidnight } from '@hamdastan/shared/time-zone';
@@ -32,7 +36,7 @@ import type {
 import { z } from 'zod';
 
 import { phoneSchema } from './auth';
-import { cleanText, line, paragraph } from './common';
+import { cleanText, line, paragraph, uniqueIdsSchema, uuidSchema } from './common';
 import { mediaIdSchema, motionOff, motionSettingSchema } from './media';
 
 const fa = (n: number) => toPersianDigits(n);
@@ -64,11 +68,19 @@ const questionBase = {
 
 const choiceFields = {
   ...questionBase,
+  explanation: paragraph(EXPLANATION_MAX).optional(),
   options: z
     .array(optionSchema)
     .min(L.OPTIONS_MIN, { error: `حداقل ${fa(L.OPTIONS_MIN)} گزینه لازم است` })
     .max(L.OPTIONS_MAX, { error: `حداکثر ${fa(L.OPTIONS_MAX)} گزینه` }),
 };
+
+const matchingPairSchema = z.object({
+  id: keySchema,
+  prompt: line(L.MATCHING_LABEL_MAX, 'متن سمت اول را وارد کنید'),
+  matchId: keySchema,
+  match: line(L.MATCHING_LABEL_MAX, 'متن جفت آن را وارد کنید'),
+});
 
 /** One question, as the builder, the Excel import and the API all check it. */
 export const activityQuestionSchema = z.discriminatedUnion('kind', [
@@ -87,6 +99,15 @@ export const activityQuestionSchema = z.discriminatedUnion('kind', [
     max: z.number().int().min(L.SCALE_MIN_BOUND).max(L.SCALE_MAX_BOUND),
     minLabel: line(60, null),
     maxLabel: line(60, null),
+  }),
+  z.object({
+    ...questionBase,
+    kind: z.literal('matching'),
+    explanation: paragraph(EXPLANATION_MAX).optional(),
+    pairs: z
+      .array(matchingPairSchema)
+      .min(L.MATCHING_PAIRS_MIN, { error: `حداقل ${fa(L.MATCHING_PAIRS_MIN)} جفت لازم است` })
+      .max(L.MATCHING_PAIRS_MAX, { error: `حداکثر ${fa(L.MATCHING_PAIRS_MAX)} جفت` }),
   }),
 ]);
 
@@ -138,6 +159,8 @@ const assessmentSchema = z.object({
     .max(L.DIMENSIONS_MAX),
   passingScore: z.number().int().min(0).max(100).nullable(),
   showResult: z.boolean(),
+  // Absent on every version stored before answers could be revealed.
+  revealAnswers: z.boolean().default(false),
 });
 
 const stepXp = z
@@ -228,14 +251,16 @@ const definitionSchema = z.object({
  * half-way cannot leave a survey with a reviewer or a mission anonymous.
  */
 function forType(type: ActivityType, definition: ActivityDefinition): ActivityDefinition {
-  const knowledgePassMark =
-    type === 'assessment' &&
-    definition.assessment?.mode === 'knowledge' &&
-    definition.assessment.passingScore !== null;
+  const competition = type === 'competition';
+  // A competition is always a knowledge quiz; its settings are an assessment's.
+  const assessment = competition && definition.assessment
+    ? { ...definition.assessment, mode: 'knowledge' as const, dimensions: [] }
+    : type === 'assessment' ? definition.assessment : null;
+  const knowledgePassMark = isQuizType(type) && assessment?.mode === 'knowledge' && assessment.passingScore !== null;
 
   const journey = type === 'journey';
-  // A journey is taken once, answer by answer; there is no second submission to pay.
-  const maxSubmissions = journey ? 1 : definition.maxSubmissions;
+  // A journey is taken once, answer by answer; a competition once, against the clock.
+  const maxSubmissions = journey || competition ? 1 : definition.maxSubmissions;
 
   return {
     ...definition,
@@ -257,7 +282,7 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     maxSubmissions,
     anonymous: type === 'survey' && definition.anonymous,
     review: type === 'mission' ? definition.review : 'auto',
-    assessment: type === 'assessment' ? definition.assessment : null,
+    assessment,
     journey: journey ? definition.journey : null,
     xp: {
       ...definition.xp,
@@ -300,25 +325,35 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
           issue([...at, 'maxSelections'], 'سقف انتخاب از تعداد گزینه‌ها بیشتر است');
         }
       }
+      if (question.kind === 'matching') {
+        const pairIds = question.pairs.flatMap((pair) => [pair.id, pair.matchId]);
+        if (new Set(pairIds).size !== pairIds.length) issue([...at, 'pairs'], 'شناسه‌ی جفت تکراری است');
+        // Two tiles that read the same could not be told apart on the screen.
+        const sides = (labels: string[]) => new Set(labels).size !== labels.length;
+        if (sides(question.pairs.map((pair) => pair.prompt)) || sides(question.pairs.map((pair) => pair.match))) {
+          issue([...at, 'pairs'], 'متن‌های هر ستون باید با هم فرق داشته باشند');
+        }
+      }
       if (question.kind === 'scale' && question.min >= question.max) {
         issue([...at, 'max'], 'انتهای طیف باید بزرگ‌تر از ابتدای آن باشد');
       }
     });
   });
 
-  if (type !== 'assessment') return;
+  if (!isQuizType(type)) return;
   const assessment = definition.assessment;
   if (!assessment) {
-    issue(['assessment'], 'نوع آزمون را انتخاب کنید');
+    issue(['assessment'], type === 'competition' ? 'تنظیمات مسابقه را کامل کنید' : 'نوع آزمون را انتخاب کنید');
     return;
   }
 
-  if (assessment.mode === 'personality') {
+  // A competition is scored as knowledge whatever its mode says; `forType` sets it so.
+  if (assessment.mode === 'personality' && type !== 'competition') {
     if (assessment.dimensions.length === 0) issue(['assessment', 'dimensions'], 'حداقل یک بُعد لازم است');
     const dimensionIds = new Set(assessment.dimensions.map((dimension) => dimension.id));
     definition.steps.forEach((step, s) =>
       step.questions.forEach((question, q) => {
-        if (question.kind === 'text') return;
+        if (UNDIMENSIONED_KINDS.includes(question.kind)) return;
         if (!question.dimensionId || !dimensionIds.has(question.dimensionId)) {
           issue(['steps', s, 'questions', q, 'dimensionId'], 'بُعدی را که این سؤال می‌سنجد انتخاب کنید');
         }
@@ -340,8 +375,9 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
       }
     })
   );
-  if (!questions.some((question) => question.kind === 'single' || question.kind === 'multiple')) {
-    issue(['steps'], 'آزمون دانشی دست‌کم به یک سؤال گزینه‌ای نیاز دارد');
+  // A matching question carries its own key, so it scores without one being marked.
+  if (!questions.some((question) => question.kind === 'single' || question.kind === 'multiple' || question.kind === 'matching')) {
+    issue(['steps'], 'آزمون دانشی دست‌کم به یک سؤال گزینه‌ای یا تطبیقی نیاز دارد');
   }
 }
 
@@ -450,11 +486,17 @@ export const activityInputSchema = z
     audience: activityAudienceSchema,
     startsAt: dateTimeSchema,
     endsAt: dateTimeSchema,
+    worldIds: uniqueIdsSchema(WORLD_LIMITS.FILED_UNDER_MAX, 'دنیا').default([]),
   })
   .superRefine((input, ctx) => {
     checkDefinition(input.type, input.definition, ctx);
     if (input.type === 'journey' && !input.startsAt) {
       ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'زمان شروع کمپین را مشخص کنید' });
+    }
+    // A competition is a race: everyone shares the same window.
+    if (input.type === 'competition') {
+      if (!input.startsAt) ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'زمان شروع مسابقه را مشخص کنید' });
+      if (!input.endsAt) ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'زمان پایان مسابقه را مشخص کنید' });
     }
     // A journey's end is derived from its start, so only the others are checked.
     if (input.type !== 'journey' && input.startsAt && input.endsAt && new Date(input.endsAt) <= new Date(input.startsAt)) {
@@ -471,6 +513,7 @@ export const activityListQuerySchema = z.object({
   status: z.enum(['draft', 'scheduled', 'published', 'paused', 'closed', 'archived']).optional(),
   type: z.enum(ACTIVITY_TYPES).optional(),
   search: z.string().max(50).transform((value) => cleanText(value, false)).optional(),
+  world: uuidSchema.optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(ENGAGEMENT_PAGE_SIZE),
 });
@@ -562,6 +605,16 @@ export function answerError(question: PlayerQuestion, value: ActivityAnswerValue
       return typeof value === 'number' && Number.isInteger(value) && value >= question.min && value <= question.max
         ? null
         : 'یک مقدار روی طیف انتخاب کن';
+    case 'matching': {
+      // One match per prompt, each match used once: a half-matched question is not an answer.
+      const known = new Set(question.matches.map((match) => match.id));
+      return Array.isArray(value) &&
+        value.length === question.prompts.length &&
+        new Set(value).size === value.length &&
+        value.every((id) => known.has(id))
+        ? null
+        : 'همه‌ی موردها رو به جفتشون وصل کن';
+    }
   }
 }
 

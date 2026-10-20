@@ -28,10 +28,12 @@ function moved<T>(items: T[], index: number, offset: -1 | 1): T[] {
   return next;
 }
 
-/** A copy with fresh ids — for the question and each of its options. */
+/** A copy with fresh ids — for the question and each of its options or pairs. */
 function copyOf(question: ActivityQuestion): ActivityQuestion {
   const copy = { ...question, id: newKey() };
-  return 'options' in copy ? { ...copy, options: copy.options.map((option) => ({ ...option, id: newKey() })) } : copy;
+  if ('options' in copy) return { ...copy, options: copy.options.map((option) => ({ ...option, id: newKey() })) };
+  if ('pairs' in copy) return { ...copy, pairs: copy.pairs.map((pair) => ({ ...pair, id: newKey(), matchId: newKey() })) };
+  return copy;
 }
 
 /** Where a selection sits: its step, and its question if it is one. */
@@ -246,7 +248,12 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
           )}
 
           {selection.kind === 'scoring' && assessment && (
-            <AssessmentSettingsPanel settings={assessment} errors={errors} onChange={(next) => updateDefinition({ assessment: next })} />
+            <AssessmentSettingsPanel
+              settings={assessment}
+              errors={errors}
+              competition={state.type === 'competition'}
+              onChange={(next) => updateDefinition({ assessment: next })}
+            />
           )}
 
           {selection.kind === 'motions' && journey && (

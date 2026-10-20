@@ -99,6 +99,7 @@ const journeyInput = (): ActivityInput => ({
   // The campaign has just begun; its end is derived by the API.
   startsAt: new Date(Date.now() - 5_000).toISOString(),
   endsAt: null,
+  worldIds: [],
 });
 
 async function publishJourney(): Promise<string> {

@@ -7,6 +7,7 @@
  * Who may see what is decided by `apps/api`; this feature asks and shows.
  */
 
+export { EventCard } from './components/EventCard';
 export { EventDetailScreen } from './components/EventDetailScreen';
 export { EventsScreen } from './components/EventsScreen';
 export { MyEventsScreen } from './components/MyEventsScreen';

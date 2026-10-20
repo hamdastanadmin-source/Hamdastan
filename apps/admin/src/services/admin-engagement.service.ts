@@ -1,4 +1,5 @@
 import type {
+  AdminLeaderboardEntry,
   ActivityAudience,
   ActivityExport,
   ActivityInput,
@@ -80,6 +81,11 @@ export const adminEngagementService = {
       decision,
       note: note || undefined,
     });
+  },
+
+  /** A competition's ranking, with full names — individual results. */
+  leaderboard(id: string) {
+    return apiClient.get<AdminLeaderboardEntry[]>(`${base}/activities/${id}/leaderboard`, { cache: 'no-store' });
   },
 
   grants(id: string, query: Page) {

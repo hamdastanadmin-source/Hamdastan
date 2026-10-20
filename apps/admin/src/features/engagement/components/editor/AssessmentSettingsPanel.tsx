@@ -14,10 +14,13 @@ import { Field, invalid, SwitchRow } from './Field';
 export function AssessmentSettingsPanel({
   settings,
   errors,
+  competition = false,
   onChange,
 }: {
   settings: AssessmentSettings;
   errors: Record<string, string>;
+  /** A competition is always a knowledge quiz: no mode to choose. */
+  competition?: boolean;
   onChange: (settings: AssessmentSettings) => void;
 }) {
   const dimensionsError = errors['definition.assessment.dimensions'];
@@ -27,25 +30,28 @@ export function AssessmentSettingsPanel({
       <div className="flex flex-col gap-1 border-b pb-4">
         <h3 className="text-base font-semibold">روش محاسبه‌ی نتیجه</h3>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          دانشی: هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. شخصیت‌شناسی: هر سؤال یک بُعد را
-          می‌سنجد و بُعدی که بیشترین امتیاز را بگیرد، نتیجه است.
+          {competition
+            ? 'هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. رتبه با نمره و سپس با زمان از «شروع» تا ثبت تعیین می‌شود.'
+            : 'دانشی: هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. شخصیت‌شناسی: هر سؤال یک بُعد را می‌سنجد و بُعدی که بیشترین امتیاز را بگیرد، نتیجه است.'}
         </p>
       </div>
       <div className="flex flex-col gap-4">
-        <Field label="نوع آزمون" htmlFor="assessment-mode">
-          <Select
-            value={settings.mode}
-            onValueChange={(mode) => onChange({ ...settings, mode: mode as AssessmentSettings['mode'] })}
-          >
-            <SelectTrigger id="assessment-mode" className="w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="knowledge">دانش و مهارت</SelectItem>
-              <SelectItem value="personality">شخصیت‌شناسی</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
+        {!competition && (
+          <Field label="نوع آزمون" htmlFor="assessment-mode">
+            <Select
+              value={settings.mode}
+              onValueChange={(mode) => onChange({ ...settings, mode: mode as AssessmentSettings['mode'] })}
+            >
+              <SelectTrigger id="assessment-mode" className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="knowledge">دانش و مهارت</SelectItem>
+                <SelectItem value="personality">شخصیت‌شناسی</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
 
         {settings.mode === 'knowledge' ? (
           <Field
@@ -135,6 +141,24 @@ export function AssessmentSettingsPanel({
             onCheckedChange={(showResult) => onChange({ ...settings, showResult })}
           />
         </SwitchRow>
+
+        {settings.mode === 'knowledge' && (
+          <SwitchRow
+            id="reveal-answers"
+            label="نمایش پاسخ درست و توضیح هر سؤال"
+            hint={
+              competition
+                ? 'پس از پایان مسابقه، هر شرکت‌کننده پاسخ درست و توضیح هر سؤال را می‌بیند — نه زودتر، تا به کسی که هنوز بازی می‌کند نرسد.'
+                : 'وقتی کاربر از همه‌ی دفعات مجاز استفاده کرد، پاسخ درست و توضیح هر سؤال را می‌بیند.'
+            }
+          >
+            <Switch
+              id="reveal-answers"
+              checked={settings.revealAnswers}
+              onCheckedChange={(revealAnswers) => onChange({ ...settings, revealAnswers })}
+            />
+          </SwitchRow>
+        )}
       </div>
     </div>
   );

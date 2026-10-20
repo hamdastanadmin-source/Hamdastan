@@ -1,18 +1,30 @@
-import { z } from '@hamdastan/validation';
+import {
+  adminArticleListQuerySchema,
+  articleInputSchema,
+  articleListQuerySchema,
+  articleStatusSchema,
+  contentIndexQuerySchema,
+  SLUG_PATTERN,
+  z,
+} from '@hamdastan/validation';
 
 /**
- * Request validation for the Content module.
- *
- * Every route validates its input here before the controller runs. Rules the
- * front-end also enforces live in `@hamdastan/validation` — import them
- * rather than restating them, so the two sides cannot drift.
+ * Request validation for the Content module. The bodies and queries are the
+ * schemas `apps/admin` and `apps/web` build them with; only the path
+ * parameters are local.
  */
+
+// A malformed id would otherwise reach a `uuid` column and fail as a 500.
+const idParams = z.object({ id: z.uuid({ error: 'شناسه معتبر نیست' }) });
+// Anything that is not a slug cannot be one, and is the same 404 as a slug nobody has.
+const slugParams = z.object({ slug: z.string().regex(SLUG_PATTERN, { error: 'محتوا پیدا نشد' }) });
+
 export const contentSchemas = {
-  // e.g. list: { querystring: paginationQuerySchema },
+  byId: { params: idParams },
+  bySlug: { params: slugParams },
+  list: { query: articleListQuerySchema },
+  adminList: { query: adminArticleListQuerySchema },
+  index: { query: contentIndexQuerySchema },
+  write: { body: articleInputSchema },
+  status: { body: articleStatusSchema },
 } satisfies Record<string, unknown>;
-
-export type ContentSchemas = typeof contentSchemas;
-
-// Re-exported so this module's own schemas can be written without a second
-// zod import.
-export { z };

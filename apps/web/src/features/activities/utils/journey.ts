@@ -101,5 +101,11 @@ export function answerText(question: PlayerQuestion, value: unknown): string {
       .map((option) => option.label)
       .join('، ');
   }
+  if (question.kind === 'matching') {
+    const ids = Array.isArray(value) ? value : [];
+    return question.prompts
+      .map((prompt, i) => `${prompt.label} ← ${question.matches.find((match) => match.id === ids[i])?.label ?? '—'}`)
+      .join('، ');
+  }
   return typeof value === 'number' ? toPersianDigits(value) : String(value);
 }

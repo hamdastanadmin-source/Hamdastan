@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, ClipboardList, Flag, GraduationCap, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardList, Flag, GraduationCap, Trophy, type LucideIcon } from 'lucide-react';
 
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPES } from '@hamdastan/config';
 import type { ActivityType } from '@hamdastan/types';
@@ -25,6 +25,10 @@ const TYPES: Record<ActivityType, { icon: LucideIcon; body: string }> = {
   journey: {
     icon: CalendarDays,
     body: 'یک ماجرای چندروزه که هر روز یک مرحله‌ی تازه از آن باز می‌شود. XP برای هر پاسخ، هر روز و پایان چالش.',
+  },
+  competition: {
+    icon: Trophy,
+    body: 'یک تریویای زمان‌دار: هر نفر یک بار، در بازه‌ی شروع و پایان مسابقه. رتبه با نمره و سپس زمان پاسخ تعیین می‌شود و جدول امتیازات در اپلیکیشن نمایش داده می‌شود.',
   },
 };
 

@@ -23,6 +23,14 @@ const base: ActivityDefinition = {
   xp: XP,
 };
 
+const matching = {
+  id: 'pairs',
+  kind: 'matching' as const,
+  title: 'جفت کن',
+  required: true,
+  pairs: [1, 2, 3, 4].map((n) => ({ id: `p${n}`, prompt: `مورد ${n}`, matchId: `m${n}`, match: `جفت ${n}` })),
+};
+
 const personality: ActivityDefinition = {
   ...base,
   steps: [
@@ -55,6 +63,7 @@ const personality: ActivityDefinition = {
     ],
     passingScore: null,
     showResult: true,
+      revealAnswers: false,
   },
 };
 
@@ -98,11 +107,21 @@ describe('scoreAssessment', () => {
           ],
         },
       ],
-      assessment: { mode: 'knowledge', dimensions: [], passingScore: 50, showResult: true },
+      assessment: { mode: 'knowledge', dimensions: [], passingScore: 50, showResult: true, revealAnswers: false },
     };
     expect(scoreAssessment(quiz, { m: ['1', '2'] })).toMatchObject({ score: 100, passed: true });
     expect(scoreAssessment(quiz, { m: ['1'] })).toMatchObject({ score: 0, passed: false });
     expect(scoreAssessment(quiz, { m: ['1', '2', '3'] })).toMatchObject({ score: 0, passed: false });
+  });
+
+  it('marks a matching question right only when every prompt has its own match', () => {
+    const quiz: ActivityDefinition = {
+      ...base,
+      steps: [{ id: 's', title: '', description: '', questions: [matching] }],
+      assessment: { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true, revealAnswers: false },
+    };
+    expect(scoreAssessment(quiz, { pairs: ['m1', 'm2', 'm3', 'm4'] })).toMatchObject({ score: 100 });
+    expect(scoreAssessment(quiz, { pairs: ['m2', 'm1', 'm3', 'm4'] })).toMatchObject({ score: 0 });
   });
 });
 
@@ -153,6 +172,34 @@ describe('the shared rules', () => {
     expect(parsed.definition.review).toBe('auto');
   });
 
+  it('takes a matching answer only when every prompt has a different match', () => {
+    const player = {
+      ...matching,
+      pairs: undefined,
+      prompts: matching.pairs.map((pair) => ({ id: pair.id, label: pair.prompt })),
+      matches: matching.pairs.map((pair) => ({ id: pair.matchId, label: pair.match })),
+    };
+    expect(validateAnswers([player], { pairs: ['m4', 'm3', 'm2', 'm1'] })).toMatchObject({ ok: true });
+    expect(validateAnswers([player], { pairs: ['m1', 'm2', 'm3'] })).toMatchObject({ ok: false });
+    expect(validateAnswers([player], { pairs: ['m1', 'm1', 'm3', 'm4'] })).toMatchObject({ ok: false });
+    expect(validateAnswers([player], { pairs: ['m1', 'm2', 'm3', 'x'] })).toMatchObject({ ok: false });
+  });
+
+  it('asks a matching question for at least four pairs', () => {
+    const input = (pairs: typeof matching.pairs) => ({
+      type: 'survey',
+      title: 'تطبیق',
+      summary: '',
+      instructions: '',
+      audience: { kind: 'all' },
+      startsAt: null,
+      endsAt: null,
+      definition: { ...base, steps: [{ id: 's', title: '', description: '', questions: [{ ...matching, pairs }] }] },
+    });
+    expect(activityInputSchema.safeParse(input(matching.pairs)).success).toBe(true);
+    expect(activityInputSchema.safeParse(input(matching.pairs.slice(0, 3))).success).toBe(false);
+  });
+
   it('requires a key for every knowledge question', () => {
     const result = activityInputSchema.safeParse({
       type: 'assessment',
@@ -165,7 +212,7 @@ describe('the shared rules', () => {
       definition: {
         ...base,
         steps: [{ id: 's', title: '', description: '', questions: [{ ...question, kind: 'single' }] }],
-        assessment: { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true },
+        assessment: { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true, revealAnswers: false },
       },
     });
     expect(result.success).toBe(false);

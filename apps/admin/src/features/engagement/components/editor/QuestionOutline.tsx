@@ -15,7 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { QUESTION_KIND_LABELS } from '@hamdastan/config';
+import { isQuizType, QUESTION_KIND_LABELS } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityStep, ActivityType } from '@hamdastan/types';
@@ -157,7 +157,7 @@ export function QuestionOutline({
     <div className="flex flex-col gap-4">
       <nav aria-label="سؤال‌ها">
         <ul className="flex flex-col gap-0.5">
-          {type === 'assessment' && (
+          {isQuizType(type) && (
             <li className="mb-2 border-b pb-2">
               <button
                 type="button"

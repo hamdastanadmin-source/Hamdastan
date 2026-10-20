@@ -1,17 +1,21 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useState } from 'react';
 
 import { ENGAGEMENT_LIMITS } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityAnswerValue, PlayerQuestion } from '@hamdastan/types';
-import { Input, Slider, Textarea, ToggleGroup, ToggleGroupItem } from '@hamdastan/ui';
+import type { ActivityAnswerValue, PlayerMatchingQuestion, PlayerQuestion } from '@hamdastan/types';
+import { Input, Slider, Textarea, Toggle, ToggleGroup, ToggleGroupItem } from '@hamdastan/ui';
+
+import { matchingFromValue, matchingValue, pairNumber, tapMatching, type MatchingSide } from '../utils/matching';
 
 /**
  * One question's control — the product's existing ones, by kind: options
  * as full-width toggle rows (as in the questionnaire), a rating as a row of
- * numbers, a scale as the slider, text as a text area.
+ * numbers, a scale as the slider, text as a text area, matching as two
+ * columns of tiles to pair (Duolingo's).
  *
  * Selection is a foreground border and a check, never the brand colour;
  * that is the screen's primary action's alone.
@@ -29,6 +33,73 @@ function Option({ value, label, disabled }: { value: string; label: string; disa
       <span className="flex-1">{label}</span>
       <Check aria-hidden="true" className="invisible size-4 shrink-0 group-data-[state=on]/option:visible" />
     </ToggleGroupItem>
+  );
+}
+
+const TILE_CLASS =
+  'relative h-auto min-h-14 w-full whitespace-normal rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-3 text-center text-base font-normal leading-snug text-foreground transition-[color,background-color,border-color,opacity,transform] duration-150 hover:bg-foreground/10 hover:text-foreground active:scale-[0.97] data-[state=on]:border-foreground data-[state=on]:bg-foreground/10 data-[state=on]:text-foreground data-[paired=true]:border-foreground/40 data-[paired=true]:text-muted-foreground motion-reduce:transition-none motion-reduce:active:scale-100';
+
+/**
+ * Tap a tile in one column, then its partner in the other. A made pair
+ * carries the same number on both tiles; tapping either takes it apart. The
+ * answer is reported only once every tile is paired — right or wrong is the
+ * server's to say, after the fact.
+ */
+function MatchingField({
+  question,
+  value,
+  onChange,
+  labelledBy,
+}: {
+  question: PlayerMatchingQuestion;
+  value: ActivityAnswerValue | undefined;
+  onChange: (value: ActivityAnswerValue | undefined) => void;
+  labelledBy: string;
+}) {
+  const [state, setState] = useState(() => matchingFromValue(question, value));
+
+  const tap = (side: MatchingSide, id: string) => {
+    const next = tapMatching(state, side, id);
+    setState(next);
+    onChange(matchingValue(question, next));
+  };
+
+  const column = (side: MatchingSide, items: { id: string; label: string }[]) => (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => {
+        const number = pairNumber(question, state, side, item.id);
+        return (
+          <li key={item.id}>
+            <Toggle
+              pressed={state.pending?.side === side && state.pending.id === item.id}
+              onPressedChange={() => tap(side, item.id)}
+              data-paired={number !== null}
+              aria-label={number === null ? item.label : `${item.label}، جفت ${toPersianDigits(number)}`}
+              className={TILE_CLASS}
+            >
+              {item.label}
+              {number !== null && (
+                <span aria-hidden="true" className="absolute start-1.5 top-1.5 text-xs tabular-nums">
+                  {toPersianDigits(number)}
+                </span>
+              )}
+            </Toggle>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  return (
+    <div role="group" aria-labelledby={labelledBy} className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground" aria-live="polite">
+        {`${toPersianDigits(Object.keys(state.pairs).length)} از ${toPersianDigits(question.prompts.length)} جفت شد`}
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {column('prompt', question.prompts)}
+        {column('match', question.matches)}
+      </div>
+    </div>
   );
 }
 
@@ -128,6 +199,9 @@ export function QuestionField({
           ))}
         </ToggleGroup>
       );
+
+    case 'matching':
+      return <MatchingField question={question} value={value} onChange={onChange} labelledBy={labelledBy} />;
 
     case 'scale': {
       const touched = typeof value === 'number';

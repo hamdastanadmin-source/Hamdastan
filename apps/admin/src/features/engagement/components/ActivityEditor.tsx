@@ -48,12 +48,15 @@ const STEP_TRIGGER =
 export function ActivityEditor({
   initial,
   initialStep = 'type',
+  worldId,
 }: {
   initial?: AdminActivityDetail;
   initialStep?: EditorStepId;
+  /** A new activity opened from a world's page starts filed under it. */
+  worldId?: string;
 }) {
   const router = useRouter();
-  const editor = useActivityEditor(initial);
+  const editor = useActivityEditor(initial, worldId);
   const can = useAdminCan();
   const canWrite = can('activities.write');
   const canPublish = can('activities.publish');

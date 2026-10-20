@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
@@ -13,23 +12,18 @@ import { NotificationBell } from '@/features/notifications';
 import { getUnreadCount } from '@/features/notifications/server';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
 import { getAccountOverview } from '@/features/profile/server';
+import { WorldBanners } from '@/features/worlds';
+import { getHomeWorlds } from '@/features/worlds/server';
 
 export const dynamic = 'force-dynamic';
-
-/** The story worlds on offer, in display order. Sources live in `assets/worlds/`. */
-const WORLD_BANNERS = [
-  { src: '/images/worlds/hogwarts-banner-v2.png', alt: 'هاگوارتز، هری پاتر' },
-  { src: '/images/worlds/gta-banner-v2.png', alt: 'جی تی ای' },
-  { src: '/images/worlds/game-of-thrones-banner-v2.png', alt: 'بازی تاج و تخت' },
-  { src: '/images/worlds/liverpool-banner.png', alt: 'لیورپول، تنها قدم نخواهی زد' },
-] as const;
 
 /**
  * Home.
  *
  * Reached only by an account the API reports as complete. It carries the
  * person's next step, then their open activities from Engagement Studio,
- * the next few events, then the story-world picker. Until the questionnaire is
+ * the next few events, then the story-world picker — every published world,
+ * each linking to its page. Until the questionnaire is
  * done, the first thing on the screen is the offer to do it
  * — the screen's one primary action. Once it is done that card is gone, and a
  * quiet line points to the result instead.
@@ -37,12 +31,13 @@ const WORLD_BANNERS = [
  * Signing out is not here; it lives in the profile's settings.
  */
 export default async function HomePage() {
-  const [{ profile, socialProfile }, activities, events, soon, unread] = await Promise.all([
+  const [{ profile, socialProfile }, activities, events, soon, unread, worlds] = await Promise.all([
     getAccountOverview(),
     getMyActivities(),
     getUpcomingEvents(),
     getSoonEvents(),
     getUnreadCount(),
+    getHomeWorlds(),
   ]);
 
   return (
@@ -94,23 +89,7 @@ export default async function HomePage() {
 
         <UpcomingEventsSection events={events} without={soon} />
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold leading-tight">دنیای داستانی‌ات رو انتخاب کن</h2>
-          <ul className="flex flex-col gap-3">
-            {WORLD_BANNERS.map((world) => (
-              <li key={world.src}>
-                <Image
-                  src={world.src}
-                  alt={world.alt}
-                  width={1290}
-                  height={344}
-                  sizes="(max-width: 430px) 100vw, 430px"
-                  className="h-auto w-full rounded-2xl border border-border"
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
+        <WorldBanners worlds={worlds} />
       </ScreenBody>
 
       <BottomNav />

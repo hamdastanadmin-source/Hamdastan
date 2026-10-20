@@ -1,4 +1,4 @@
-import { ENGAGEMENT_LIMITS, JOURNEY_DEFAULTS, JOURNEY_LIMITS, MOTION_DURATION } from '@hamdastan/config';
+import { ENGAGEMENT_LIMITS, isQuizType, JOURNEY_DEFAULTS, JOURNEY_LIMITS, MOTION_DURATION } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type {
   ActivityDefinition,
@@ -8,6 +8,7 @@ import type {
   ActivityType,
   AdminActivityDetail,
   DailyCover,
+  MatchingPair,
 } from '@hamdastan/types';
 import { journeyDayEndDefaults, journeyResultDefaults, motionOff } from '@hamdastan/validation';
 
@@ -60,8 +61,19 @@ export function emptyQuestion(kind: ActivityQuestion['kind'], keep?: Partial<Act
       return { ...base, kind, max: 5 };
     case 'scale':
       return { ...base, kind, min: 1, max: 5, minLabel: 'کاملاً مخالفم', maxLabel: 'کاملاً موافقم' };
+    case 'matching':
+      return {
+        ...base,
+        kind,
+        dimensionId: undefined,
+        reverse: undefined,
+        pairs: Array.from({ length: ENGAGEMENT_LIMITS.MATCHING_PAIRS_MIN }, emptyPair),
+      };
   }
 }
+
+/** A blank pair; its match gets an id of its own, so the product never learns which goes with which. */
+export const emptyPair = (): MatchingPair => ({ id: newKey(), prompt: '', matchId: newKey(), match: '' });
 
 export const emptyStep = (title = ''): ActivityStep => ({
   id: newKey(),
@@ -79,9 +91,10 @@ export const limitsFor = (type: ActivityType) =>
 /** A journey day's title by its number: «روز ۳». */
 export const dayTitle = (number: number) => `روز ${toPersianDigits(number)}`;
 
-/** Nothing written in a question: no text, no option labels. */
+/** Nothing written in a question: no text, no option labels, no pairs. */
 export function isBlankQuestion(question: ActivityQuestion): boolean {
   if (question.title.trim() !== '') return false;
+  if ('pairs' in question) return question.pairs.every((pair) => pair.prompt.trim() === '' && pair.match.trim() === '');
   return !('options' in question) || question.options.every((option) => option.label.trim() === '');
 }
 
@@ -129,8 +142,7 @@ export function emptyDefinition(type: ActivityType): ActivityDefinition {
     maxSubmissions: 1,
     anonymous: false,
     review: type === 'mission' ? 'manual' : 'auto',
-    assessment:
-      type === 'assessment' ? { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true } : null,
+    assessment: isQuizType(type) ? { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true, revealAnswers: false } : null,
     journey: type === 'journey' ? emptyJourney() : null,
     xp: { enabled: true, amount: 20, showBeforeStart: true, maxAwards: 1, requirePass: false },
   };
@@ -146,6 +158,7 @@ export function emptyState(type: ActivityType = 'survey'): EditorState {
     audience: { kind: 'all' },
     startsAt: '',
     endsAt: '',
+    worldIds: [],
   };
 }
 
@@ -182,6 +195,7 @@ export function fromDetail(detail: AdminActivityDetail): EditorState {
     instructions: detail.instructions,
     definition: detail.definition,
     audience: detail.audience,
+    worldIds: detail.worlds.map((world) => world.id),
     startsAt: toLocalInput(detail.startsAt),
     endsAt: toLocalInput(detail.endsAt),
   };

@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { API_PREFIX } from '@hamdastan/config';
+import { API_PREFIX, WORLD_DEFAULT_NAVIGATION } from '@hamdastan/config';
 import type { EventInput } from '@hamdastan/types';
 import { eventPublishProblems } from '@hamdastan/validation';
 
@@ -388,7 +388,8 @@ describe.skipIf(!hasDatabase)('events against a migrated database', () => {
 
     expect((await call('GET', '/admin/events', reviewer)).statusCode).toBe(403);
     expect((await call('POST', '/admin/events', reviewer, complete())).statusCode).toBe(403);
-    expect((await call('POST', '/admin/worlds', reviewer, { slug: 'x', name: 'x', summary: '', coverId: null, isActive: true })).statusCode).toBe(403);
+    const world = { slug: 'x', name: 'x', summary: '', tagline: '', description: '', coverId: null, logoId: null, theme: 'neutral', navigation: WORLD_DEFAULT_NAVIGATION };
+    expect((await call('POST', '/admin/worlds', reviewer, world)).statusCode).toBe(403);
     expect((await call('GET', '/admin/events', {})).statusCode).toBe(401);
     const { cookies } = await newUser();
     expect((await call('GET', '/admin/events', cookies)).statusCode).toBe(401);

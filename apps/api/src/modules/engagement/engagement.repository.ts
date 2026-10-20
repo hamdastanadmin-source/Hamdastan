@@ -17,6 +17,7 @@ import {
   withTransaction,
   type DbClient,
 } from '../../data';
+import { ValidationError } from '../../shared/errors';
 import {
   IDEMPOTENCY_TTL_SECONDS,
   type IdempotencyRef,
@@ -36,6 +37,7 @@ import type {
   JourneyAnswerWrite,
   JourneyProgressRecord,
   JourneyResultRecord,
+  LeaderboardRow,
   ParticipationRecord,
   ResponseFilter,
   ResponseRow,
@@ -90,8 +92,23 @@ export interface EngagementRepository {
   // ─── Product ───────────────────────────────────────────────────
   /** Open activities the person is in the audience of, and any they already took part in. */
   listForUser(userId: string, now: Date): Promise<UserActivityRecord[]>;
+  /**
+   * Open activities filed under a world — published, inside their window —
+   * that the person is in the audience of; with no person (an admin's
+   * preview), every open one. For a world's home.
+   */
+  listOpenForWorld(worldId: string, userId: string | null, query: { ids?: string[]; limit: number; now: Date }): Promise<UserActivityRecord[]>;
+  /** A world's activities in any status, for the panel's picker. */
+  listForWorld(worldId: string, query: { ids?: string[]; q?: string; limit: number }): Promise<ActivityRecord[]>;
   findForUser(activityId: string, userId: string): Promise<UserActivityRecord | null>;
   saveDraft(activityId: string, userId: string, answers: ActivityAnswers): Promise<void>;
+  /** Records when the person started: the first time only, so starting again does not reset the clock. */
+  markStarted(activityId: string, userId: string): Promise<void>;
+  /**
+   * A competition's ranking: score, then time from start to submission,
+   * then who submitted first. The first `limit` places, plus `userId`'s own.
+   */
+  leaderboard(activityId: string, limit: number, userId: string | null): Promise<{ rows: LeaderboardRow[]; total: number }>;
   /**
    * Stores a response and pays its reward, in one transaction. With an
    * idempotency key, a key already used answers with what it recorded —
@@ -133,7 +150,10 @@ export const setEngagementRepository = slot.set;
 const ACTIVITY_COLUMNS = `
   a.id, a.type, a.status, a.title, a.summary, a.instructions, a.audience,
   a.current_version_id AS version_id, v.version, v.definition,
-  a.starts_at, a.ends_at, a.published_at, a.created_at, a.updated_at`;
+  a.starts_at, a.ends_at, a.published_at, a.created_at, a.updated_at,
+  (SELECT coalesce(json_agg(json_build_object('id', w.id, 'name', w.name) ORDER BY w.position, w.name), '[]')
+     FROM v2_engagement_activity_worlds aw JOIN v2_worlds w ON w.id = aw.world_id
+    WHERE aw.activity_id = a.id) AS worlds`;
 
 const ACTIVITY_FROM = `
   FROM v2_engagement_activities a
@@ -173,6 +193,7 @@ type ActivityRow = {
   published_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  worlds: { id: string; name: string }[];
 };
 
 type StatsRow = {
@@ -210,6 +231,7 @@ function toActivity(row: ActivityRow): ActivityRecord {
     publishedAt: row.published_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    worlds: row.worlds,
   };
 }
 
@@ -309,7 +331,26 @@ async function insertActivity(
     id,
     version.rows[0].id,
   ]);
+  await writeWorlds(client, id, fields.worldIds);
   return id;
+}
+
+/** The worlds an activity is filed under, replaced as a whole. A world that does not exist is a 400. */
+async function writeWorlds(client: DbClient, activityId: string, worldIds: string[]): Promise<void> {
+  await client.query(`DELETE FROM v2_engagement_activity_worlds WHERE activity_id = $1`, [activityId]);
+  if (worldIds.length === 0) return;
+  try {
+    await client.query(
+      `INSERT INTO v2_engagement_activity_worlds (activity_id, world_id) SELECT $1, unnest($2::uuid[])`,
+      [activityId, worldIds]
+    );
+  } catch (error) {
+    // The transaction rolls back around it; the person hears which field.
+    if ((error as { code?: string }).code === '23503') {
+      throw new ValidationError('یکی از دنیاهای انتخاب‌شده وجود ندارد', { fields: { worldIds: 'یکی از دنیاهای انتخاب‌شده وجود ندارد' } });
+    }
+    throw error;
+  }
 }
 
 /**
@@ -351,27 +392,36 @@ const USER_ACTIVITY_SELECT = `
          p.draft AS p_draft, p.completed_at AS p_completed_at,
          (SELECT r.result FROM v2_engagement_responses r
            WHERE r.activity_id = a.id AND r.user_id = u.id AND r.result IS NOT NULL
-        ORDER BY r.submitted_at DESC LIMIT 1) AS last_result
+        ORDER BY r.submitted_at DESC LIMIT 1) AS last_result,
+         (SELECT r.answers FROM v2_engagement_responses r
+           WHERE r.activity_id = a.id AND r.user_id = u.id
+        ORDER BY r.submitted_at DESC LIMIT 1) AS last_answers
   ${ACTIVITY_FROM}
   JOIN v2_users u ON u.id = $1
   LEFT JOIN v2_engagement_participations p ON p.activity_id = a.id AND p.user_id = u.id`;
 
-type UserActivityRow = ActivityRow & ParticipationRow & { eligible: boolean; last_result: AssessmentResult | null };
+type UserActivityRow = ActivityRow &
+  ParticipationRow & { eligible: boolean; last_result: AssessmentResult | null; last_answers: ActivityAnswers | null };
 
 const toUserActivity = (row: UserActivityRow): UserActivityRecord => ({
   activity: toActivity(row),
   eligible: row.eligible,
   participation: toParticipation(row),
   lastResult: row.last_result,
+  lastAnswers: row.last_answers,
 });
 
 export const sqlEngagementRepository: EngagementRepository = {
-  async list({ status, type, search, page, pageSize }) {
+  async list({ status, type, search, world, page, pageSize }) {
+    const usesStatusParam = status === 'draft' || status === 'paused' || status === 'archived';
+    const params: unknown[] = [type ?? null, search ? `%${escapeLike(search)}%` : null, ...(usesStatusParam ? [status] : [])];
+    if (world) params.push(world);
+    const worldCondition = world
+      ? `AND EXISTS (SELECT 1 FROM v2_engagement_activity_worlds aw WHERE aw.activity_id = a.id AND aw.world_id = $${params.length})`
+      : '';
     const where = `WHERE ($1::v2_activity_type IS NULL OR a.type = $1)
                      AND ($2::text IS NULL OR a.title ILIKE $2)
-                     AND ${statusCondition(status)}`;
-    const usesStatusParam = status === 'draft' || status === 'paused' || status === 'archived';
-    const params = [type ?? null, search ? `%${escapeLike(search)}%` : null, ...(usesStatusParam ? [status] : [])];
+                     AND ${statusCondition(status)} ${worldCondition}`;
     const next = params.length + 1;
 
     const [rows, count] = await Promise.all([
@@ -454,6 +504,7 @@ export const sqlEngagementRepository: EngagementRepository = {
           adminId,
         ]
       );
+      await writeWorlds(client, id, fields.worldIds);
       await writeAudit(client, id, adminId, newVersion ? 'version_created' : 'updated', {
         version,
         xp: fields.definition.xp.enabled ? fields.definition.xp.amount : null,
@@ -488,7 +539,7 @@ export const sqlEngagementRepository: EngagementRepository = {
       // A copy starts as an unscheduled draft: its dates belonged to the original.
       const copyId = await insertActivity(
         client,
-        { ...source, title, startsAt: null, endsAt: null },
+        { ...source, title, startsAt: null, endsAt: null, worldIds: source.worlds.map((world) => world.id) },
         adminId
       );
       await writeAudit(client, copyId, adminId, 'duplicated', { from: id });
@@ -790,9 +841,92 @@ export const sqlEngagementRepository: EngagementRepository = {
     return rows.map(toUserActivity);
   },
 
+  async listOpenForWorld(worldId, userId, { ids, limit, now }) {
+    const open = `a.status = 'published' AND (a.starts_at IS NULL OR a.starts_at <= $3) AND (a.ends_at IS NULL OR a.ends_at > $3)
+      AND EXISTS (SELECT 1 FROM v2_engagement_activity_worlds aw WHERE aw.activity_id = a.id AND aw.world_id = $2)
+      AND ($4::uuid[] IS NULL OR a.id = ANY($4::uuid[]))`;
+    const order = `ORDER BY a.published_at DESC NULLS LAST, a.created_at DESC LIMIT $5`;
+    const rows = userId
+      ? await query<UserActivityRow>(
+          `${USER_ACTIVITY_SELECT} WHERE ${open} AND u.status = 'ACTIVE' AND ${audienceMatch('a.audience')} ${order}`,
+          [userId, worldId, now, ids ?? null, limit]
+        )
+      : // No person: `$1` stays bound (as null) so both statements share the placeholders above.
+        await query<UserActivityRow>(
+          `SELECT ${ACTIVITY_COLUMNS}, true AS eligible, NULL AS p_status, NULL AS p_submissions, NULL AS p_xp_awards,
+                  NULL AS p_draft, NULL AS p_completed_at, NULL AS last_result, NULL AS last_answers
+           ${ACTIVITY_FROM} WHERE $1::uuid IS NULL AND ${open} ${order}`,
+          [null, worldId, now, ids ?? null, limit]
+        );
+    return rows.map(toUserActivity);
+  },
+
+  async listForWorld(worldId, { ids, q, limit }) {
+    const rows = await query<ActivityRow>(
+      `SELECT ${ACTIVITY_COLUMNS} ${ACTIVITY_FROM}
+        WHERE EXISTS (SELECT 1 FROM v2_engagement_activity_worlds aw WHERE aw.activity_id = a.id AND aw.world_id = $1)
+          AND ($2::uuid[] IS NULL OR a.id = ANY($2::uuid[]))
+          AND ($3::text IS NULL OR a.title ILIKE $3)
+        ORDER BY a.updated_at DESC, a.id LIMIT $4`,
+      [worldId, ids ?? null, q ? `%${escapeLike(q)}%` : null, limit]
+    );
+    return rows.map(toActivity);
+  },
+
   async findForUser(activityId, userId) {
     const row = await queryOne<UserActivityRow>(`${USER_ACTIVITY_SELECT} WHERE a.id = $2`, [userId, activityId]);
     return row ? toUserActivity(row) : null;
+  },
+
+  async markStarted(activityId, userId) {
+    await query(
+      `INSERT INTO v2_engagement_participations (activity_id, user_id) VALUES ($1, $2)
+       ON CONFLICT (activity_id, user_id) DO NOTHING`,
+      [activityId, userId]
+    );
+  },
+
+  async leaderboard(activityId, limit, userId) {
+    const rows = await query<{
+      user_id: string;
+      rank: string;
+      name: string;
+      full_name: string;
+      score: number;
+      duration_ms: string | null;
+      total: string;
+    }>(
+      `WITH entries AS (
+         SELECT r.user_id, r.score::float8 AS score, r.submitted_at,
+                -- A start after the submission means it was not recorded before playing.
+                CASE WHEN p.started_at <= r.submitted_at
+                     THEN round(extract(epoch FROM r.submitted_at - p.started_at) * 1000)::bigint END AS duration_ms,
+                COALESCE('@' || NULLIF(u.username, ''), NULLIF(u.first_name, ''), NULLIF(u.display_name, ''), 'هم‌داستانی') AS name,
+                ${PERSON_NAME} AS full_name
+           FROM v2_engagement_responses r
+           JOIN v2_engagement_participations p ON p.activity_id = r.activity_id AND p.user_id = r.user_id
+           JOIN v2_users u ON u.id = r.user_id AND u.status = 'ACTIVE'
+          WHERE r.activity_id = $1 AND r.score IS NOT NULL),
+       ranked AS (
+         SELECT *, row_number() OVER (ORDER BY score DESC, duration_ms ASC NULLS LAST, submitted_at ASC) AS rank,
+                count(*) OVER () AS total
+           FROM entries)
+       SELECT user_id, rank, name, full_name, score, duration_ms, total FROM ranked
+        WHERE rank <= $2 OR user_id = $3
+        ORDER BY rank`,
+      [activityId, limit, userId]
+    );
+    return {
+      rows: rows.map((row) => ({
+        userId: row.user_id,
+        rank: Number(row.rank),
+        name: row.name,
+        fullName: row.full_name,
+        score: Math.round(row.score),
+        durationMs: row.duration_ms === null ? null : Number(row.duration_ms),
+      })),
+      total: Number(rows[0]?.total ?? 0),
+    };
   },
 
   async saveDraft(activityId, userId, answers) {

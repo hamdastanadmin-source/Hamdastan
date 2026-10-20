@@ -7,7 +7,7 @@
  * past them. The labels are here because both apps print them.
  */
 
-export const ACTIVITY_TYPES = ['survey', 'mission', 'assessment', 'journey'] as const;
+export const ACTIVITY_TYPES = ['survey', 'mission', 'assessment', 'journey', 'competition'] as const;
 export type ActivityTypeId = (typeof ACTIVITY_TYPES)[number];
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityTypeId, string> = {
@@ -15,9 +15,19 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityTypeId, string> = {
   mission: 'مأموریت',
   assessment: 'آزمون',
   journey: 'چالش چندروزه',
+  competition: 'مسابقه',
 };
 
-export const QUESTION_KINDS = ['single', 'multiple', 'text', 'rating', 'scale'] as const;
+/** A knowledge quiz scored on the server: an assessment in knowledge mode, or a competition. */
+export const isQuizType = (type: ActivityTypeId) => type === 'assessment' || type === 'competition';
+
+/** How many people a competition's leaderboard lists. The person's own place is always added. */
+export const LEADERBOARD_SIZE = 20;
+
+/** An answer's explanation, shown once the answers may be revealed. */
+export const EXPLANATION_MAX = 500;
+
+export const QUESTION_KINDS = ['single', 'multiple', 'text', 'rating', 'scale', 'matching'] as const;
 export type QuestionKindId = (typeof QUESTION_KINDS)[number];
 
 export const QUESTION_KIND_LABELS: Record<QuestionKindId, string> = {
@@ -26,7 +36,11 @@ export const QUESTION_KIND_LABELS: Record<QuestionKindId, string> = {
   text: 'متنی',
   rating: 'امتیازی',
   scale: 'طیفی',
+  matching: 'تطبیقی',
 };
+
+/** Kinds no assessment dimension can measure: a personality item is never one of these. */
+export const UNDIMENSIONED_KINDS: readonly QuestionKindId[] = ['text', 'matching'];
 
 export const ENGAGEMENT_LIMITS = {
   TITLE_MAX: 120,
@@ -50,6 +64,10 @@ export const ENGAGEMENT_LIMITS = {
   RATING_MAX_CHOICES: [5, 10] as const,
   SCALE_MIN_BOUND: 0,
   SCALE_MAX_BOUND: 10,
+  /** A matching question's pairs; each side is a short tile in a two-column grid. */
+  MATCHING_PAIRS_MIN: 4,
+  MATCHING_PAIRS_MAX: 8,
+  MATCHING_LABEL_MAX: 60,
   REASON_MAX: 300,
 } as const;
 

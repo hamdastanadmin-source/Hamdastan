@@ -3,12 +3,12 @@
 import { useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CircleCheck, Clock, Hourglass, Lock } from 'lucide-react';
+import { CircleCheck, Clock, Hourglass, Lock, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ACTIVITY_TYPE_LABELS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import { ENGAGEMENT_ERROR_CODES, type PlayerActivity } from '@hamdastan/types';
+import { ENGAGEMENT_ERROR_CODES, type Leaderboard, type PlayerActivity } from '@hamdastan/types';
 import { Badge, Button, IconBadge, Progress } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle, XpAmount } from '@/components';
@@ -17,8 +17,11 @@ import { HttpError } from '@/services';
 
 import { useActivityPlayer } from '../hooks/use-activity-player';
 import { minutesLabel, STATUS_LABELS } from '../utils/activity';
+import { formatWhen } from '../utils/quiz';
 import { QuestionField } from './QuestionField';
 import { QuestionImage } from './QuestionImage';
+import { AnswerReviewList } from './quiz/AnswerReviewList';
+import { LeaderboardCard } from './quiz/LeaderboardCard';
 import { ResultCard } from './ResultCard';
 
 /** The progress line in foreground — progress is not the primary action. */
@@ -30,9 +33,11 @@ const PROGRESS = 'h-0.5 bg-foreground/10 [&>[data-slot=progress-indicator]]:bg-f
  *
  * The done screen reports the API's answer and nothing else: «XP گرفتی»
  * appears only when the response says XP was written to the ledger, and a
- * mission waiting for review says so instead.
+ * mission waiting for review says so instead. A competition adds the
+ * person's place and its leaderboard; a quiz whose answers may be revealed
+ * lists them, with each one's explanation.
  */
-export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
+export function ActivityPlayer({ activity, leaderboard = null }: { activity: PlayerActivity; leaderboard?: Leaderboard | null }) {
   const router = useRouter();
   const player = useActivityPlayer(activity);
   const titleId = useId();
@@ -84,6 +89,23 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
             )}
           </div>
           {outcome.result && <ResultCard result={outcome.result} />}
+          {outcome.rank && (
+            <p className="text-center text-sm" role="status">
+              فعلاً رتبه‌ی <span className="font-bold tabular-nums">{toPersianDigits(outcome.rank.rank)}</span> رو داری.{' '}
+              <Button
+                variant="link"
+                className="h-auto p-0 font-semibold text-foreground"
+                onClick={() => {
+                  // The same address: refresh what the server sent, then show the intro with the board on it.
+                  router.refresh();
+                  player.toIntro();
+                }}
+              >
+                جدول امتیازات
+              </Button>
+            </p>
+          )}
+          {outcome.answerReview && <AnswerReviewList activity={activity} review={outcome.answerReview} />}
         </ScreenBody>
         <ScreenFooter>
           <Button asChild size="xl" className="w-full">
@@ -188,10 +210,20 @@ export function ActivityPlayer({ activity }: { activity: PlayerActivity }) {
             پاسخ‌هات ناشناس ثبت می‌شه؛ هیچ گزارشی اسمت رو کنار جواب‌هات نمی‌ذاره.
           </p>
         )}
+        {activity.type === 'competition' && activity.endsAt && (
+          <p className="flex items-start gap-2 rounded-xl border p-3 text-sm text-muted-foreground">
+            <Timer aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            {new Date(activity.endsAt) > new Date()
+              ? `فقط یک بار می‌تونی شرکت کنی، تا ${formatWhen(activity.endsAt)}. زمانت از لحظه‌ی «شروع» حساب می‌شه.`
+              : 'مسابقه تموم شده و رتبه‌ها قطعی‌ان.'}
+          </p>
+        )}
         {activity.review === 'manual' && (
           <p className="text-sm text-muted-foreground">بعد از ثبت، کارت رو بررسی می‌کنیم و XP بعد از تأیید به حسابت میاد.</p>
         )}
         {activity.lastResult && <ResultCard result={activity.lastResult} />}
+        {leaderboard && <LeaderboardCard board={leaderboard} />}
+        {activity.answerReview && <AnswerReviewList activity={activity} review={activity.answerReview} />}
       </ScreenBody>
       <ScreenFooter>
         {activity.canSubmit ? (

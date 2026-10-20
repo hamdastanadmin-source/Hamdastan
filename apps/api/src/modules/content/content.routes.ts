@@ -1,15 +1,35 @@
 import type { FastifyPluginAsync } from 'fastify';
 
+import { authenticate, requireAdminPermission as can } from '../../middleware';
+
+import { contentController as c } from './content.controller';
+
 /**
  * HTTP surface of the Content module — محتوای دنیاها.
  *
- * Mounted at `${API_PREFIX}/content` by `app.ts`.
- *
- * A route declares the path and the schema, then hands off. It holds no
- * logic of its own and calls nothing below the controller:
- *
- *   app.get('/:id', { schema: contentSchemas.getById }, contentController.getById);
+ *   `/content`        live articles for the product — `authenticate`; what
+ *                     may be seen is the repository's `LIVE` rule
+ *   `/admin/content`  the central content index and the article editor —
+ *                     `requireAdminPermission(…)`, per route
  */
-export const contentRoutes: FastifyPluginAsync = async () => {
-  // Register this module's routes here.
+
+export const contentRoutes: FastifyPluginAsync = async (app) => {
+  const user = { preHandler: authenticate };
+
+  app.get('/articles', user, c.list);
+  app.get('/articles/:slug', user, c.get);
+};
+
+export const contentAdminRoutes: FastifyPluginAsync = async (app) => {
+  // Each route names the permission it needs; the role table decides who has it.
+  const guard = (permission: Parameters<typeof can>[0]) => ({ preHandler: can(permission) });
+
+  app.get('/', guard('content.read'), c.index);
+  app.get('/articles', guard('content.read'), c.adminList);
+  app.post('/articles', guard('content.write'), c.create);
+  app.get('/articles/:id', guard('content.read'), c.adminGet);
+  app.put('/articles/:id', guard('content.write'), c.update);
+  app.post('/articles/:id/status', guard('content.publish'), c.changeStatus);
+  app.get('/articles/:id/preview', guard('content.read'), c.preview);
+  app.get('/articles/:id/history', guard('content.read'), c.history);
 };

@@ -136,7 +136,7 @@ user object, because then the browser would be deciding.
 
 ```
 features/
-├── auth/  onboarding/  home/  worlds/  play/  community/
+├── auth/  onboarding/  home/  worlds/  content/  play/  community/
 └── profile/  activities/  events/  commerce/  notifications/  search/
 ```
 
@@ -156,6 +156,15 @@ rule that picks the character is `traitScores`/`pickCharacter` in
 `/preview/activities/:id` is the admin's full journey preview: the proxy
 lets it through without a product session, and the API decides by the
 admin session it carries.
+
+`worlds` is home's world picker (`WorldBanners`) and a world's page
+(`/worlds/:slug`): the hero in its theme, the menu as address-backed tabs,
+and each tab's list — borrowing `ArticleCard` from `content`, `EventCard`
+from `events` and `ActivityCard` from `activities` through their public
+surfaces. `content` is the article card and page (`/articles/:slug`). Which
+world is published and which item may appear is the API's answer; neither
+feature filters. A library file is drawn by `MediaImage` (`src/components`),
+which falls back to a quiet tile rather than a broken image.
 
 `notifications` is the Notification Center (`/notifications`), the opener
 every row and every tapped push lead through (`/notifications/:id` — it asks
@@ -202,14 +211,21 @@ Like `apps/web`, the admin root layout wraps everything in
 `Tabs` — and on portalled overlays, and without the provider it writes
 `ltr`: a toggle group of cards then lays out and punctuates left-to-right
 inside an RTL page.
-There are six: `users` (the admin allow-list and roles), `events`, `worlds`,
+There are eight: `users` (the admin allow-list and roles), `events`, `worlds`
+(the world list and one world's page — identity, menu, home, content,
+preview), `content` (the central content index, reused inside a world's
+page as `ContentIndexPanel`, and the article editor),
 `notifications` (campaigns: list and figures, the editor with its audience
 count, preview and send confirmation, the report and history), `engagement`
 (Engagement Studio — the builder, the list and the results dashboard),
 `media` (the media & motion library, and the fields the builder picks files
 with — `MediaField`, `MotionSettingField`, imported by `engagement` through
 `@/features/media`) and `sessions` (a product account's live sessions, ended
-one or all at once). Lottie motions are drawn with `lottie-web`'s *light*
+one or all at once). Pieces more than one feature needs live outside them:
+`WorldsField` (the world checkboxes every editor that files content under a
+world uses) and `NEUTRAL_TOGGLE` / `NEUTRAL_TAB` in `src/components`,
+`useWorldOptions` in `src/hooks`, and `worldIdParam` (the `?world=` a «new»
+page is opened with from a world's page) in `src/lib`. Lottie motions are drawn with `lottie-web`'s *light*
 build — SVG only, without the expression engine, so an uploaded animation
 never runs `eval`.
 

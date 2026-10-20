@@ -59,6 +59,23 @@ export function PreviewQuestion({ question, number }: { question: ActivityQuesti
           ))}
         </ToggleGroup>
       )}
+      {question.kind === 'matching' && (
+        <div className="grid grid-cols-2 gap-2" aria-label="جفت‌ها">
+          {/* The player's order: prompts as written, matches by their own ids (`toPlayerQuestion`). */}
+          {[
+            question.pairs.map((pair) => ({ id: pair.id, label: pair.prompt })),
+            question.pairs.map((pair) => ({ id: pair.matchId, label: pair.match })).sort((a, b) => (a.id < b.id ? -1 : 1)),
+          ].map((column, c) => (
+            <ul key={c} className="flex flex-col gap-2">
+              {column.map((item) => (
+                <li key={item.id} className="flex min-h-12 items-center justify-center rounded-xl border px-3 py-2 text-center text-sm">
+                  {item.label || (c === 0 ? 'مورد' : 'جفت')}
+                </li>
+              ))}
+            </ul>
+          ))}
+        </div>
+      )}
       {question.kind === 'text' && <Textarea rows={question.multiline ? 4 : 1} placeholder="جوابت رو بنویس" />}
       {question.kind === 'rating' && (
         <ToggleGroup type="single" spacing={1} className="w-full flex-wrap" aria-label="امتیاز">

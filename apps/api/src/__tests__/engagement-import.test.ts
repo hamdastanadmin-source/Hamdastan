@@ -15,6 +15,22 @@ const row = (cells: Partial<Record<(typeof QUESTION_IMPORT_COLUMNS)[number]['key
   QUESTION_IMPORT_COLUMNS.map((column) => cells[column.key] ?? null);
 
 describe('parseQuestionRows', () => {
+  it('reads a matching question from «مورد = جفت» pairs, and refuses a malformed pair', () => {
+    const result = parseQuestionRows(
+      [
+        header,
+        row({ type: 'تطبیقی', title: 'وصل کن', options: 'الف = ۱ | ب = ۲ | ج = ۳ | د = ۴' }),
+        row({ type: 'تطبیقی', title: 'ناقص', options: 'الف = ۱ | ب | ج = ۳ | د = ۴' }),
+      ],
+      { type: 'survey', newId }
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.rows[0].errors).toEqual([]);
+    expect(result.rows[0].question).toMatchObject({ kind: 'matching', pairs: [{ prompt: 'الف', match: '1' }, {}, {}, {}] });
+    expect(result.rows[1].question).toBeNull();
+  });
+
   it('reads every kind, with Persian digits and «|» options', () => {
     const result = parseQuestionRows(
       [

@@ -55,6 +55,11 @@ type QuestionBase = {
 export type ChoiceQuestion = QuestionBase & {
   kind: 'single' | 'multiple';
   options: ChoiceOption[];
+  /**
+   * Knowledge quiz: why the right answer is right. Never sent to the
+   * product until the answers may be revealed (`AssessmentSettings.revealAnswers`).
+   */
+  explanation?: string;
   /** `multiple` only; absent means no cap. */
   maxSelections?: number;
 };
@@ -73,7 +78,21 @@ export type ScaleQuestion = QuestionBase & {
   maxLabel: string;
 };
 
-export type ActivityQuestion = ChoiceQuestion | TextQuestion | RatingQuestion | ScaleQuestion;
+/**
+ * One pair of a matching question. The match has its own id, minted apart
+ * from the pair's, so the product can be sent both columns without the key.
+ */
+export type MatchingPair = { id: string; prompt: string; matchId: string; match: string };
+
+/** Duolingo-style: the person pairs every prompt with its match. Right only when every pair is. */
+export type MatchingQuestion = QuestionBase & {
+  kind: 'matching';
+  pairs: MatchingPair[];
+  /** Knowledge quiz: as a choice question's. */
+  explanation?: string;
+};
+
+export type ActivityQuestion = ChoiceQuestion | TextQuestion | RatingQuestion | ScaleQuestion | MatchingQuestion;
 
 /** How a journey day's cover comes in. */
 export type CoverEntryEffect = 'none' | 'fade' | 'slide_up' | 'zoom';
@@ -121,6 +140,12 @@ export type AssessmentSettings = {
   passingScore: number | null;
   /** Whether the person sees their result. */
   showResult: boolean;
+  /**
+   * Knowledge only: once the person has no submissions left — for a
+   * competition, once it has ended — they see each question's right answer
+   * and its explanation. Off by default.
+   */
+  revealAnswers: boolean;
 };
 
 export type XpSettings = {
@@ -308,6 +333,8 @@ export type AdminActivitySummary = {
   createdAt: string;
   updatedAt: string;
   stats: ActivityStats;
+  /** The worlds it is filed under. Not part of a version. */
+  worlds: { id: string; name: string }[];
 };
 
 export type AdminActivityDetail = AdminActivitySummary & {
@@ -327,6 +354,7 @@ export type ActivityInput = {
   audience: ActivityAudience;
   startsAt: string | null;
   endsAt: string | null;
+  worldIds: string[];
 };
 
 export type ActivityStatusAction = 'publish' | 'pause' | 'resume' | 'close' | 'archive';
@@ -344,6 +372,8 @@ export type QuestionStat = {
   distribution?: { value: number; count: number }[];
   /** Text questions: the latest answers, without who gave them. */
   texts?: string[];
+  /** Matching questions: each pair, and how many people matched it right. */
+  pairs?: { id: string; label: string; count: number }[];
 };
 
 export type AssessmentStats = {
@@ -447,11 +477,22 @@ export type PlayerQuestion =
   | (Omit<ChoiceQuestion, 'options' | 'dimensionId' | 'reverse'> & { options: { id: string; label: string }[] })
   | Omit<TextQuestion, 'dimensionId' | 'reverse'>
   | Omit<RatingQuestion, 'dimensionId' | 'reverse'>
-  | Omit<ScaleQuestion, 'dimensionId' | 'reverse'>;
+  | Omit<ScaleQuestion, 'dimensionId' | 'reverse'>
+  | PlayerMatchingQuestion;
+
+/**
+ * A matching question as the product receives it: the prompts in the
+ * admin's order and the matches in an order that says nothing of the key.
+ * The answer is the match ids, one per prompt, in the prompts' order.
+ */
+export type PlayerMatchingQuestion = Omit<MatchingQuestion, 'pairs' | 'explanation' | 'dimensionId' | 'reverse'> & {
+  prompts: { id: string; label: string }[];
+  matches: { id: string; label: string }[];
+};
 
 export type PlayerStep = Omit<ActivityStep, 'questions'> & { questions: PlayerQuestion[] };
 
-/** One answer: an option id, several, a text, or a number. */
+/** One answer: an option id, several (or a matching question's match ids), a text, or a number. */
 export type ActivityAnswerValue = string | string[] | number;
 export type ActivityAnswers = Record<string, ActivityAnswerValue>;
 
@@ -523,6 +564,8 @@ export type PlayerActivity = ActivityCard & {
   draft: ActivityAnswers | null;
   /** The latest result, when the assessment shows one. */
   lastResult: AssessmentResult | null;
+  /** The answers revealed for the person's last submission, when allowed (`revealAnswers`). */
+  answerReview: AnswerReview[] | null;
   /**
    * Journey only. Its `steps` carry only the days the person may open (or,
    * if allowed, read back); a locked day is not sent at all — its number,
@@ -558,7 +601,47 @@ export type ActivitySubmission = {
   /** The person's XP after it. */
   xpTotal: number;
   result: AssessmentResult | null;
+  /** The answers revealed, when this submission was the person's last and the admin allows it. */
+  answerReview: AnswerReview[] | null;
+  /** A competition: where this submission stands now. */
+  rank: LeaderboardEntry | null;
 };
+
+/** One question of a knowledge quiz, after the fact: what was right and why. */
+export type AnswerReview = {
+  questionId: string;
+  /** Whether the person's answer was right. */
+  correct: boolean;
+  /** A matching question: the right match id for each prompt, in the prompts' order. */
+  correctOptionIds: string[];
+  explanation: string;
+};
+
+/** One place on a competition's leaderboard. */
+export type LeaderboardEntry = {
+  rank: number;
+  /** `@username`, else the person's first name — never a phone number. */
+  name: string;
+  score: number;
+  /** From starting to submitting; null when the start was not recorded. */
+  durationMs: number | null;
+  /** This is the person asking. */
+  me: boolean;
+};
+
+/** `GET /me/activities/:id/leaderboard`. */
+export type Leaderboard = {
+  entries: LeaderboardEntry[];
+  /** The person's own place, when they took part — also when it is below the list. */
+  me: LeaderboardEntry | null;
+  /** Everyone ranked. */
+  total: number;
+  /** The competition has ended; the ranking is final. */
+  final: boolean;
+};
+
+/** `GET /admin/engagement/activities/:id/leaderboard` — with each person's full name, for the panel. */
+export type AdminLeaderboardEntry = Omit<LeaderboardEntry, 'me'> & { userId: string; fullName: string };
 
 /**
  * `GET /admin/engagement/activities/:id/preview` — a journey as the player

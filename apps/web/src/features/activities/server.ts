@@ -3,4 +3,4 @@
  * component cannot pull `next/headers` into its bundle.
  */
 
-export { getJourneyPreview, getMyActivities, getPlayerActivity } from './services/activities.server';
+export { getJourneyPreview, getLeaderboard, getMyActivities, getPlayerActivity } from './services/activities.server';

@@ -5,7 +5,7 @@ import { adminRoutes } from './admin';
 import { authRoutes } from './auth';
 import { commerceRoutes } from './commerce';
 import { communityRoutes } from './community';
-import { contentRoutes } from './content';
+import { contentAdminRoutes, contentRoutes } from './content';
 import { engagementAdminRoutes, engagementRoutes } from './engagement';
 import { eventsAdminRoutes, eventsRoutes, myEventsRoutes } from './events';
 import { mediaAdminRoutes, mediaRoutes } from './media';
@@ -58,6 +58,8 @@ export const moduleRoutes: ReadonlyArray<{
   // Events, their categories and bookings; the world list they are filed under.
   { prefix: '/admin/events', routes: eventsAdminRoutes },
   { prefix: '/admin/worlds', routes: worldsAdminRoutes },
+  // News and knowledge articles, and the index of everything filed under worlds.
+  { prefix: '/admin/content', routes: contentAdminRoutes },
   // Notification campaigns: compose, target, schedule, report.
   { prefix: '/admin/notifications', routes: notificationsAdminRoutes },
   { prefix: '/media', routes: mediaRoutes },

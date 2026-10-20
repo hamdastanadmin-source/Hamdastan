@@ -61,6 +61,17 @@ export function questionStats(definition: ActivityDefinition, responses: Respons
             })),
           };
         }
+        case 'matching': {
+          const answers = values.filter((value): value is string[] => Array.isArray(value));
+          return {
+            ...base,
+            pairs: question.pairs.map((pair, i) => ({
+              id: pair.id,
+              label: `${pair.prompt} ← ${pair.match}`,
+              count: answers.filter((answer) => answer[i] === pair.matchId).length,
+            })),
+          };
+        }
         case 'text':
           // Newest first; the responses arrive in that order.
           return {
@@ -99,6 +110,12 @@ export function describeAnswer(question: ActivityQuestion, value: ActivityAnswer
   if (question.kind === 'single' || question.kind === 'multiple') {
     const ids = Array.isArray(value) ? value : [String(value)];
     return ids.map((id) => question.options.find((option) => option.id === id)?.label ?? id).join('، ');
+  }
+  if (question.kind === 'matching') {
+    const ids = Array.isArray(value) ? value : [];
+    return question.pairs
+      .map((pair, i) => `${pair.prompt} ← ${question.pairs.find((p) => p.matchId === ids[i])?.match ?? '—'}`)
+      .join('، ');
   }
   return String(value);
 }

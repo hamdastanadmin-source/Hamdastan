@@ -198,7 +198,13 @@ shadow the root one.
   1440×900. It starts its own `apps/web` dev server. The specs that walk the
   sign-in flow need `apps/api` running against a migrated database with
   `OTP_DEBUG_DISPLAY=true`; without it they **skip with a reason** rather than
-  passing vacuously.
+  passing vacuously. A full run signs in dozens of times from one machine and
+  seeds through one admin, so start the API with the test caps raised:
+  `OTP_DEBUG_DISPLAY=true OTP_MAX_SENDS_PER_IP=500 OTP_MAX_SENDS_PER_PHONE=50
+  RATE_LIMIT_OTP_VERIFY_PER_15_MINUTES=500 RATE_LIMIT_ADMIN_WRITE_PER_MINUTE=300
+  npm run dev:api`. `admin-worlds.spec.ts` also needs `apps/admin` on `:3001`
+  (or `ADMIN_BASE_URL`). The admin session is reused across specs from the
+  git-ignored `e2e/.auth/admin.json`.
 
 ---
 

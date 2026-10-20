@@ -1,20 +1,12 @@
 /**
- * Worlds — دنیاها: فهرست، صفحهٔ دنیا و پیمایش میان آن‌ها.
+ * Worlds — دنیاها: home's world picker and a world's page — its theme,
+ * menu of tabs, the home the admin arranged, and its news, knowledge,
+ * events and activities.
  *
- * Public surface of the feature. Nothing outside it imports past this file.
- *
- * Add the directories below as the feature needs them, not before:
- *   components/  UI that only this feature uses
- *   hooks/       React state and effects for this feature
- *   services/    calls to apps/api, through `@/services`
- *   types/       types private to this feature
- *   utils/       helpers private to this feature
- *
- * Anything a second feature starts needing moves out: shared UI to
- * `@hamdastan/ui`, shared types to `@hamdastan/types`, shared helpers to
- * `@hamdastan/shared`. See docs/ARCHITECTURE.md.
- *
- * A server-only surface, when one is needed, goes in `./server.ts`.
+ * Public surface of the feature; the server-side reads are in `./server`.
+ * Which world is published and what each list may hold is decided by
+ * `apps/api`; this feature shows it.
  */
 
-export {};
+export { WorldBanners } from './components/WorldBanners';
+export { WorldPreviewScreen, WorldScreen } from './components/WorldScreen';

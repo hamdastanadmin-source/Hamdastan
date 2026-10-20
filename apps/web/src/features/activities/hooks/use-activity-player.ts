@@ -44,13 +44,18 @@ export function useActivityPlayer(activity: PlayerActivity) {
   const current = flow[index];
   const isLast = index === flow.length - 1;
 
-  /** Starts at the first unanswered question, so a saved draft resumes where it stopped. */
+  /**
+   * Starts at the first unanswered question, so a saved draft resumes where
+   * it stopped. A competition's clock starts here, on the server; if that
+   * call is lost, the first saved answer starts it instead.
+   */
   const start = useCallback(() => {
+    if (activity.type === 'competition') void activitiesService.start(activity.id).catch(() => undefined);
     const resume = flow.findIndex((item) => answers[item.question.id] === undefined);
     setIndex(resume === -1 ? 0 : resume);
     setError(null);
     setPhase('question');
-  }, [answers, flow]);
+  }, [activity.id, activity.type, answers, flow]);
 
   const setAnswer = useCallback(
     (value: ActivityAnswerValue | undefined) => {
@@ -130,5 +135,7 @@ export function useActivityPlayer(activity: PlayerActivity) {
     setAnswer,
     back,
     next,
+    /** Back to the intro — with the page refreshed, it shows what the submission changed. */
+    toIntro: () => setPhase('intro'),
   };
 }

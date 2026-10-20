@@ -112,6 +112,7 @@ const survey = (imageId?: string): ActivityInput => ({
   audience: { kind: 'all' },
   startsAt: null,
   endsAt: null,
+  worldIds: [],
 });
 
 describe.skipIf(!hasDatabase)('the media library against a migrated database', () => {

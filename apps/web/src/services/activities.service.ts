@@ -6,6 +6,7 @@ import type {
   ActivitySubmission,
   JourneyAnswerOutcome,
   JourneyPreview,
+  Leaderboard,
   PlayerActivity,
   PlayerMedia,
 } from '@hamdastan/types';
@@ -29,6 +30,16 @@ export const activitiesService = {
 
   get(id: string, options?: ServerCall): Promise<PlayerActivity> {
     return apiClient.get<PlayerActivity>(`/me/activities/${id}`, { ...withCookie(options), cache: 'no-store' });
+  },
+
+  /** Records the moment the person starts — a competition's time runs from it. Starting again changes nothing. */
+  start(id: string): Promise<{ started: true }> {
+    return apiClient.post<{ started: true }>(`/me/activities/${id}/start`);
+  },
+
+  /** A competition's leaderboard, with the person's own place. */
+  leaderboard(id: string, options?: ServerCall): Promise<Leaderboard> {
+    return apiClient.get<Leaderboard>(`/me/activities/${id}/leaderboard`, { ...withCookie(options), cache: 'no-store' });
   },
 
   saveDraft(id: string, answers: ActivityAnswers): Promise<{ saved: true }> {
