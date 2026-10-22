@@ -6,7 +6,7 @@ import { motionAssetIds } from '@hamdastan/validation';
  * must be. Pure: the service checks the list against the library on save,
  * and describes it to the player on read.
  *
- * A question's image and a cover's background must be images; a motion —
+ * A question's image, an option's and a cover's background must be images; a motion —
  * a mascot, an answer's, a day's end — may be an image or a motion.
  */
 
@@ -24,6 +24,11 @@ function stepRefs(step: ActivityStep, s: number): MediaRef[] {
   motion(`${at}.answerMotion`, motionAssetIds(step.answerMotion));
   step.questions.forEach((question, q) => {
     if (question.imageId) refs.push({ path: `${at}.questions.${q}.imageId`, id: question.imageId, needs: 'image' });
+    if ('options' in question) {
+      question.options.forEach((option, o) => {
+        if (option.imageId) refs.push({ path: `${at}.questions.${q}.options.${o}.imageId`, id: option.imageId, needs: 'image' });
+      });
+    }
     motion(`${at}.questions.${q}.motion`, motionAssetIds(question.motion));
   });
   return refs;

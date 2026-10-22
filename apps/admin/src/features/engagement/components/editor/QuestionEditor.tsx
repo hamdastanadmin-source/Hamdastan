@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, Copy, Plus, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, ArrowUp, Copy, Plus, Trash2, X } from 'lucide-react';
 
 import {
   ENGAGEMENT_LIMITS,
@@ -38,6 +38,7 @@ import { MediaField, MotionSettingField } from '@/features/media';
 import { emptyPair, emptyQuestion, newKey } from '../../utils/draft';
 import { QUESTION_KIND_UI } from '../../utils/question-kinds';
 import { Field, invalid, motionErrors, NEUTRAL_CHECKBOX, SwitchRow } from './Field';
+import { OptionProfileWeights } from './OptionProfileWeights';
 import { OptionTraitPoints } from './OptionTraitPoints';
 
 /** The chosen position is told by a foreground border — never the brand colour. */
@@ -89,10 +90,18 @@ export function QuestionEditor({
   const id = `q-${question.id}`;
   const error = (field: string) => errors[`${path}.${field}`];
   const knowledge = assessment?.mode === 'knowledge';
+  const imageOptions = 'options' in question && question.optionStyle === 'image';
   const personality = assessment?.mode === 'personality';
+  const profile = assessment?.mode === 'profile';
 
   const setOptions = (options: ChoiceOption[]) =>
     (question.kind === 'single' || question.kind === 'multiple') && onChange({ ...question, options });
+  const moveOption = (index: number, offset: -1 | 1) => {
+    if (question.kind !== 'single' && question.kind !== 'multiple') return;
+    const options = [...question.options];
+    [options[index], options[index + offset]] = [options[index + offset], options[index]];
+    setOptions(options);
+  };
   const setPairs = (pairs: MatchingPair[]) => question.kind === 'matching' && onChange({ ...question, pairs });
 
   const KindIcon = QUESTION_KIND_UI[question.kind].icon;
@@ -219,63 +228,127 @@ export function QuestionEditor({
         </Field>
 
         {(question.kind === 'single' || question.kind === 'multiple') && (
-          <Field label="گزینه‌ها" error={error('options')}>
+          <div className="flex flex-wrap items-center gap-3">
+            <span id={`${id}-option-style`} className="text-sm text-muted-foreground">
+              نوع گزینه‌ها
+            </span>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={question.optionStyle ?? 'text'}
+              onValueChange={(value) =>
+                value && onChange({ ...question, optionStyle: value === 'image' ? 'image' : undefined })
+              }
+              aria-labelledby={`${id}-option-style`}
+            >
+              <ToggleGroupItem value="text" className={POSITION}>
+                متنی
+              </ToggleGroupItem>
+              <ToggleGroupItem value="image" className={POSITION}>
+                تصویری
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        )}
+
+        {(question.kind === 'single' || question.kind === 'multiple') && (
+          <Field
+            label="گزینه‌ها"
+            error={error('options')}
+            hint={imageOptions ? 'هر گزینه یک تصویر است. نام گزینه به کاربر نمایش داده نمی‌شود و فقط در نتایج می‌آید.' : undefined}
+          >
             <ul className="flex flex-col gap-2">
               {question.options.map((option, index) => (
-                <li key={option.id} className="flex items-center gap-2">
-                  {knowledge && (
-                    <Checkbox
-                      checked={option.correct ?? false}
-                      onCheckedChange={(checked) =>
-                        setOptions(
-                          question.options.map((o) =>
-                            o.id === option.id
-                              ? { ...o, correct: checked === true }
-                              : question.kind === 'single' && checked === true
-                                ? { ...o, correct: false }
-                                : o
+                <li key={option.id} className={imageOptions ? 'flex flex-col gap-2 rounded-lg border p-2' : undefined}>
+                  <div className="flex items-center gap-2">
+                    {knowledge && (
+                      <Checkbox
+                        checked={option.correct ?? false}
+                        onCheckedChange={(checked) =>
+                          setOptions(
+                            question.options.map((o) =>
+                              o.id === option.id
+                                ? { ...o, correct: checked === true }
+                                : question.kind === 'single' && checked === true
+                                  ? { ...o, correct: false }
+                                  : o
+                            )
                           )
-                        )
-                      }
-                      aria-label={`گزینه‌ی ${toPersianDigits(index + 1)} درست است`}
-                      className={NEUTRAL_CHECKBOX}
-                    />
-                  )}
-                  <Input
-                    value={option.label}
-                    placeholder={`گزینه‌ی ${toPersianDigits(index + 1)}`}
-                    aria-label={`متن گزینه‌ی ${toPersianDigits(index + 1)}`}
-                    onChange={(event) =>
-                      setOptions(question.options.map((o) => (o.id === option.id ? { ...o, label: event.target.value } : o)))
-                    }
-                    {...invalid(error(`options.${index}.label`))}
-                  />
-                  {personality && (
+                        }
+                        aria-label={`گزینه‌ی ${toPersianDigits(index + 1)} درست است`}
+                        className={NEUTRAL_CHECKBOX}
+                      />
+                    )}
                     <Input
-                      type="number"
-                      min={-10}
-                      max={10}
-                      className="w-20 tabular-nums"
-                      value={option.score ?? 0}
-                      aria-label={`امتیاز گزینه‌ی ${toPersianDigits(index + 1)}`}
+                      value={option.label}
+                      placeholder={imageOptions ? `نام گزینه‌ی ${toPersianDigits(index + 1)} (اختیاری)` : `گزینه‌ی ${toPersianDigits(index + 1)}`}
+                      aria-label={`${imageOptions ? 'نام' : 'متن'} گزینه‌ی ${toPersianDigits(index + 1)}`}
                       onChange={(event) =>
-                        setOptions(
-                          question.options.map((o) =>
-                            o.id === option.id ? { ...o, score: Math.trunc(Number(event.target.value) || 0) } : o
-                          )
-                        )
+                        setOptions(question.options.map((o) => (o.id === option.id ? { ...o, label: event.target.value } : o)))
                       }
+                      {...invalid(error(`options.${index}.label`))}
+                    />
+                    {personality && (
+                      <Input
+                        type="number"
+                        min={-10}
+                        max={10}
+                        className="w-20 tabular-nums"
+                        value={option.score ?? 0}
+                        aria-label={`امتیاز گزینه‌ی ${toPersianDigits(index + 1)}`}
+                        onChange={(event) =>
+                          setOptions(
+                            question.options.map((o) =>
+                              o.id === option.id ? { ...o, score: Math.trunc(Number(event.target.value) || 0) } : o
+                            )
+                          )
+                        }
+                      />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={index === 0}
+                      onClick={() => moveOption(index, -1)}
+                      aria-label={`بالا بردن گزینه‌ی ${toPersianDigits(index + 1)}`}
+                    >
+                      <ArrowUp aria-hidden="true" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={index === question.options.length - 1}
+                      onClick={() => moveOption(index, 1)}
+                      aria-label={`پایین بردن گزینه‌ی ${toPersianDigits(index + 1)}`}
+                    >
+                      <ArrowDown aria-hidden="true" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={question.options.length <= ENGAGEMENT_LIMITS.OPTIONS_MIN}
+                      onClick={() => setOptions(question.options.filter((o) => o.id !== option.id))}
+                      aria-label={`حذف گزینه‌ی ${toPersianDigits(index + 1)}`}
+                    >
+                      <X aria-hidden="true" />
+                    </Button>
+                  </div>
+                  {imageOptions && (
+                    <MediaField
+                      value={option.imageId}
+                      onChange={(imageId) =>
+                        setOptions(question.options.map((o) => (o.id === option.id ? { ...o, imageId: imageId ?? undefined } : o)))
+                      }
+                      kind="image"
+                      category="question"
+                      pickerTitle={`تصویر گزینه‌ی ${toPersianDigits(index + 1)}`}
+                      invalid={Boolean(error(`options.${index}.imageId`))}
                     />
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={question.options.length <= ENGAGEMENT_LIMITS.OPTIONS_MIN}
-                    onClick={() => setOptions(question.options.filter((o) => o.id !== option.id))}
-                    aria-label={`حذف گزینه‌ی ${toPersianDigits(index + 1)}`}
-                  >
-                    <X aria-hidden="true" />
-                  </Button>
+                  {error(`options.${index}.imageId`) && (
+                    <p className="text-xs text-destructive">{error(`options.${index}.imageId`)}</p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -296,6 +369,46 @@ export function QuestionEditor({
                 <p className="text-xs text-muted-foreground">عدد کنار هر گزینه، امتیاز آن گزینه برای بُعد این سؤال است.</p>
               )}
             </div>
+            {profile && (
+              <div className="flex flex-col gap-3 rounded-lg border p-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <Field
+                    label="ضریب سؤال"
+                    htmlFor={`${id}-weight`}
+                    error={error('weight')}
+                    hint={`وزن گزینه‌های این سؤال در این عدد ضرب می‌شود (۰ تا ${toPersianDigits(ENGAGEMENT_LIMITS.QUESTION_WEIGHT_MAX)}). صفر یعنی این سؤال در نتیجه اثری ندارد.`}
+                  >
+                    <Input
+                      id={`${id}-weight`}
+                      type="number"
+                      min={0}
+                      max={ENGAGEMENT_LIMITS.QUESTION_WEIGHT_MAX}
+                      step={1}
+                      className="w-24 tabular-nums"
+                      value={question.weight ?? 1}
+                      onChange={(event) =>
+                        onChange({
+                          ...question,
+                          weight: Math.max(
+                            0,
+                            Math.min(ENGAGEMENT_LIMITS.QUESTION_WEIGHT_MAX, Math.trunc(Number(event.target.value) || 0))
+                          ),
+                        })
+                      }
+                      {...invalid(error('weight'))}
+                    />
+                  </Field>
+                </div>
+                <p className="text-sm font-medium">ماتریس امتیازدهی</p>
+                <OptionProfileWeights
+                  options={question.options}
+                  profiles={assessment.profiles ?? []}
+                  errors={errors}
+                  path={path}
+                  onChange={setOptions}
+                />
+              </div>
+            )}
             {traits.length > 0 && (
               <OptionTraitPoints options={question.options} traits={traits} errors={errors} path={path} onChange={setOptions} />
             )}

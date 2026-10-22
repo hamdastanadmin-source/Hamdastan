@@ -29,6 +29,7 @@ import type {
   ActivityAnswers,
   ActivityAnswerValue,
   ActivityDefinition,
+  ActivityStep,
   ActivityType,
   PlayerQuestion,
 } from '@hamdastan/types';
@@ -46,12 +47,24 @@ const keySchema = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, { error: 'شناسه
 
 // ─── Definition ──────────────────────────────────────────────────────────────
 
+// The label is required of a text option only; `checkDefinition` says so, as the style decides it.
 const optionSchema = z.object({
   id: keySchema,
-  label: line(L.OPTION_LABEL_MAX, 'متن گزینه را وارد کنید'),
+  label: line(L.OPTION_LABEL_MAX, null),
+  imageId: mediaIdSchema.optional(),
   correct: z.boolean().optional(),
   score: z.number().int().min(-10).max(10).optional(),
   traits: z.record(keySchema, z.number().int().min(-J.TRAIT_POINTS_MAX).max(J.TRAIT_POINTS_MAX)).optional(),
+  weights: z
+    .record(
+      keySchema,
+      z
+        .number({ error: 'وزن باید عدد باشد' })
+        .int({ error: 'وزن باید عدد صحیح باشد' })
+        .min(-L.PROFILE_WEIGHT_MAX, { error: `وزن بین ${fa(-L.PROFILE_WEIGHT_MAX)} و ${fa(L.PROFILE_WEIGHT_MAX)} است` })
+        .max(L.PROFILE_WEIGHT_MAX, { error: `وزن بین ${fa(-L.PROFILE_WEIGHT_MAX)} و ${fa(L.PROFILE_WEIGHT_MAX)} است` })
+    )
+    .optional(),
 });
 
 const questionBase = {
@@ -61,6 +74,12 @@ const questionBase = {
   required: z.boolean(),
   dimensionId: keySchema.optional(),
   reverse: z.boolean().optional(),
+  weight: z
+    .number({ error: 'ضریب سؤال باید عدد باشد' })
+    .int({ error: 'ضریب سؤال باید عدد صحیح باشد' })
+    .min(0, { error: `ضریب سؤال بین ۰ و ${fa(L.QUESTION_WEIGHT_MAX)} است` })
+    .max(L.QUESTION_WEIGHT_MAX, { error: `ضریب سؤال بین ۰ و ${fa(L.QUESTION_WEIGHT_MAX)} است` })
+    .optional(),
   imageId: mediaIdSchema.optional(),
   imagePosition: z.enum(['above', 'below']).optional(),
   motion: motionSettingSchema.optional(),
@@ -69,6 +88,7 @@ const questionBase = {
 const choiceFields = {
   ...questionBase,
   explanation: paragraph(EXPLANATION_MAX).optional(),
+  optionStyle: z.enum(['text', 'image']).optional(),
   options: z
     .array(optionSchema)
     .min(L.OPTIONS_MIN, { error: `حداقل ${fa(L.OPTIONS_MIN)} گزینه لازم است` })
@@ -147,7 +167,7 @@ const xpSchema = z.object({
 });
 
 const assessmentSchema = z.object({
-  mode: z.enum(['personality', 'knowledge']),
+  mode: z.enum(['personality', 'knowledge', 'profile']),
   dimensions: z
     .array(
       z.object({
@@ -157,6 +177,22 @@ const assessmentSchema = z.object({
       })
     )
     .max(L.DIMENSIONS_MAX),
+  profiles: z
+    .array(
+      z.object({
+        id: keySchema,
+        title: line(L.TITLE_MAX, 'عنوان پروفایل را وارد کنید'),
+        description: paragraph(L.DESCRIPTION_MAX).default(''),
+      })
+    )
+    .max(L.PROFILES_MAX, { error: `حداکثر ${fa(L.PROFILES_MAX)} پروفایل` })
+    .optional(),
+  tieBreak: z
+    .object({
+      priorityQuestionIds: z.array(keySchema).max(L.QUESTIONS_MAX),
+      defaultProfileId: keySchema.nullable(),
+    })
+    .optional(),
   passingScore: z.number().int().min(0).max(100).nullable(),
   showResult: z.boolean(),
   // Absent on every version stored before answers could be revealed.
@@ -257,6 +293,7 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     ? { ...definition.assessment, mode: 'knowledge' as const, dimensions: [] }
     : type === 'assessment' ? definition.assessment : null;
   const knowledgePassMark = isQuizType(type) && assessment?.mode === 'knowledge' && assessment.passingScore !== null;
+  const profile = assessment?.mode === 'profile';
 
   const journey = type === 'journey';
   // A journey is taken once, answer by answer; a competition once, against the clock.
@@ -265,7 +302,10 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
   return {
     ...definition,
     // A cover, the motions and trait points are a journey's; any other type drops them. A question image stays.
-    steps: (type === 'mission' || journey ? definition.steps : definition.steps.slice(0, 1)).map((step) =>
+    steps: (type === 'mission' || journey ? definition.steps : definition.steps.slice(0, 1))
+      .map(withOptionStyle)
+      .map((step) => (profile ? step : withoutProfileWeights(step)))
+      .map((step) =>
       journey
         ? step
         : {
@@ -282,13 +322,50 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     maxSubmissions,
     anonymous: type === 'survey' && definition.anonymous,
     review: type === 'mission' ? definition.review : 'auto',
-    assessment,
+    // Profiles and their tie rules are a profile assessment's; any other mode drops them.
+    assessment: assessment && !profile ? { ...assessment, profiles: undefined, tieBreak: undefined } : assessment,
     journey: journey ? definition.journey : null,
     xp: {
       ...definition.xp,
       maxAwards: Math.min(definition.xp.maxAwards, maxSubmissions),
       requirePass: knowledgePassMark && definition.xp.requirePass,
     },
+  };
+}
+
+/**
+ * Options follow their question's style: a text option keeps no picture,
+ * and an image option left unnamed is named by its place — the name the
+ * results, the CSV and a read-back show.
+ */
+function withOptionStyle(step: ActivityStep): ActivityStep {
+  return {
+    ...step,
+    questions: step.questions.map((question) => {
+      if (!('options' in question)) return question;
+      const images = question.optionStyle === 'image';
+      return {
+        ...question,
+        optionStyle: images ? 'image' : undefined,
+        options: question.options.map((option, o) =>
+          images
+            ? { ...option, label: option.label || `تصویر ${fa(o + 1)}` }
+            : { ...option, imageId: undefined }
+        ),
+      };
+    }),
+  };
+}
+
+/** A question's multiplier and its options' profile weights count only in a profile assessment. */
+function withoutProfileWeights(step: ActivityStep): ActivityStep {
+  return {
+    ...step,
+    questions: step.questions.map((question) =>
+      'options' in question
+        ? { ...question, weight: undefined, options: question.options.map((option) => ({ ...option, weights: undefined })) }
+        : { ...question, weight: undefined }
+    ),
   };
 }
 
@@ -321,6 +398,11 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
       if (question.kind === 'single' || question.kind === 'multiple') {
         const optionIds = new Set(question.options.map((option) => option.id));
         if (optionIds.size !== question.options.length) issue([...at, 'options'], 'شناسه‌ی گزینه تکراری است');
+        const images = question.optionStyle === 'image';
+        question.options.forEach((option, o) => {
+          if (images && !option.imageId) issue([...at, 'options', o, 'imageId'], 'تصویر گزینه را انتخاب کنید');
+          if (!images && !option.label) issue([...at, 'options', o, 'label'], 'متن گزینه را وارد کنید');
+        });
         if (question.kind === 'multiple' && (question.maxSelections ?? 0) > question.options.length) {
           issue([...at, 'maxSelections'], 'سقف انتخاب از تعداد گزینه‌ها بیشتر است');
         }
@@ -348,6 +430,11 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
   }
 
   // A competition is scored as knowledge whatever its mode says; `forType` sets it so.
+  if (assessment.mode === 'profile' && type !== 'competition') {
+    checkProfiles(definition, issue);
+    return;
+  }
+
   if (assessment.mode === 'personality' && type !== 'competition') {
     if (assessment.dimensions.length === 0) issue(['assessment', 'dimensions'], 'حداقل یک بُعد لازم است');
     const dimensionIds = new Set(assessment.dimensions.map((dimension) => dimension.id));
@@ -378,6 +465,49 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
   // A matching question carries its own key, so it scores without one being marked.
   if (!questions.some((question) => question.kind === 'single' || question.kind === 'multiple' || question.kind === 'matching')) {
     issue(['steps'], 'آزمون دانشی دست‌کم به یک سؤال گزینه‌ای یا تطبیقی نیاز دارد');
+  }
+}
+
+/**
+ * A profile assessment: profiles to come out as, each with its own title,
+ * weights only toward profiles that exist, priority questions that are
+ * choice questions of this activity, and a default profile — so a tie
+ * always ends in one result.
+ */
+function checkProfiles(definition: ActivityDefinition, issue: (path: (string | number)[], message: string) => void) {
+  const settings = definition.assessment!;
+  const profiles = settings.profiles ?? [];
+  const at = ['assessment'];
+  const profileIds = new Set(profiles.map((profile) => profile.id));
+
+  if (profiles.length < 2) issue([...at, 'profiles'], 'حداقل دو پروفایل نتیجه تعریف کنید');
+  if (profileIds.size !== profiles.length) issue([...at, 'profiles'], 'شناسه‌ی پروفایل تکراری است');
+  const titles = profiles.map((profile) => profile.title);
+  if (new Set(titles).size !== titles.length) issue([...at, 'profiles'], 'عنوان پروفایل‌ها باید با هم فرق داشته باشد');
+
+  const choiceIds = new Set<string>();
+  definition.steps.forEach((step, s) =>
+    step.questions.forEach((question, q) => {
+      if (question.kind !== 'single' && question.kind !== 'multiple') return;
+      choiceIds.add(question.id);
+      question.options.forEach((option, o) => {
+        if (Object.keys(option.weights ?? {}).some((id) => !profileIds.has(id))) {
+          issue(['steps', s, 'questions', q, 'options', o, 'weights'], 'وزن برای پروفایلی ثبت شده که وجود ندارد');
+        }
+      });
+    })
+  );
+  if (choiceIds.size === 0) issue(['steps'], 'پروفایل‌سنجی دست‌کم به یک سؤال گزینه‌ای نیاز دارد');
+
+  const tieBreak = settings.tieBreak ?? { priorityQuestionIds: [], defaultProfileId: null };
+  if (new Set(tieBreak.priorityQuestionIds).size !== tieBreak.priorityQuestionIds.length) {
+    issue([...at, 'tieBreak', 'priorityQuestionIds'], 'یک سؤال دو بار در اولویت‌ها آمده است');
+  }
+  if (tieBreak.priorityQuestionIds.some((id) => !choiceIds.has(id))) {
+    issue([...at, 'tieBreak', 'priorityQuestionIds'], 'سؤال اولویت‌دار باید یکی از سؤال‌های گزینه‌ای همین آزمون باشد');
+  }
+  if (!tieBreak.defaultProfileId || !profileIds.has(tieBreak.defaultProfileId)) {
+    issue([...at, 'tieBreak', 'defaultProfileId'], 'پروفایل پیش‌فرض را انتخاب کنید');
   }
 }
 

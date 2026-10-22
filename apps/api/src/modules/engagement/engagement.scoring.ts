@@ -23,6 +23,12 @@ import type {
  * question's lowest and highest), turned round when the item is
  * reverse-keyed, and averaged per dimension; the dimension on top is the
  * outcome. Ties go to the dimension listed first.
+ *
+ * Profile: every chosen option adds its weight toward each profile,
+ * multiplied by its question's weight; the profile with the highest total
+ * is the result. A tie is broken by the priority questions, one by one —
+ * of the tied profiles, those that scored most on that question stay — and
+ * whatever is still tied after them goes to the default profile.
  */
 
 const isChoice = (question: ActivityQuestion): question is ChoiceQuestion =>
@@ -95,6 +101,8 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
     };
   }
 
+  if (settings.mode === 'profile') return scoreProfiles(definition, answers);
+
   const dimensions = settings.dimensions.map((dimension) => {
     const values = questions
       .filter((question) => question.dimensionId === dimension.id)
@@ -119,6 +127,62 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
     passed: null,
     dimensions: measured.map(({ dimension, value }) => ({ id: dimension.id, title: dimension.title, value: value! })),
     outcome: top ? { title: top.dimension.title, description: top.dimension.description } : null,
+  };
+}
+
+/** What one answered choice question adds to one profile: its picks' weights, times the question's weight. */
+function questionProfileScore(question: ChoiceQuestion, value: ActivityAnswers[string] | undefined, profileId: string): number {
+  const picked = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+  const weights = question.options
+    .filter((option) => picked.includes(option.id))
+    .reduce((sum, option) => sum + (option.weights?.[profileId] ?? 0), 0);
+  return weights * (question.weight ?? 1);
+}
+
+function scoreProfiles(definition: ActivityDefinition, answers: ActivityAnswers): AssessmentResult {
+  const settings = definition.assessment!;
+  const profiles = settings.profiles ?? [];
+  const tieBreak = settings.tieBreak ?? { priorityQuestionIds: [], defaultProfileId: null };
+  const choices = allQuestions(definition).filter(isChoice);
+
+  const totals = profiles.map((profile) => ({
+    profile,
+    score: choices.reduce((sum, question) => sum + questionProfileScore(question, answers[question.id], profile.id), 0),
+  }));
+
+  const top = Math.max(...totals.map((entry) => entry.score));
+  let tied = totals.filter((entry) => entry.score === top).map((entry) => entry.profile);
+  let tieBrokenBy: AssessmentResult['tieBrokenBy'] = null;
+
+  if (tied.length > 1) {
+    for (const questionId of tieBreak.priorityQuestionIds) {
+      const question = choices.find((candidate) => candidate.id === questionId);
+      if (!question) continue;
+      const scores = tied.map((profile) => questionProfileScore(question, answers[question.id], profile.id));
+      const best = Math.max(...scores);
+      tied = tied.filter((_, i) => scores[i] === best);
+      if (tied.length === 1) {
+        tieBrokenBy = 'priority_question';
+        break;
+      }
+    }
+  }
+  if (tied.length > 1) {
+    const fallback = profiles.find((profile) => profile.id === tieBreak.defaultProfileId);
+    // The schema requires a default profile; the first tied one only guards a version stored without it.
+    tied = [fallback ?? tied[0]];
+    tieBrokenBy = 'default_profile';
+  }
+
+  const winner = tied[0] ?? null;
+  return {
+    mode: 'profile',
+    score: null,
+    passed: null,
+    dimensions: [],
+    outcome: winner ? { title: winner.title, description: winner.description } : null,
+    profiles: totals.map(({ profile, score }) => ({ id: profile.id, title: profile.title, score })),
+    tieBrokenBy,
   };
 }
 

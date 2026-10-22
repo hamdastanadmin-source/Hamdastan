@@ -125,6 +125,126 @@ describe('scoreAssessment', () => {
   });
 });
 
+describe('profile assessment', () => {
+  const settings = (priorityQuestionIds: string[] = []) => ({
+    mode: 'profile' as const,
+    dimensions: [],
+    profiles: [
+      { id: 'lead', title: 'رهبر', description: 'd-lead' },
+      { id: 'calm', title: 'آرام', description: 'd-calm' },
+    ],
+    tieBreak: { priorityQuestionIds, defaultProfileId: 'calm' },
+    passingScore: null,
+    showResult: true,
+    revealAnswers: false,
+  });
+  const profile = (priorityQuestionIds?: string[]): ActivityDefinition => ({
+    ...base,
+    steps: [
+      {
+        id: 's',
+        title: '',
+        description: '',
+        questions: [
+          {
+            id: 'q1',
+            kind: 'single',
+            title: 'q1',
+            required: true,
+            weight: 2,
+            options: [
+              { id: 'a', label: 'a', weights: { lead: 3, calm: -1 } },
+              { id: 'b', label: 'b', weights: { calm: 2 } },
+            ],
+          },
+          {
+            id: 'q2',
+            kind: 'multiple',
+            title: 'q2',
+            required: false,
+            options: [
+              { id: 'x', label: 'x', weights: { lead: 1 } },
+              { id: 'y', label: 'y', weights: { calm: 1 } },
+              { id: 'z', label: 'z' },
+            ],
+          },
+        ],
+      },
+    ],
+    assessment: settings(priorityQuestionIds),
+  });
+
+  it('adds every chosen option’s weight, times its question’s, and takes the highest', () => {
+    // lead: 2×3 + 1 = 7; calm: 2×(−1) + 1 = −1.
+    const result = scoreAssessment(profile(), { q1: 'a', q2: ['x', 'y'] })!;
+    expect(result.profiles).toEqual([
+      { id: 'lead', title: 'رهبر', score: 7 },
+      { id: 'calm', title: 'آرام', score: -1 },
+    ]);
+    expect(result.outcome).toEqual({ title: 'رهبر', description: 'd-lead' });
+    expect(result.tieBrokenBy).toBeNull();
+  });
+
+  it('breaks a tie by the priority questions, then by the default profile', () => {
+    // Nothing answered: both 0, and the priority question splits nothing.
+    expect(scoreAssessment(profile(['q2']), {})).toMatchObject({ outcome: { title: 'آرام' }, tieBrokenBy: 'default_profile' });
+
+    // 1 – 1, and 1 – 1 on the priority question too: the default decides.
+    expect(scoreAssessment(profile(['q2']), { q2: ['x', 'y'] })).toMatchObject({
+      outcome: { title: 'آرام' },
+      tieBrokenBy: 'default_profile',
+    });
+
+    // 6 – 6 in all, but 6 – (−2) on q1: the priority question decides.
+    const split = profile(['q1']);
+    split.steps[0].questions[1] = {
+      id: 'q2',
+      kind: 'multiple',
+      title: 'q2',
+      required: false,
+      options: [
+        { id: 'x', label: 'x', weights: { calm: 8 } },
+        { id: 'y', label: 'y' },
+      ],
+    };
+    expect(scoreAssessment(split, { q1: 'a', q2: ['x'] })).toMatchObject({
+      outcome: { title: 'رهبر' },
+      tieBrokenBy: 'priority_question',
+    });
+  });
+
+  it('asks for two profiles, a default, and priority questions that are this activity’s choice questions', () => {
+    const input = (assessment: object) => ({
+      type: 'assessment',
+      title: 'پروفایل',
+      summary: '',
+      instructions: '',
+      audience: { kind: 'all' },
+      startsAt: null,
+      endsAt: null,
+      definition: { ...profile(), assessment },
+    });
+    expect(activityInputSchema.safeParse(input(settings(['q1']))).success).toBe(true);
+    expect(activityInputSchema.safeParse(input({ ...settings(), tieBreak: { priorityQuestionIds: [], defaultProfileId: null } })).success).toBe(false);
+    expect(activityInputSchema.safeParse(input(settings(['nope']))).success).toBe(false);
+    expect(activityInputSchema.safeParse(input({ ...settings(), profiles: settings().profiles.slice(0, 1) })).success).toBe(false);
+
+    // Another mode keeps no weights.
+    const knowledge = activityInputSchema.parse({
+      ...input({ ...settings(), mode: 'personality', dimensions: [{ id: 'd', title: 'D', description: '' }] }),
+      definition: {
+        ...profile(),
+        steps: [{ ...profile().steps[0], questions: profile().steps[0].questions.map((q) => ({ ...q, dimensionId: 'd' })) }],
+        assessment: { ...settings(), mode: 'personality', dimensions: [{ id: 'd', title: 'D', description: '' }] },
+      },
+    });
+    const first = knowledge.definition.steps[0].questions[0];
+    expect(first.weight).toBeUndefined();
+    expect('options' in first && first.options.every((option) => option.weights === undefined)).toBe(true);
+    expect(knowledge.definition.assessment?.profiles).toBeUndefined();
+  });
+});
+
 describe('earnsXp', () => {
   const passed = { mode: 'knowledge' as const, score: 80, passed: true, dimensions: [], outcome: null };
   const failed = { ...passed, score: 20, passed: false };
@@ -198,6 +318,36 @@ describe('the shared rules', () => {
     });
     expect(activityInputSchema.safeParse(input(matching.pairs)).success).toBe(true);
     expect(activityInputSchema.safeParse(input(matching.pairs.slice(0, 3))).success).toBe(false);
+  });
+
+  it('asks every image option for a picture, names an unnamed one, and keeps no picture on a text option', () => {
+    const IMAGE = '00000000-0000-4000-8000-000000000001';
+    const input = (q: object) => ({
+      type: 'survey',
+      title: 'تصویری',
+      summary: '',
+      instructions: '',
+      audience: { kind: 'all' },
+      startsAt: null,
+      endsAt: null,
+      definition: { ...base, steps: [{ id: 's', title: '', description: '', questions: [q] }] },
+    });
+    const options = [
+      { id: 'a', label: 'برج', imageId: IMAGE },
+      { id: 'b', label: '', imageId: IMAGE },
+    ];
+
+    const images = activityInputSchema.parse(input({ ...question, optionStyle: 'image', options }));
+    const parsed = images.definition.steps[0].questions[0];
+    expect('options' in parsed && parsed.options.map((option) => option.label)).toEqual(['برج', 'تصویر ۲']);
+
+    const missing = activityInputSchema.safeParse(input({ ...question, optionStyle: 'image', options: [options[0], { id: 'b', label: 'b' }] }));
+    expect(missing.error?.issues[0]?.path.join('.')).toBe('definition.steps.0.questions.0.options.1.imageId');
+
+    expect(activityInputSchema.safeParse(input({ ...question, options })).success).toBe(false);
+    const text = activityInputSchema.parse(input({ ...question, options: [options[0], { ...options[1], label: 'ب' }] }));
+    const textQuestion = text.definition.steps[0].questions[0];
+    expect('options' in textQuestion && textQuestion.options.every((option) => option.imageId === undefined)).toBe(true);
   });
 
   it('requires a key for every knowledge question', () => {

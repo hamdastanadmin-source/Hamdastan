@@ -24,16 +24,27 @@ export type ActivityStatus = 'draft' | 'scheduled' | 'published' | 'paused' | 'c
 
 export type ChoiceOption = {
   id: string;
+  /** An image option's may be left empty; the API then names it «تصویر n». */
   label: string;
+  /** An image option's picture, from the media library. */
+  imageId?: string;
   /** Knowledge assessment: an answer key. Never sent to the product. */
   correct?: boolean;
   /** Personality assessment: points toward the question's dimension. Never sent to the product. */
   score?: number;
   /** Journey: points this option gives each trait, by trait id. Never sent to the product. */
   traits?: Record<string, number>;
+  /**
+   * Profile assessment: this option's weight toward each result profile, by
+   * profile id — positive, negative, or absent for zero. Never sent to the product.
+   */
+  weights?: Record<string, number>;
 };
 
 export type QuestionImagePosition = 'above' | 'below';
+
+/** How a choice question's options are drawn: text rows (the default), or a grid of images. */
+export type OptionStyle = 'text' | 'image';
 
 type QuestionBase = {
   id: string;
@@ -44,6 +55,8 @@ type QuestionBase = {
   dimensionId?: string;
   /** Personality assessment: a reverse-keyed item — its value counts from the other end. */
   reverse?: boolean;
+  /** Profile assessment: what this question's option weights are multiplied by. Absent means 1. Never sent to the product. */
+  weight?: number;
   /** An image from the media library, shown with the question. */
   imageId?: string;
   /** Where the image goes: above the question's text (the default), or between it and the answers. */
@@ -55,6 +68,8 @@ type QuestionBase = {
 export type ChoiceQuestion = QuestionBase & {
   kind: 'single' | 'multiple';
   options: ChoiceOption[];
+  /** `image`: every option is a picture. Absent means text. */
+  optionStyle?: OptionStyle;
   /**
    * Knowledge quiz: why the right answer is right. Never sent to the
    * product until the answers may be revealed (`AssessmentSettings.revealAnswers`).
@@ -128,14 +143,33 @@ export type ActivityStep = {
   answerMotion?: MotionSetting;
 };
 
-export type AssessmentMode = 'personality' | 'knowledge';
+export type AssessmentMode = 'personality' | 'knowledge' | 'profile';
 
 export type AssessmentDimension = { id: string; title: string; description: string };
+
+/** Profile assessment: a result a person can come out as. */
+export type AssessmentProfile = { id: string; title: string; description: string };
+
+/**
+ * Profile assessment: how a tie on the top score is broken, in this order.
+ * First the priority questions, one by one: of the tied profiles, those
+ * that scored most on that question stay. If more than one still stays,
+ * the default profile is the result.
+ */
+export type ProfileTieBreak = {
+  /** Choice questions, in the order they are consulted. */
+  priorityQuestionIds: string[];
+  defaultProfileId: string | null;
+};
 
 export type AssessmentSettings = {
   mode: AssessmentMode;
   /** Personality only. */
   dimensions: AssessmentDimension[];
+  /** Profile only: the results, in the admin's order. */
+  profiles?: AssessmentProfile[];
+  /** Profile only. */
+  tieBreak?: ProfileTieBreak;
   /** Knowledge only: the percentage that passes, or null for no pass mark. */
   passingScore: number | null;
   /** Whether the person sees their result. */
@@ -382,7 +416,7 @@ export type AssessmentStats = {
   averageScore: number | null;
   /** Knowledge with a pass mark: passes / submissions, 0–1. */
   passRate: number | null;
-  /** Personality: how many people each dimension came out on top for. */
+  /** Personality: how many people each dimension came out on top for. Profile: each profile, its id as `dimensionId`. */
   outcomes: { dimensionId: string; title: string; count: number }[];
 };
 
@@ -474,10 +508,10 @@ export type ActivityCard = {
 
 /** A question as the product receives it: no answer key, no scoring. */
 export type PlayerQuestion =
-  | (Omit<ChoiceQuestion, 'options' | 'dimensionId' | 'reverse'> & { options: { id: string; label: string }[] })
-  | Omit<TextQuestion, 'dimensionId' | 'reverse'>
-  | Omit<RatingQuestion, 'dimensionId' | 'reverse'>
-  | Omit<ScaleQuestion, 'dimensionId' | 'reverse'>
+  | (Omit<ChoiceQuestion, 'options' | 'dimensionId' | 'reverse' | 'weight'> & { options: { id: string; label: string; imageId?: string }[] })
+  | Omit<TextQuestion, 'dimensionId' | 'reverse' | 'weight'>
+  | Omit<RatingQuestion, 'dimensionId' | 'reverse' | 'weight'>
+  | Omit<ScaleQuestion, 'dimensionId' | 'reverse' | 'weight'>
   | PlayerMatchingQuestion;
 
 /**
@@ -485,7 +519,7 @@ export type PlayerQuestion =
  * admin's order and the matches in an order that says nothing of the key.
  * The answer is the match ids, one per prompt, in the prompts' order.
  */
-export type PlayerMatchingQuestion = Omit<MatchingQuestion, 'pairs' | 'explanation' | 'dimensionId' | 'reverse'> & {
+export type PlayerMatchingQuestion = Omit<MatchingQuestion, 'pairs' | 'explanation' | 'dimensionId' | 'reverse' | 'weight'> & {
   prompts: { id: string; label: string }[];
   matches: { id: string; label: string }[];
 };
@@ -504,8 +538,12 @@ export type AssessmentResult = {
   passed: boolean | null;
   /** Personality: each dimension, 0–100. */
   dimensions: { id: string; title: string; value: number }[];
-  /** Personality: the dimension on top. */
+  /** Personality: the dimension on top. Profile: the profile that won. */
   outcome: { title: string; description: string } | null;
+  /** Profile: every profile's weighted total, in the admin's order. */
+  profiles?: { id: string; title: string; score: number }[];
+  /** Profile: what settled a tie on the top score, or null when there was none. */
+  tieBrokenBy?: 'priority_question' | 'default_profile' | null;
 };
 
 /**

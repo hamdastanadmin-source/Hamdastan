@@ -164,6 +164,7 @@ export function ActivityPlayer({ activity, leaderboard = null }: { activity: Pla
             onChange={player.setAnswer}
             labelledBy={titleId}
             invalid={Boolean(player.error)}
+            media={activity.media}
           />
           {player.error && (
             <p role="alert" className="text-sm text-destructive">

@@ -29,10 +29,11 @@ import { describeAudience } from '../../utils/labels';
 const OPTION =
   'group/option h-auto min-h-12 w-full justify-start gap-3 whitespace-normal rounded-xl border px-4 py-3 text-start font-normal data-[state=on]:border-foreground';
 
-/** A question's image as the player shows it: whole, within a fixed height, never stretched. */
-function QuestionImage({ id }: { id: string }) {
+/** A question's image as the player shows it: whole, within a fixed height, never stretched — or an image option's, whole within its tile. */
+function QuestionImage({ id, tile = false }: { id: string; tile?: boolean }) {
   const { asset, missing } = useMediaAsset(id);
   if (missing || !asset) return null;
+  if (tile) return <MediaPreview asset={asset} className="size-full rounded-lg" />;
   return <MediaPreview asset={asset} className="aspect-video max-h-64 w-full rounded-xl bg-muted/40" />;
 }
 
@@ -49,7 +50,22 @@ export function PreviewQuestion({ question, number }: { question: ActivityQuesti
       {question.description && <p className="text-sm text-muted-foreground">{question.description}</p>}
       {question.imageId && question.imagePosition === 'below' && <QuestionImage id={question.imageId} />}
 
-      {(question.kind === 'single' || question.kind === 'multiple') && (
+      {(question.kind === 'single' || question.kind === 'multiple') && question.optionStyle === 'image' && (
+        <ToggleGroup type="multiple" spacing={2} className="grid w-full grid-cols-2" aria-label="گزینه‌ها">
+          {question.options.map((option, index) => (
+            <ToggleGroupItem
+              key={option.id}
+              value={option.id}
+              aria-label={option.label || `تصویر ${toPersianDigits(index + 1)}`}
+              className="group/option relative aspect-square h-auto w-full overflow-hidden rounded-xl border p-1 data-[state=on]:border-foreground"
+            >
+              {option.imageId ? <QuestionImage id={option.imageId} tile /> : <span className="text-xs text-muted-foreground">تصویر</span>}
+              <Check aria-hidden="true" className="invisible absolute end-2 top-2 size-5 rounded-full bg-foreground p-1 text-background group-data-[state=on]/option:visible" />
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      )}
+      {(question.kind === 'single' || question.kind === 'multiple') && question.optionStyle !== 'image' && (
         <ToggleGroup type="multiple" spacing={2} className="w-full flex-col items-stretch" aria-label="گزینه‌ها">
           {question.options.map((option) => (
             <ToggleGroupItem key={option.id} value={option.id} className={OPTION}>

@@ -96,11 +96,18 @@ export function assessmentStats(definition: ActivityDefinition, responses: Respo
     mode: settings.mode,
     averageScore: scores.length ? round1(scores.reduce((sum, s) => sum + s, 0) / scores.length) : null,
     passRate: verdicts.length ? verdicts.filter(Boolean).length / verdicts.length : null,
-    outcomes: settings.dimensions.map((dimension) => ({
-      dimensionId: dimension.id,
-      title: dimension.title,
-      count: responses.filter((r) => r.result?.outcome?.title === dimension.title).length,
-    })),
+    outcomes:
+      settings.mode === 'profile'
+        ? (settings.profiles ?? []).map((profile) => ({
+            dimensionId: profile.id,
+            title: profile.title,
+            count: responses.filter((r) => r.result?.outcome?.title === profile.title).length,
+          }))
+        : settings.dimensions.map((dimension) => ({
+            dimensionId: dimension.id,
+            title: dimension.title,
+            count: responses.filter((r) => r.result?.outcome?.title === dimension.title).length,
+          })),
   };
 }
 
@@ -135,11 +142,14 @@ function csvField(value: string | number | null): string {
 export function toCsv(definition: ActivityDefinition, responses: ResponseRow[], withIdentity: boolean): string {
   const questions = definition.steps.flatMap((step) => step.questions);
   const assessed = definition.assessment !== null;
+  // A profile assessment: each profile's weighted total, so the matrix can be checked against real answers.
+  const profiles = definition.assessment?.mode === 'profile' ? (definition.assessment.profiles ?? []) : [];
 
   const header = [
     ...(withIdentity ? ['نام', 'شماره موبایل', 'زمان ثبت'] : ['تاریخ ثبت']),
     ...questions.map((question) => question.title),
     ...(assessed ? ['نمره', 'قبولی', 'نتیجه'] : []),
+    ...profiles.map((profile) => `امتیاز ${profile.title}`),
   ];
 
   const rows = responses.map((response) => [
@@ -154,6 +164,7 @@ export function toCsv(definition: ActivityDefinition, responses: ResponseRow[], 
           response.result?.outcome?.title ?? '',
         ]
       : []),
+    ...profiles.map((profile) => response.result?.profiles?.find((entry) => entry.id === profile.id)?.score ?? ''),
   ]);
 
   return `﻿${[header, ...rows].map((row) => row.map(csvField).join(',')).join('\r\n')}\r\n`;

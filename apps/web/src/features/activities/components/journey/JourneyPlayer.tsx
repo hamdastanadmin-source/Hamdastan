@@ -161,6 +161,7 @@ export function JourneyPlayer({ activity, preview }: { activity: PlayerActivity;
               onChange={player.setValue}
               labelledBy={titleId}
               invalid={Boolean(player.error)}
+              media={activity.media}
             />
             {player.error && (
               <p role="alert" className="text-sm text-destructive">

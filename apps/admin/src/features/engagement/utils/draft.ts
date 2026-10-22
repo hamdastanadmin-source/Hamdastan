@@ -37,6 +37,7 @@ export function emptyQuestion(kind: ActivityQuestion['kind'], keep?: Partial<Act
     required: keep?.required ?? true,
     dimensionId: keep?.dimensionId,
     reverse: keep?.reverse,
+    weight: keep?.weight,
     imageId: keep?.imageId,
     imagePosition: keep?.imagePosition,
     motion: keep?.motion,
@@ -47,6 +48,7 @@ export function emptyQuestion(kind: ActivityQuestion['kind'], keep?: Partial<Act
       return {
         ...base,
         kind,
+        optionStyle: keep && 'optionStyle' in keep ? keep.optionStyle : undefined,
         options:
           keep && 'options' in keep && keep.options
             ? keep.options
@@ -95,7 +97,7 @@ export const dayTitle = (number: number) => `روز ${toPersianDigits(number)}`;
 export function isBlankQuestion(question: ActivityQuestion): boolean {
   if (question.title.trim() !== '') return false;
   if ('pairs' in question) return question.pairs.every((pair) => pair.prompt.trim() === '' && pair.match.trim() === '');
-  return !('options' in question) || question.options.every((option) => option.label.trim() === '');
+  return !('options' in question) || question.options.every((option) => option.label.trim() === '' && !option.imageId);
 }
 
 /** A step as it was created: one blank question, no description, no cover. */

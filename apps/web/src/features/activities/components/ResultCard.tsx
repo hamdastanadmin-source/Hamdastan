@@ -7,10 +7,26 @@ const BAR = 'bg-muted [&>[data-slot=progress-indicator]]:bg-foreground/70';
 
 /**
  * An assessment's result as the person sees it, when the admin allowed it:
- * a knowledge score with its pass mark, or the personality outcome with
- * every dimension's share.
+ * a knowledge score with its pass mark, the personality outcome with
+ * every dimension's share, or the profile the person came out as. A
+ * profile's weighted totals stay with the admin: they can be negative and
+ * mean nothing on their own.
  */
 export function ResultCard({ result }: { result: AssessmentResult }) {
+  if (result.mode === 'profile') {
+    return (
+      <Card className="gap-3">
+        <CardHeader>
+          <CardDescription>پروفایل تو</CardDescription>
+          <CardTitle className="text-xl">{result.outcome?.title ?? '—'}</CardTitle>
+          {result.outcome?.description && (
+            <p className="text-sm leading-relaxed text-muted-foreground">{result.outcome.description}</p>
+          )}
+        </CardHeader>
+      </Card>
+    );
+  }
+
   if (result.mode === 'knowledge') {
     return (
       <Card className="gap-3">

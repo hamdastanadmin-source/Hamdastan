@@ -251,6 +251,7 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
             <AssessmentSettingsPanel
               settings={assessment}
               errors={errors}
+              questions={steps.flatMap((step) => step.questions)}
               competition={state.type === 'competition'}
               onChange={(next) => updateDefinition({ assessment: next })}
             />

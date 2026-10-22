@@ -20,7 +20,7 @@ const TYPES: Record<ActivityType, { icon: LucideIcon; body: string }> = {
   },
   assessment: {
     icon: GraduationCap,
-    body: 'آزمون دانشی یا شخصیت‌شناسی همراه با نتیجه. XP مستقل از نتیجه اعطا می‌شود، مگر اینکه شرط قبولی تعیین کنید.',
+    body: 'آزمون دانشی، شخصیت‌شناسی یا پروفایل‌سنجی وزن‌دار همراه با نتیجه. XP مستقل از نتیجه اعطا می‌شود، مگر اینکه شرط قبولی تعیین کنید.',
   },
   journey: {
     icon: CalendarDays,

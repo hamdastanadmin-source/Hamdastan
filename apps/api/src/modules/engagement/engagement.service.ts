@@ -138,12 +138,12 @@ function toFields(input: ActivityInputOutput): ActivityFields {
 /** A question as the product receives it: the answer key and the scoring stay on the server. */
 function toPlayerQuestion(question: ActivityQuestion): PlayerQuestion {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { dimensionId, reverse, ...rest } = question;
+  const { dimensionId, reverse, weight, ...rest } = question;
   if (rest.kind === 'single' || rest.kind === 'multiple') {
     // The explanation is part of the answer key: it is sent only once answers may be revealed.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { explanation, ...choice } = rest;
-    return { ...choice, options: choice.options.map(({ id, label }) => ({ id, label })) };
+    return { ...choice, options: choice.options.map(({ id, label, imageId }) => ({ id, label, imageId })) };
   }
   if (rest.kind === 'matching') {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

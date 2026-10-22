@@ -719,6 +719,17 @@ and tapping either takes it apart; the answer counts only once every prompt
 is paired, and right or wrong is told only after submitting, like any other
 question). Each pair's match has its own random id, so the product receives
 both columns without the key. Any question may be required or optional.
+A choice question's options are text (the default) or images
+(«نوع گزینه‌ها: متنی / تصویری», `optionStyle: 'image'`): 2–12 options, each
+a picture from the media library (`imageId`, category «تصویر سؤال»), drawn in
+the product as a two-column grid of square tiles — the picture whole, a
+foreground border and a check once chosen; single and multiple choice, the
+answer key, points and trait points work as for text. An image option's name
+is optional and never shown to the person (it could give the answer away; a
+screen reader hears «تصویر n»); left empty, the API names it «تصویر n», and
+that name is what results, the CSV and a read-back show. Switching back to
+text drops the pictures. No schema change: it lives in the version's
+`definition`.
 Limits are `ENGAGEMENT_LIMITS` in `@hamdastan/config` (50 questions, 2–12
 options, …).
 
@@ -726,7 +737,7 @@ options, …).
 |------|-------------------|-----------|------------|
 | Survey | anonymous on/off | on a valid submission | then |
 | Mission | review: by an admin (default) or automatic; the end date is the deadline; a text question is how a step asks for proof | automatic: on submission; reviewed: on approval | on completion — for a reviewed mission only after approval |
-| Assessment | mode (knowledge / personality), dimensions, pass mark, show result | on a valid submission | on completion, whatever the result — unless a knowledge assessment has a pass mark and «فقط با قبولی» |
+| Assessment | mode (knowledge / personality / profile), dimensions, pass mark, profiles and tie rules, show result | on a valid submission | on completion, whatever the result — unless a knowledge assessment has a pass mark and «فقط با قبولی» |
 
 Every type: estimated minutes, how many times one person may submit (1 by
 default), and XP — on/off, a whole non-negative amount, whether the card shows
@@ -743,7 +754,28 @@ round when the item is reverse-keyed, and averaged per dimension (0–100). The
 dimension on top is the outcome (ties to the first listed); the person sees
 its title and description and every dimension's share, if «نمایش نتیجه» is on.
 Text and matching questions measure no dimension.
-The answer key and the points never leave the API.
+*Profile (پروفایل‌سنجی وزن‌دار):* the admin defines 2–20 result profiles
+(title, description, titles distinct). Each choice question has a weight
+(«ضریب سؤال», a whole number 0–10, 1 by default; 0 makes it count for
+nothing), and in the question's scoring matrix each option has a weight toward
+each profile — a whole number −100…100, an empty cell is 0. A profile's score
+is the sum, over every chosen option, of its weight toward that profile times
+its question's weight; a multiple-choice question adds every pick. Text,
+rating, scale and matching questions are asked but do not score; at least one
+choice question is required. The highest score is the result. A tie is broken
+by the admin's rules, in this order: (1) the priority questions
+(«سؤال‌های اولویت‌دار», optional; an ordered list of this activity's choice
+questions, reorderable) — one by one, of the tied profiles only those that
+scored most on that question stay, until one is left; (2) the default profile
+(required), which is the result when a tie survives them. The result keeps
+every profile's total and what broke the tie (`tieBrokenBy`); the person sees
+only the profile's title and description (if «نمایش نتیجه» is on) — totals can
+be negative and mean nothing alone. The results page counts people per
+profile, and the CSV adds a «امتیاز <profile>» column per profile. Weights,
+question weights and profiles are cleared when the mode or the type changes.
+Question and option counts keep the usual caps (50 questions, 12 options);
+options, like questions, can be moved up and down in the editor.
+The answer key, the points and the weights never leave the API.
 
 **The admin panel — «استودیو», `/engagement`.** The list shows, per activity: title and
 type, version, status, audience and how many active people it covers today,
@@ -2254,7 +2286,7 @@ against the same objects, including the Persian messages.
 | Bio | Optional, at most 160 characters; empty clears it | «حداکثر ۱۶۰ کاراکتر» |
 | Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
 | Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
-| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options; scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension and every non-text, non-matching question tied to one; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
+| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options (each with text, or — image options — each with a library image); scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension and every non-text, non-matching question tied to one; profile: 2–20 profiles with distinct titles, question weight 0–10, option weights −100…100 toward existing profiles only, ≥ 1 choice question, priority questions distinct and among the choice questions, a default profile; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
 | Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
 | Media file | ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم فایل باید حداکثر ۲۵۰ کیلوبایت باشه» / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
 | Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |

@@ -6,14 +6,16 @@ import { useState } from 'react';
 import { ENGAGEMENT_LIMITS } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityAnswerValue, PlayerMatchingQuestion, PlayerQuestion } from '@hamdastan/types';
+import type { ActivityAnswerValue, PlayerMatchingQuestion, PlayerMedia, PlayerQuestion } from '@hamdastan/types';
 import { Input, Slider, Textarea, Toggle, ToggleGroup, ToggleGroupItem } from '@hamdastan/ui';
 
 import { matchingFromValue, matchingValue, pairNumber, tapMatching, type MatchingSide } from '../utils/matching';
+import { MediaView } from './journey/MediaView';
 
 /**
  * One question's control — the product's existing ones, by kind: options
- * as full-width toggle rows (as in the questionnaire), a rating as a row of
+ * as full-width toggle rows (as in the questionnaire) or, for image
+ * options, a two-column grid of square tiles, a rating as a row of
  * numbers, a scale as the slider, text as a text area, matching as two
  * columns of tiles to pair (Duolingo's).
  *
@@ -34,6 +36,65 @@ function Option({ value, label, disabled }: { value: string; label: string; disa
       <Check aria-hidden="true" className="invisible size-4 shrink-0 group-data-[state=on]/option:visible" />
     </ToggleGroupItem>
   );
+}
+
+type ChoiceOption = Extract<PlayerQuestion, { kind: 'single' | 'multiple' }>['options'][number];
+
+const IMAGE_OPTION_CLASS =
+  'group/option relative aspect-square h-auto w-full overflow-hidden rounded-xl border border-foreground/10 bg-foreground/5 p-1.5 transition-[background-color,border-color,opacity,transform] duration-150 hover:bg-foreground/10 active:scale-[0.97] disabled:opacity-35 data-[state=on]:border-2 data-[state=on]:border-foreground data-[state=on]:bg-foreground/10 motion-reduce:transition-none motion-reduce:active:scale-100';
+
+/** An image option: the picture whole, in a square tile, with the check in its corner once chosen. */
+function ImageOption({
+  option,
+  number,
+  media,
+  disabled,
+}: {
+  option: ChoiceOption;
+  number: number;
+  media: PlayerMedia | undefined;
+  disabled?: boolean;
+}) {
+  return (
+    <ToggleGroupItem
+      value={option.id}
+      disabled={disabled}
+      // The admin's name could give the answer away; the reader hears its place.
+      aria-label={`تصویر ${toPersianDigits(number)}`}
+      className={IMAGE_OPTION_CLASS}
+    >
+      {media && <MediaView media={media} className="rounded-lg" />}
+      <Check
+        aria-hidden="true"
+        className="invisible absolute end-2 top-2 size-6 rounded-full bg-foreground p-1 text-background group-data-[state=on]/option:visible"
+      />
+    </ToggleGroupItem>
+  );
+}
+
+/** A choice question's options, as rows of text or a grid of images. */
+function ChoiceOptions({
+  question,
+  media,
+  disabled,
+}: {
+  question: Extract<PlayerQuestion, { kind: 'single' | 'multiple' }>;
+  media: Record<string, PlayerMedia>;
+  disabled?: (id: string) => boolean;
+}) {
+  return question.optionStyle === 'image'
+    ? question.options.map((option, index) => (
+        <ImageOption
+          key={option.id}
+          option={option}
+          number={index + 1}
+          media={option.imageId ? media[option.imageId] : undefined}
+          disabled={disabled?.(option.id)}
+        />
+      ))
+    : question.options.map((option) => (
+        <Option key={option.id} value={option.id} label={option.label} disabled={disabled?.(option.id)} />
+      ));
 }
 
 const TILE_CLASS =
@@ -109,13 +170,19 @@ export function QuestionField({
   onChange,
   labelledBy,
   invalid,
+  media,
 }: {
   question: PlayerQuestion;
   value: ActivityAnswerValue | undefined;
   onChange: (value: ActivityAnswerValue | undefined) => void;
   labelledBy: string;
   invalid: boolean;
+  /** The activity's library files, for image options. */
+  media: Record<string, PlayerMedia>;
 }) {
+  const choiceLayout =
+    'options' in question && question.optionStyle === 'image' ? 'grid w-full grid-cols-2' : 'w-full flex-col items-stretch';
+
   switch (question.kind) {
     case 'single':
       return (
@@ -126,11 +193,9 @@ export function QuestionField({
           // Tapping the chosen option again keeps it chosen.
           onValueChange={(next) => next && onChange(next)}
           aria-labelledby={labelledBy}
-          className="w-full flex-col items-stretch"
+          className={choiceLayout}
         >
-          {question.options.map((option) => (
-            <Option key={option.id} value={option.id} label={option.label} />
-          ))}
+          <ChoiceOptions question={question} media={media} />
         </ToggleGroup>
       );
 
@@ -152,16 +217,9 @@ export function QuestionField({
             value={picked}
             onValueChange={(next) => onChange(next.length ? next : undefined)}
             aria-labelledby={labelledBy}
-            className="w-full flex-col items-stretch"
+            className={choiceLayout}
           >
-            {question.options.map((option) => (
-              <Option
-                key={option.id}
-                value={option.id}
-                label={option.label}
-                disabled={atCap && !picked.includes(option.id)}
-              />
-            ))}
+            <ChoiceOptions question={question} media={media} disabled={(id) => atCap && !picked.includes(id)} />
           </ToggleGroup>
         </div>
       );

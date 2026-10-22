@@ -101,14 +101,14 @@ export function QuestionStats({ questions }: { questions: QuestionStat[] }) {
   );
 }
 
-/** An assessment's outcome: the knowledge score and pass rate, or how the personality types fell. */
+/** An assessment's outcome: the knowledge score and pass rate, or how the personality types or the profiles fell. */
 export function AssessmentSummary({ stats, responses }: { stats: AssessmentStats; responses: number }) {
   return (
     <Card className="gap-4">
       <CardHeader>
         <CardTitle className="text-base">نتایج آزمون</CardTitle>
         <CardDescription>
-          {stats.mode === 'knowledge' ? 'آزمون دانش و مهارت' : 'آزمون شخصیت‌شناسی'} — نتیجه‌ی هر نفر فقط در خروجی CSV
+          {stats.mode === 'knowledge' ? 'آزمون دانش و مهارت' : stats.mode === 'profile' ? 'پروفایل‌سنجی' : 'آزمون شخصیت‌شناسی'} — نتیجه‌ی هر نفر فقط در خروجی CSV
           در کنار نام او نمایش داده می‌شود.
         </CardDescription>
       </CardHeader>
