@@ -82,6 +82,10 @@ test('the screens behind a session', async ({ page }, testInfo) => {
   await capture(page, 'basic-info-filled', testInfo.project.name);
 
   await page.getByRole('button', { name: 'ادامه' }).click();
+  await expect(page).toHaveURL(/\/auth\/username$/);
+  await capture(page, 'username', testInfo.project.name);
+
+  await page.getByRole('button', { name: 'ادامه' }).click();
   await expect(page).toHaveURL(/\/onboarding$/);
   await capture(page, 'onboarding', testInfo.project.name);
 });

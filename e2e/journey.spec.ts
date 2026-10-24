@@ -32,13 +32,16 @@ async function signIn(api: APIRequestContext, prefix: '' | '/admin', phone: stri
   expect(verified.ok(), await verified.text()).toBe(true);
 }
 
-/** A person through sign-in, the profile and onboarding stage 1 — straight to home. */
+/** A person through sign-in, the profile, the username and onboarding stage 1 — straight to home. */
 async function readyPerson(page: Page, phone: string) {
   await signIn(page.request, '', phone);
   const profile = await page.request.put(`${API}/me/basic-info`, {
     data: { firstName: 'سارا', lastName: 'آزمایشی', birthDate: { year: 1375, month: 6, day: 14 }, gender: 'female' },
   });
   expect(profile.ok(), await profile.text()).toBe(true);
+  // Keeps the generated username: the step only has to be answered.
+  const session = await (await page.request.get(`${API}/me`)).json();
+  expect((await page.request.put(`${API}/me/username`, { data: { username: session.data.user.username } })).ok()).toBe(true);
   const interestIds = INTEREST_CATEGORIES.slice(0, 3).map((category) => category.interests[0].id);
   expect((await page.request.put(`${API}/me/onboarding/interests`, { data: { interestIds } })).ok()).toBe(true);
   expect((await page.request.post(`${API}/me/onboarding/complete`)).ok()).toBe(true);

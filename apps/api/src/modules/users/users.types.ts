@@ -25,6 +25,8 @@ export type UserRecord = {
   gender: Gender | null;
   displayName: string | null;
   username: string | null;
+  /** `v2_users.username_confirmed_at` is set: the sign-up username step is behind them. */
+  usernameConfirmed: boolean;
   city: string | null;
   bio: string | null;
   instagram: string | null;

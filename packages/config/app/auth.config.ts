@@ -63,9 +63,10 @@ export const PROFILE = {
 /**
  * Where the router sends someone, decided by the server and never by the
  * client. `basic_info` and `onboarding` are also the two unfinished values of
- * `v2_users.onboarding_step`.
+ * `v2_users.onboarding_step`; `username` is `v2_users.username_confirmed_at`
+ * still being null.
  */
-export const NEXT_STEPS = ['basic_info', 'onboarding', 'home'] as const;
+export const NEXT_STEPS = ['basic_info', 'username', 'onboarding', 'home'] as const;
 
 /** The widest the app's single column ever gets, in pixels. */
 export const MOBILE_SHELL_MAX_WIDTH = 430;

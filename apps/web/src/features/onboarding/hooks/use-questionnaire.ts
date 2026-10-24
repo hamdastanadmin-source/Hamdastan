@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 
 import { QUESTIONS, type QuestionId, type SectionId } from '@hamdastan/config';
 import type {
-  NextStep,
   OnboardingEventInput,
   QuestionnaireAnswer,
   QuestionnaireResult,
   QuestionnaireState,
 } from '@hamdastan/types';
 
+import { NEXT_STEP_PATH } from '@/lib';
 import { HttpError, onboardingService } from '@/services';
 
 import {
@@ -32,12 +32,6 @@ import {
  * so a back-and-edit shows exactly what is stored, and the score is rebuilt
  * on the server from scratch on every save.
  */
-
-const PATH_FOR: Record<NextStep, string> = {
-  basic_info: '/auth/basic-info',
-  onboarding: '/onboarding',
-  home: '/',
-};
 
 /**
  * Long enough to see the selection land. With the exit below, a tap reaches
@@ -231,7 +225,7 @@ export function useQuestionnaire(initial: QuestionnaireState) {
     setIsSaving(true);
     try {
       const { nextStep } = await onboardingService.completeOnboarding();
-      router.replace(PATH_FOR[nextStep]);
+      router.replace(NEXT_STEP_PATH[nextStep]);
       router.refresh();
     } catch (error) {
       reportError(error);
@@ -245,7 +239,7 @@ export function useQuestionnaire(initial: QuestionnaireState) {
     setIsSaving(true);
     try {
       const { nextStep } = await onboardingService.completeOnboarding();
-      router.replace(PATH_FOR[nextStep]);
+      router.replace(NEXT_STEP_PATH[nextStep]);
       router.refresh();
     } catch (error) {
       reportError(error);

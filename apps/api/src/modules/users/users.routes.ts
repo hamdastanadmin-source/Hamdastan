@@ -19,6 +19,7 @@ import { usersController } from './users.controller';
 export const usersRoutes: FastifyPluginAsync = async (app) => {
   app.get('/me', { preHandler: authenticate }, usersController.me);
   app.put('/me/basic-info', { preHandler: authenticate }, usersController.updateBasicInfo);
+  app.put('/me/username', { preHandler: authenticate }, usersController.confirmUsername);
   app.post('/me/onboarding/complete', { preHandler: authenticate }, usersController.completeOnboarding);
   app.get('/me/onboarding/interests', { preHandler: authenticate }, usersController.onboardingInterests);
   app.put('/me/onboarding/interests', { preHandler: authenticate }, usersController.saveOnboardingInterests);

@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { SESSION } from '@hamdastan/config';
-import type { NextStep, SessionResponse } from '@hamdastan/types';
+import type { SessionResponse } from '@hamdastan/types';
 
-import { SESSION_HANDOFF_HEADER, encodeSessionHandoff } from '@/lib';
+import { NEXT_STEP_PATH, SESSION_HANDOFF_HEADER, encodeSessionHandoff } from '@/lib';
 import { HttpError, authService, refreshSession } from '@/services';
 
 /**
@@ -12,6 +12,7 @@ import { HttpError, authService, refreshSession } from '@/services';
  * ┌──────────────────────────────────┬──────────────────────┐
  * │ not signed in                    │ /welcome             │
  * │ signed in, profile incomplete    │ /auth/basic-info     │
+ * │ signed in, username not chosen   │ /auth/username       │
  * │ signed in, onboarding unfinished │ /onboarding/*        │
  * │ signed in, everything done       │ /                    │
  * └──────────────────────────────────┴──────────────────────┘
@@ -27,17 +28,11 @@ import { HttpError, authService, refreshSession } from '@/services';
  * the user object, because then the browser would be deciding.
  */
 
-const PATH_FOR: Record<NextStep, string> = {
-  basic_info: '/auth/basic-info',
-  onboarding: '/onboarding',
-  home: '/',
-};
-
 /** Reachable with no session. Everything else redirects to `/welcome`. */
 const PUBLIC_PATHS = ['/welcome', '/auth/phone', '/auth/verify'];
 
 /** Pages a completed account has no reason to be on. */
-const SIGNED_IN_EXITS = new Set([...PUBLIC_PATHS, '/auth/basic-info']);
+const SIGNED_IN_EXITS = new Set([...PUBLIC_PATHS, NEXT_STEP_PATH.basic_info, NEXT_STEP_PATH.username]);
 
 /**
  * The one onboarding page a finished account may still open: the
@@ -169,7 +164,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const { nextStep } = session;
-  const target = PATH_FOR[nextStep];
+  const target = NEXT_STEP_PATH[nextStep];
 
   // An unfinished account is pinned to its step: it may be on that step's
   // page, or on a page beneath it — onboarding is several screens under

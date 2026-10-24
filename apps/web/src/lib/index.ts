@@ -11,4 +11,5 @@ export {
   decodeSessionHandoff,
   encodeSessionHandoff,
 } from './session-handoff';
+export { NEXT_STEP_PATH } from './next-step-path';
 export { shareInvite, type ShareOutcome } from './share';

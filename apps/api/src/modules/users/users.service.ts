@@ -61,6 +61,7 @@ export function toAuthUser(record: UserRecord): AuthUser {
     birthDate: record.birthDate,
     gender: record.gender,
     displayName: record.displayName,
+    username: record.username,
     role: record.role,
   };
 }
@@ -81,6 +82,7 @@ export function nextStepFor(record: UserRecord): NextStep {
     record.gender !== null;
 
   if (!profileComplete) return 'basic_info';
+  if (!record.usernameConfirmed) return 'username';
   return record.onboardingStep === 'done' ? 'home' : 'onboarding';
 }
 
@@ -176,6 +178,17 @@ export const usersService = {
 
   async saveBasicInfo(user: UserRecord, info: BasicInfo): Promise<UserRecord> {
     return usersRepository().saveBasicInfo(user.id, info);
+  },
+
+  /**
+   * The step after basic info: the generated username kept, or one of their
+   * own. The uniqueness check is the repository's — the index decides.
+   */
+  async confirmUsername(user: UserRecord, username: string): Promise<UserRecord> {
+    if (nextStepFor(user) === 'basic_info') {
+      throw new ForbiddenError('اول اطلاعات پایه‌ات رو کامل کن');
+    }
+    return usersRepository().confirmUsername(user.id, username);
   },
 
   /**

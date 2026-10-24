@@ -30,6 +30,7 @@ import {
   instagramSchema,
   linkedinSchema,
   telegramSchema,
+  USERNAME_HINT,
   usernameSchema,
   z,
 } from '@hamdastan/validation';
@@ -68,7 +69,7 @@ const FIELDS: Record<
   },
   username: {
     title: 'نام کاربری',
-    description: 'حروف انگلیسی، عدد، نقطه و _ — بین ۳ تا ۲۰ کاراکتر.',
+    description: USERNAME_HINT,
     schema: usernameSchema,
     ltr: true,
     placeholder: 'username',

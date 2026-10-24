@@ -10,7 +10,7 @@ import { toOnboardingInterests, toSession, usersService } from './users.service'
 /**
  * HTTP adapter for the Users module.
  *
- * Both handlers answer with the same `{ user, nextStep }` envelope the verify
+ * The session handlers answer with the same `{ user, nextStep }` envelope the verify
  * endpoint returns, so the front-end has one shape to hold and one field to
  * route on however it arrived there.
  */
@@ -26,6 +26,12 @@ export const usersController = {
   async updateBasicInfo(request: FastifyRequest, reply: FastifyReply) {
     const info = parseBody(usersSchemas.basicInfo.body, request.body);
     const updated = await usersService.saveBasicInfo(currentUser(request), info);
+    return reply.send(ok(toSession(updated)));
+  },
+
+  async confirmUsername(request: FastifyRequest, reply: FastifyReply) {
+    const { username } = parseBody(usersSchemas.username.body, request.body);
+    const updated = await usersService.confirmUsername(currentUser(request), username);
     return reply.send(ok(toSession(updated)));
   },
 

@@ -383,6 +383,7 @@ column v2_users.status USER-DEFINED nullable=NO default='ACTIVE'::v2_user_status
 column v2_users.telegram character varying nullable=YES default=
 column v2_users.updated_at timestamp with time zone nullable=NO default=now()
 column v2_users.username character varying nullable=YES default=
+column v2_users.username_confirmed_at timestamp with time zone nullable=YES default=
 column v2_world_home_items.activity_id uuid nullable=YES default=
 column v2_world_home_items.article_id uuid nullable=YES default=
 column v2_world_home_items.event_id uuid nullable=YES default=

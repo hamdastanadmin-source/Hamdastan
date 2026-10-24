@@ -49,6 +49,8 @@ export interface UsersRepository {
    */
   assignUsername(id: string, username: string): Promise<UserRecord | null>;
   saveBasicInfo(id: string, info: BasicInfo): Promise<UserRecord>;
+  /** The sign-up username step: stores the name and records the step as done. Taken is a `ConflictError`. */
+  confirmUsername(id: string, username: string): Promise<UserRecord>;
   setOnboardingStep(id: string, step: OnboardingStep): Promise<UserRecord>;
 
   // ─── Onboarding answers ──────────────────────────────────────
@@ -91,6 +93,17 @@ const PROFILE_COLUMNS: Record<keyof ProfileFields, string> = {
 /** PostgreSQL's unique_violation. */
 const UNIQUE_VIOLATION = '23505';
 
+/**
+ * A username write's failure, in the domain's words. The unique index
+ * decides, not a prior read: two people choosing the same name at once
+ * cannot both pass.
+ */
+function usernameWriteError(error: unknown): unknown {
+  return (error as { code?: string }).code === UNIQUE_VIOLATION
+    ? new ConflictError('این نام کاربری رو قبلاً کس دیگه‌ای انتخاب کرده')
+    : error;
+}
+
 /** `v2_gender` is upper-case; the wire contract is lower-case. */
 const GENDER_TO_DB: Record<Gender, string> = {
   male: 'MALE',
@@ -106,6 +119,7 @@ type UserRow = {
   gender: string | null;
   display_name: string | null;
   username: string | null;
+  username_confirmed: boolean;
   city: string | null;
   bio: string | null;
   instagram: string | null;
@@ -127,7 +141,9 @@ type UserRow = {
 const SELECT_COLUMNS = `
   id, phone, first_name, last_name,
   to_char(birth_date, 'YYYY-MM-DD') AS birth_date,
-  gender, display_name, username, city, bio, instagram, telegram, linkedin,
+  gender, display_name, username,
+  username_confirmed_at IS NOT NULL AS username_confirmed,
+  city, bio, instagram, telegram, linkedin,
   avatar_config, settings,
   onboarding_step, onboarding_stage, role, status
 `;
@@ -142,6 +158,7 @@ function toRecord(row: UserRow): UserRecord {
     gender: row.gender ? (row.gender.toLowerCase() as Gender) : null,
     displayName: row.display_name,
     username: row.username,
+    usernameConfirmed: row.username_confirmed,
     city: row.city,
     bio: row.bio,
     instagram: row.instagram,
@@ -247,6 +264,24 @@ export const sqlUsersRepository: UsersRepository = {
     return toRecord(rows[0]);
   },
 
+  async confirmUsername(id, username) {
+    // COALESCE: the first answer is the moment the step was done.
+    try {
+      const rows = await query<UserRow>(
+        `UPDATE v2_users
+            SET username              = $2,
+                username_confirmed_at = COALESCE(username_confirmed_at, now()),
+                updated_at            = now()
+          WHERE id = $1
+      RETURNING ${SELECT_COLUMNS}`,
+        [id, username]
+      );
+      return toRecord(rows[0]);
+    } catch (error) {
+      throw usernameWriteError(error);
+    }
+  },
+
   async setOnboardingStep(id, step) {
     const rows = await query<UserRow>(
       `UPDATE v2_users
@@ -311,12 +346,7 @@ export const sqlUsersRepository: UsersRepository = {
       );
       return toRecord(rows[0]);
     } catch (error) {
-      // The unique index decides, not a prior read: two people choosing the
-      // same name at once cannot both pass.
-      if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
-        throw new ConflictError('این نام کاربری رو قبلاً کس دیگه‌ای انتخاب کرده');
-      }
-      throw error;
+      throw usernameWriteError(error);
     }
   },
 

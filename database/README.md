@@ -143,6 +143,7 @@ until they agree.
 | `0015` | The multi-day journey: `journey` added to `v2_activity_type`; `v2_journey_answers` (one row per answer, never replaced) and `v2_journey_day_completions` (one row per finished day); `v2_xp_transactions.source_id` widened to 100 characters. Additive |
 | `0016` | The media & motion library: `v2_media_kind` and `v2_media_assets` (one row per file; the bytes are on the API's `api-media` volume, not in the database). Additive |
 | `0017` | A journey's final result: `v2_journey_results` (the character a person came out as, kept once and never recomputed). Additive |
+| `0022` | The sign-up username step: `v2_users.username_confirmed_at` (nullable; null keeps the account on `/auth/username`). Accounts already past basic info are backfilled as answered. Additive |
 
 Rows that can never be used again — expired tokens, codes, idempotency keys,
 and sessions long ended — are deleted by the API's hourly cleanup

@@ -74,7 +74,7 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **Onboarding (آنبوردینگ)** | The three stages that follow basic info and end in the person's avatar. The intro, stage 1 (interests) and stage 2 (the social questionnaire) are built. |
 | **Social profile (پروفایل اجتماعی)** | What stage 2 derives from the questionnaire's raw answers: fourteen 1–10 dimensions, categorical outputs and role scores, under a `scoring_version`. Used for matching; the person sees only a simplified result card. |
 | **Interest (علاقه‌مندی)** | One pickable interest, inside one of six categories. Identified by a stable English slug; the Persian label is display only. |
-| **nextStep** | Where the server says this account goes: `basic_info`, `onboarding` or `home`. The client never computes it. |
+| **nextStep** | Where the server says this account goes: `basic_info`, `username`, `onboarding` or `home`. The client never computes it. |
 | **XP** | Experience points, earned by finishing missions and Engagement Studio activities. The total is the sum of the person's XP ledger (a revocation is a negative row); nothing else stores it. |
 | **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
 | **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
@@ -106,6 +106,15 @@ password and no separate registration.
   decides, and a clash draws again. An account created before this gets one
   the first time `GET /me/account` loads it. It is the person's to change in
   «ویرایش پروفایل».
+- **Sign-up asks for the username right after basic info** (`/auth/username`,
+  `nextStep = username`). The screen explains that this is the name they are
+  known by in the app and can change later from the profile; the field starts
+  with the generated name, so «ادامه» works at once and keeping it is a valid
+  answer. `PUT /me/username` validates with the same `usernameSchema` as the
+  profile (a taken name is a 409 shown under the field) and sets
+  `v2_users.username_confirmed_at` — null is what keeps the account on this
+  step. Accounts already past basic info when it shipped were backfilled as
+  answered (`0022`). Like the basic-info screen, it has no back.
 - Six-digit code, valid two minutes, five attempts, resend after two minutes.
   Three sends per number and ten per IP in a ten-minute window.
 - **Five wrong codes per number in fifteen minutes, across codes**, lock the
@@ -1746,6 +1755,7 @@ that `GET /me` returns.
 |-------|-------------|
 | Not signed in | `/welcome` |
 | Signed in, profile incomplete | `/auth/basic-info` |
+| Signed in, username not yet chosen | `/auth/username` |
 | Signed in, onboarding unfinished | `/onboarding` and the pages under it |
 | Signed in, everything complete | `/` |
 
@@ -1768,15 +1778,17 @@ or into `/onboarding/*`, which it has been through, apart from
              │  the account is created here
              └─ nextStep = basic_info
                 └─ /auth/basic-info ── PUT /me/basic-info
-                   └─ nextStep = onboarding
-                      └─ /onboarding
-                         └─ /onboarding/interests ── PUT /me/onboarding/interests
-                            └─ /onboarding/questionnaire
-                               ├─ «بعداً انجام می‌دم» ── POST /me/onboarding/complete → /
-                               ├─ PUT …/questionnaire/answers/:questionId  (every answer)
-                               ├─ POST …/questionnaire/complete  (+50 XP, once)
-                               └─ POST /me/onboarding/complete
-                                  └─ nextStep = home → /
+                   └─ nextStep = username
+                      └─ /auth/username ── PUT /me/username
+                         └─ nextStep = onboarding
+                            └─ /onboarding
+                               └─ /onboarding/interests ── PUT /me/onboarding/interests
+                                  └─ /onboarding/questionnaire
+                                     ├─ «بعداً انجام می‌دم» ── POST /me/onboarding/complete → /
+                                     ├─ PUT …/questionnaire/answers/:questionId  (every answer)
+                                     ├─ POST …/questionnaire/complete  (+50 XP, once)
+                                     └─ POST /me/onboarding/complete
+                                        └─ nextStep = home → /
 ```
 
 ### 5.3 A returning number
@@ -1912,7 +1924,9 @@ v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
 - **`v2_users`** — one row per verified phone number. Every profile column is
   nullable, because a row exists from the moment a code verifies, which is
   before the product knows anything about the person. `onboarding_step`
-  (`basic_info` → `onboarding` → `done`) is what says so.
+  (`basic_info` → `onboarding` → `done`) is what says so; between the first
+  two, `username_confirmed_at` (`0022`) says whether the username step is
+  done.
 - **`v2_users.onboarding_stage`** — the last onboarding stage finished,
   `0`–`3`. It only moves forward, so editing stage 1 again does not undo a
   later stage.
@@ -2103,6 +2117,7 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | POST | `/auth/logout` | refresh cookie | — | `{ loggedOut }`, cookies cleared |
 | GET | `/me` | access cookie | — | `{ user, nextStep }` |
 | PUT | `/me/basic-info` | access cookie | `{ firstName, lastName, birthDate, gender }` | `{ user, nextStep }` |
+| PUT | `/me/username` | access cookie | `{ username }` | `{ user, nextStep }`; 403 before basic info, 409 for a taken username |
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
 | GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |
 | PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |

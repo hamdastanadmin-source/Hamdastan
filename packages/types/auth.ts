@@ -12,10 +12,11 @@ export type UserRole = 'USER' | 'ADMIN';
 export type Gender = 'male' | 'female';
 
 /**
- * The three destinations of the routing table. `basic_info` and `onboarding`
- * are unfinished states; `home` means the account is complete.
+ * The destinations of the routing table, in the order sign-up walks them.
+ * `basic_info`, `username` and `onboarding` are unfinished states; `home`
+ * means the account is complete.
  */
-export type NextStep = 'basic_info' | 'onboarding' | 'home';
+export type NextStep = 'basic_info' | 'username' | 'onboarding' | 'home';
 
 export type AuthUser = {
   id: string;
@@ -29,6 +30,8 @@ export type AuthUser = {
   gender: Gender | null;
   /** What the product calls them. Defaults to the first name. */
   displayName: string | null;
+  /** Generated at sign-up (`user` and eight digits) until they choose one. */
+  username: string | null;
   role: UserRole;
 };
 

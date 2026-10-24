@@ -12,6 +12,7 @@ export { WelcomeScreen } from './components/WelcomeScreen';
 export { PhoneForm } from './components/PhoneForm';
 export { OtpForm } from './components/OtpForm';
 export { BasicInfoForm } from './components/BasicInfoForm';
+export { UsernameForm } from './components/UsernameForm';
 export { SignOutButton } from './components/SignOutButton';
 export { useAuth, useAuthOptional } from './hooks/use-auth';
 export { useAuthActions } from './hooks/use-auth-actions';

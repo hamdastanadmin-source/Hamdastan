@@ -45,6 +45,11 @@ export const authService = {
     return apiClient.put<SessionResponse>('/me/basic-info', input);
   },
 
+  /** The raw text: the API normalises with `usernameChoiceSchema`. */
+  confirmUsername(username: string): Promise<SessionResponse> {
+    return apiClient.put<SessionResponse>('/me/username', { username });
+  },
+
   logout(): Promise<{ loggedOut: boolean }> {
     return apiClient.post<{ loggedOut: boolean }>('/auth/logout');
   },

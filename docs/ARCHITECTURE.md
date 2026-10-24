@@ -102,8 +102,10 @@ src/
 
 Next's request proxy (what earlier versions called middleware). In `apps/web`
 it holds **the routing table** — the rule that decides, on every navigation,
-whether this visitor belongs on Welcome, on the profile form, in onboarding or
-at home.
+whether this visitor belongs on Welcome, on the profile form, on the username
+step, in onboarding or at home. The page each step lives on is named once, in
+`src/lib/next-step-path.ts` (`NEXT_STEP_PATH`); the proxy and every screen
+that navigates on a `nextStep` read it.
 
 It is here rather than in a guard on each page for two reasons. It runs before
 anything renders, so an unfinished account never sees a flash of the page it

@@ -20,7 +20,7 @@ test.beforeEach(async () => {
   await requireApi();
 });
 
-/** Phone → code → basic info → onboarding intro. */
+/** Phone → code → basic info → username → onboarding intro. */
 async function signUp(page: Page) {
   await page.goto('/auth/phone');
   await page.getByLabel('شماره موبایل').fill(testPhone());
@@ -37,6 +37,8 @@ async function signUp(page: Page) {
   await page.getByLabel('سال').click();
   await page.getByRole('option').nth(10).click();
   await page.getByRole('radio', { name: 'زن' }).click();
+  await page.getByRole('button', { name: 'ادامه' }).click();
+  await expect(page).toHaveURL(/\/auth\/username$/);
   await page.getByRole('button', { name: 'ادامه' }).click();
   await expect(page).toHaveURL(/\/onboarding$/);
 }

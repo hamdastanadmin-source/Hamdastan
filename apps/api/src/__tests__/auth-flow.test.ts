@@ -196,7 +196,7 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       expect(rows[0]?.last_login_at).toBeInstanceOf(Date);
     });
 
-    it('walks basic info, interests and onboarding to home', async () => {
+    it('walks basic info, the username, interests and onboarding to home', async () => {
       const { cookies } = await signIn(nextPhone());
 
       const me = await get('/me', cookies);
@@ -206,6 +206,7 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       // Interests are refused before the profile exists.
       const early = await put('/me/onboarding/interests', { interestIds: ['concert', 'gallery', 'workshop'] }, cookies);
       expect(early.statusCode).toBe(403);
+      expect((await put('/me/username', { username: 'sara' }, cookies)).statusCode).toBe(403);
 
       const basic = await put(
         '/me/basic-info',
@@ -218,8 +219,26 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
         cookies
       );
       expect(basic.statusCode, basic.body).toBe(200);
-      expect(basic.json().data.nextStep).toBe('onboarding');
+      expect(basic.json().data.nextStep).toBe('username');
       expect(basic.json().data.user.birthDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(basic.json().data.user.username).toMatch(/^user\d{8}$/);
+
+      const invalid = await put('/me/username', { username: '1abc' }, cookies);
+      expect(invalid.statusCode).toBe(400);
+
+      const chosen = await put('/me/username', { username: '@Sara.Ahmadi' }, cookies);
+      expect(chosen.statusCode, chosen.body).toBe(200);
+      expect(chosen.json().data.nextStep).toBe('onboarding');
+      expect(chosen.json().data.user.username).toBe('sara.ahmadi');
+
+      // The name is still checked against everyone else's.
+      const { cookies: other } = await signIn(nextPhone());
+      await put(
+        '/me/basic-info',
+        { firstName: 'رضا', lastName: 'نوری', birthDate: { year: 1371, month: 2, day: 2 }, gender: 'male' },
+        other
+      );
+      expect((await put('/me/username', { username: 'SARA.AHMADI' }, other)).statusCode).toBe(409);
 
       const interests = await put(
         '/me/onboarding/interests',

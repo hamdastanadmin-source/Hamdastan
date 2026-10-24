@@ -53,7 +53,7 @@ async function fillBasicInfo(page: Page): Promise<void> {
   await submit.click();
 }
 
-test('a new number: phone, code, basic info, onboarding', async ({ page }) => {
+test('a new number: phone, code, basic info, username, onboarding', async ({ page }) => {
   const phone = testPhone();
 
   const code = await requestCode(page, phone);
@@ -64,6 +64,12 @@ test('a new number: phone, code, basic info, onboarding', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'بیا آشنا بشیم' })).toBeVisible();
 
   await fillBasicInfo(page);
+  await expect(page).toHaveURL(/\/auth\/username$/);
+
+  // Born with a generated name, so keeping it is an answer.
+  const username = page.getByLabel('نام کاربری');
+  await expect(username).toHaveValue(/^user\d{8}$/);
+  await page.getByRole('button', { name: 'ادامه' }).click();
   await expect(page).toHaveURL(/\/onboarding$/);
 });
 
@@ -88,6 +94,8 @@ test('a completed profile cannot go back to the form', async ({ page }) => {
   await fillCode(page, await requestCode(page, phone));
   await expect(page).toHaveURL(/\/auth\/basic-info$/);
   await fillBasicInfo(page);
+  await expect(page).toHaveURL(/\/auth\/username$/);
+  await page.getByRole('button', { name: 'ادامه' }).click();
   await expect(page).toHaveURL(/\/onboarding$/);
 
   // The same routing rule a returning sign-in relies on: once the profile is
@@ -96,6 +104,8 @@ test('a completed profile cannot go back to the form', async ({ page }) => {
   // is exactly what the two-minute resend cooldown exists to refuse.
   await page.goto('/auth/basic-info');
   await expect(page).not.toHaveURL(/\/auth\/basic-info$/);
+  await page.goto('/auth/username');
+  await expect(page).not.toHaveURL(/\/auth\/username$/);
 
   await page.goto('/welcome');
   await expect(page).not.toHaveURL(/\/welcome$/);

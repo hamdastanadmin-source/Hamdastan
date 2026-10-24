@@ -37,6 +37,9 @@ export const displayNameSchema = lettersSchema(
   `نام باید بین ${toPersianDigits(ACCOUNT_LIMITS.DISPLAY_NAME_MIN)} تا ${toPersianDigits(ACCOUNT_LIMITS.DISPLAY_NAME_MAX)} حرف باشه`
 );
 
+/** The rule in a line, for the help text under a username field. */
+export const USERNAME_HINT = `حروف انگلیسی، عدد، نقطه و _ — بین ${toPersianDigits(ACCOUNT_LIMITS.USERNAME_MIN)} تا ${toPersianDigits(ACCOUNT_LIMITS.USERNAME_MAX)} کاراکتر.`;
+
 const USERNAME_MESSAGE =
   'فقط حروف انگلیسی، عدد، نقطه و _ — با یه حرف شروع بشه و بین ۳ تا ۲۰ کاراکتر باشه';
 
@@ -122,6 +125,12 @@ export const profileUpdateSchema = z
 
 export type ProfileUpdateInput = z.input<typeof profileUpdateSchema>;
 export type ProfileUpdateOutput = z.output<typeof profileUpdateSchema>;
+
+/** The sign-up step that keeps or replaces the generated username (`PUT /me/username`). */
+export const usernameChoiceSchema = z.object({ username: usernameSchema });
+
+export type UsernameChoiceInput = z.input<typeof usernameChoiceSchema>;
+export type UsernameChoiceOutput = z.output<typeof usernameChoiceSchema>;
 
 /** Every slot, each an id from that slot's catalog. Unlocks are checked by the API, which knows the level. */
 export const avatarSchema = z.object(

@@ -3,13 +3,13 @@
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-import type { NextStep } from '@hamdastan/types';
 import type { BasicInfoInput } from '@hamdastan/validation';
 
+import { NEXT_STEP_PATH } from '@/lib';
 import { authService } from '@/services';
 
 /**
- * The three calls the sign-in flow makes, plus the navigation each one ends
+ * The calls the sign-in flow makes, plus the navigation each one ends
  * in.
  *
  * The screens call these rather than the service directly, which is what
@@ -20,13 +20,6 @@ import { authService } from '@/services';
  * failure belongs under the field, in a toast, or in a shake of the OTP
  * boxes.
  */
-
-/** Where the server says to go, as a path. */
-const PATH_FOR: Record<NextStep, string> = {
-  basic_info: '/auth/basic-info',
-  onboarding: '/onboarding',
-  home: '/',
-};
 
 export function useAuthActions() {
   const router = useRouter();
@@ -44,7 +37,7 @@ export function useAuthActions() {
       const { nextStep } = await authService.verifyOtp(phone, code);
       // `replace`, not `push`: the code screen must not be reachable with the
       // back button once it has been spent.
-      router.replace(PATH_FOR[nextStep]);
+      router.replace(NEXT_STEP_PATH[nextStep]);
       // The layout above re-reads the session on the server.
       router.refresh();
     },
@@ -54,7 +47,16 @@ export function useAuthActions() {
   const saveBasicInfo = useCallback(
     async (input: BasicInfoInput): Promise<void> => {
       const { nextStep } = await authService.updateBasicInfo(input);
-      router.replace(PATH_FOR[nextStep]);
+      router.replace(NEXT_STEP_PATH[nextStep]);
+      router.refresh();
+    },
+    [router]
+  );
+
+  const saveUsername = useCallback(
+    async (username: string): Promise<void> => {
+      const { nextStep } = await authService.confirmUsername(username);
+      router.replace(NEXT_STEP_PATH[nextStep]);
       router.refresh();
     },
     [router]
@@ -66,5 +68,5 @@ export function useAuthActions() {
     router.refresh();
   }, [router]);
 
-  return { requestOtp, verifyOtp, saveBasicInfo, logout };
+  return { requestOtp, verifyOtp, saveBasicInfo, saveUsername, logout };
 }
