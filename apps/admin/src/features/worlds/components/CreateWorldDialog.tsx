@@ -50,7 +50,6 @@ export function CreateWorldDialog({ open, onOpenChange }: { open: boolean; onOpe
         tagline: '',
         description: '',
         coverId: null,
-        logoId: null,
         theme: 'neutral',
         navigation: WORLD_DEFAULT_NAVIGATION.map((item) => ({ ...item })),
       });

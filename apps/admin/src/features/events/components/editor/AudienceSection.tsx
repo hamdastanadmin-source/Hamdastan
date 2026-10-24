@@ -2,11 +2,11 @@
 
 import { Eye } from 'lucide-react';
 
-import { EVENT_VISIBILITY_LABELS, EVENT_VISIBILITIES, WORLD_STATUS_LABELS } from '@hamdastan/config';
+import { EVENT_VISIBILITY_LABELS, EVENT_VISIBILITIES } from '@hamdastan/config';
 import type { EventVisibility } from '@hamdastan/types';
-import { Alert, AlertDescription, AlertTitle, Checkbox, Label, ToggleGroup, ToggleGroupItem } from '@hamdastan/ui';
+import { Alert, AlertDescription, AlertTitle, ToggleGroup, ToggleGroupItem } from '@hamdastan/ui';
 
-import { Field, NEUTRAL_CHECKBOX } from '@/components';
+import { Field, WorldsField } from '@/components';
 import { AudienceField } from '@/features/engagement';
 
 import { TOGGLE_ITEM, type SectionProps } from './types';
@@ -24,7 +24,6 @@ const VISIBILITY_HINTS: Record<EventVisibility, string> = {
  */
 export function AudienceSection({ editor, worlds }: SectionProps) {
   const { state, update, errors } = editor;
-  const shown = worlds.filter((world) => world.status !== 'archived' || state.worldIds.includes(world.id));
   const chosen = worlds.filter((world) => state.worldIds.includes(world.id)).map((world) => world.name);
   const worldList = chosen.length ? chosen.map((name) => `«${name}»`).join('، ') : null;
 
@@ -41,30 +40,7 @@ export function AudienceSection({ editor, worlds }: SectionProps) {
   return (
     <div className="flex flex-col gap-6">
       <Field label="دنیاها" error={errors.worldIds} hint="اختیاری برای رویداد عمومی؛ لازم برای «فقط در دنیاها».">
-        {shown.length === 0 ? (
-          <p className="text-sm text-muted-foreground">هنوز دنیایی تعریف نشده.</p>
-        ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {shown.map((world) => {
-              const checked = state.worldIds.includes(world.id);
-              return (
-                <li key={world.id}>
-                  <Label className="flex items-center gap-3 rounded-lg border p-3 font-normal">
-                    <Checkbox
-                      checked={checked}
-                      className={NEUTRAL_CHECKBOX}
-                      onCheckedChange={(next) =>
-                        update({ worldIds: next ? [...state.worldIds, world.id] : state.worldIds.filter((id) => id !== world.id) })
-                      }
-                    />
-                    {world.name}
-                    {world.status !== 'published' && <span className="text-xs text-muted-foreground">({WORLD_STATUS_LABELS[world.status]})</span>}
-                  </Label>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <WorldsField worlds={worlds} value={state.worldIds} onChange={(worldIds) => update({ worldIds })} />
       </Field>
 
       <Field label="محل نمایش" error={errors.visibility} hint={VISIBILITY_HINTS[state.visibility]}>

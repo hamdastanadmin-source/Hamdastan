@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import type { EventCard as EventCardData } from '@hamdastan/types';
 
-import { EventCard } from './EventCard';
+import { EventsCarousel } from './EventsCarousel';
 
 /**
  * Home's «رویدادهای پیش‌رو»: the next few events the person may see, and
@@ -23,13 +23,7 @@ export function UpcomingEventsSection({ events, without = [] }: { events: EventC
           همه
         </Link>
       </div>
-      <ul className="flex flex-col gap-3">
-        {shown.map((card) => (
-          <li key={card.id}>
-            <EventCard card={card} layout="row" />
-          </li>
-        ))}
-      </ul>
+      <EventsCarousel events={shown} label="رویدادهای پیش‌رو" />
     </section>
   );
 }

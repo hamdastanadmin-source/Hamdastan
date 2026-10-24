@@ -32,23 +32,27 @@ export const WORLD_THEME_LABELS: Record<WorldThemeId, string> = {
 };
 
 /**
- * The parts of a world page. `home` is always first and always on; the rest
- * are the menu's tabs, in the order and with the labels the admin sets.
+ * A world's menu — the bar at the bottom of its pages. `home` is always first
+ * and always on; `activities` is the admin's to label or switch off. News,
+ * knowledge and events are not menus: they are sections of the home.
  */
-export const WORLD_SECTIONS = ['home', 'news', 'knowledge', 'events', 'activities'] as const;
+export const WORLD_SECTIONS = ['home', 'activities'] as const;
 export type WorldSectionId = (typeof WORLD_SECTIONS)[number];
 
-export const WORLD_SECTION_LABELS: Record<WorldSectionId, string> = {
+/**
+ * The sections a world home is made of. Events always lead, as a carousel;
+ * the admin orders the rest.
+ */
+export const WORLD_HOME_KINDS = ['events', 'news', 'knowledge', 'activities'] as const;
+export type WorldHomeKindId = (typeof WORLD_HOME_KINDS)[number];
+
+export const WORLD_SECTION_LABELS: Record<WorldSectionId | WorldHomeKindId, string> = {
   home: 'خانه',
   news: 'اخبار',
   knowledge: 'دانستنی‌ها',
   events: 'رویدادها',
   activities: 'فعالیت‌ها',
 };
-
-/** The sections a world home is made of — every menu section but home itself. */
-export const WORLD_HOME_KINDS = ['news', 'knowledge', 'events', 'activities'] as const;
-export type WorldHomeKindId = (typeof WORLD_HOME_KINDS)[number];
 
 export const WORLD_HOME_SOURCES = ['latest', 'featured'] as const;
 export type WorldHomeSourceId = (typeof WORLD_HOME_SOURCES)[number];
@@ -70,7 +74,7 @@ export const WORLD_HOME_WHEN_EMPTY_LABELS: Record<WorldHomeWhenEmptyId, string> 
 export const WORLD_DEFAULT_NAVIGATION: ReadonlyArray<{ section: WorldSectionId; label: string; enabled: boolean }> =
   WORLD_SECTIONS.map((section) => ({ section, label: WORLD_SECTION_LABELS[section], enabled: true }));
 
-export const WORLD_DEFAULT_HOME_ORDER: readonly WorldHomeKindId[] = ['news', 'events', 'activities', 'knowledge'];
+export const WORLD_DEFAULT_HOME_ORDER: readonly WorldHomeKindId[] = ['events', 'news', 'activities', 'knowledge'];
 
 export const WORLD_LIMITS = {
   NAME_MAX: 80,
@@ -87,5 +91,5 @@ export const WORLD_LIMITS = {
   FILED_UNDER_MAX: 10,
 } as const;
 
-/** How many items a world's tab lists per page. */
+/** How many items a world's «همه» page lists per page. */
 export const WORLD_PAGE_SIZE = 20;

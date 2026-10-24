@@ -83,7 +83,6 @@ const world = (overrides: Partial<WorldInput> = {}): WorldInput => ({
   tagline: '',
   description: '',
   coverId,
-  logoId: null,
   theme: 'emerald',
   navigation: WORLD_DEFAULT_NAVIGATION.map((item) => ({ ...item })),
   ...overrides,
@@ -200,7 +199,7 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
     const worlds = await ok<{ slug: string }[]>(await call('GET', '/worlds', user));
     expect(worlds.map((item) => item.slug)).toEqual(['hogwarts', 'gta', 'game-of-thrones', 'liverpool']);
     const hogwarts = await ok<{ navigation: { section: string }[] }>(await call('GET', '/worlds/hogwarts', user));
-    expect(hogwarts.navigation.map((item) => item.section)).toEqual(['home', 'news', 'knowledge', 'events', 'activities']);
+    expect(hogwarts.navigation.map((item) => item.section)).toEqual(['home', 'activities']);
   });
 
   it('keeps a new world a draft until it is complete and published', async () => {
@@ -279,7 +278,7 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
     const saved = await ok<AdminWorldHome>(
       await call('PUT', `/admin/worlds/${target.id}/home`, admin, homeInput(stored, { news: { source: 'featured', featuredIds: [first.id, draft.id, second.id] } }))
     );
-    expect(saved.sections[0].featured.map((item) => [item.title, item.live])).toEqual([
+    expect(saved.sections.find((section) => section.kind === 'news')!.featured.map((item) => [item.title, item.live])).toEqual([
       ['اول', true],
       ['پیش‌نویس', false],
       ['دوم', true],
@@ -293,7 +292,7 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
     expect(titlesIn(home, 'news')).toEqual(['دوم']);
   });
 
-  it('orders sections, shows an empty state when asked, and drops a section whose tab is off', async () => {
+  it('leads with events, orders the rest, shows an empty state when asked, and drops the activities menu when it is off', async () => {
     const target = await publishedWorld();
     await publishedArticle([target.id], { kind: 'knowledge', title: 'دانستنی' });
     const activity = await ok<{ id: string }>(await call('POST', '/admin/engagement/activities', admin, survey([target.id])), 201);
@@ -306,10 +305,11 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
     await ok(await call('PUT', `/admin/worlds/${target.id}/home`, admin, input));
 
     let home = await ok<WorldHome>(await call('GET', `/worlds/${target.slug}/home`, user));
+    // Events lead whatever position they were saved at.
     expect(home.sections.map((section) => [section.kind, section.title, section.items.length])).toEqual([
+      ['events', 'دورهمی‌ها', 0],
       ['knowledge', 'دانستنی‌ها', 1],
       ['activities', 'فعالیت‌ها', 1],
-      ['events', 'دورهمی‌ها', 0],
     ]);
 
     const tab = await ok<{ title: string }[]>(await call('GET', `/worlds/${target.slug}/activities`, user));
@@ -318,9 +318,10 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
     const navigation = WORLD_DEFAULT_NAVIGATION.map((item) => ({ ...item, enabled: item.section !== 'activities' }));
     await ok(await call('PUT', `/admin/worlds/${target.id}`, admin, world({ slug: target.slug, navigation })));
     home = await ok<WorldHome>(await call('GET', `/worlds/${target.slug}/home`, user));
-    expect(home.sections.map((section) => section.kind)).toEqual(['knowledge', 'events']);
+    // The home keeps its sections; only the menu loses «فعالیت‌ها».
+    expect(home.sections.map((section) => section.kind)).toEqual(['events', 'knowledge', 'activities']);
     expect(home.world.navigation.map((item) => item.section)).not.toContain('activities');
-    // A tab that is off is not there at all.
+    // A menu that is off is not there at all.
     expect((await call('GET', `/worlds/${target.slug}/activities`, user)).statusCode).toBe(404);
   });
 

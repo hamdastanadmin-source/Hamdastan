@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
 
 import { DEFAULT_AVATAR } from '@hamdastan/config';
 
@@ -12,7 +11,7 @@ import { NotificationBell } from '@/features/notifications';
 import { getUnreadCount } from '@/features/notifications/server';
 import { AvatarFigure, PersonalityTestCard } from '@/features/profile';
 import { getAccountOverview } from '@/features/profile/server';
-import { WorldBanners } from '@/features/worlds';
+import { WorldsPicker } from '@/features/worlds';
 import { getHomeWorlds } from '@/features/worlds/server';
 
 export const dynamic = 'force-dynamic';
@@ -20,13 +19,12 @@ export const dynamic = 'force-dynamic';
 /**
  * Home.
  *
- * Reached only by an account the API reports as complete. It carries the
- * person's next step, then their open activities from Engagement Studio,
- * the next few events, then the story-world picker — every published world,
- * each linking to its page. Until the questionnaire is
- * done, the first thing on the screen is the offer to do it
- * — the screen's one primary action. Once it is done that card is gone, and a
- * quiet line points to the result instead.
+ * Reached only by an account the API reports as complete. Until the
+ * questionnaire is done, the first thing on the screen is the offer to do
+ * it — the screen's one primary action; once it is done that card is gone
+ * (the result lives in the profile). Then «جهان‌های هم‌داستان» — a row that
+ * opens a sheet of every published world — the reminders, the next few
+ * events and the person's open activities from Engagement Studio.
  *
  * Signing out is not here; it lives in the profile's settings.
  */
@@ -62,20 +60,7 @@ export default async function HomePage() {
       </ScreenHeader>
 
       <ScreenBody className="gap-6 pt-4">
-        {socialProfile ? (
-          <Link
-            href="/profile/social"
-            className="flex min-h-14 items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm outline-none transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span className="flex flex-1 flex-col gap-0.5">
-              <span className="font-semibold">پروفایل اجتماعی‌ات آماده‌ست</span>
-              <span className="text-xs text-muted-foreground">{socialProfile.title}</span>
-            </span>
-            <span className="text-xs text-muted-foreground">دیدن نتیجه</span>
-            {/* rtl-ok: "forward" points left in an RTL layout. */}
-            <ChevronLeft aria-hidden="true" className="size-4 text-muted-foreground" />
-          </Link>
-        ) : (
+        {!socialProfile && (
           <PersonalityTestCard
             title="یه قدم مونده تا بیشتر بشناسیمت"
             body="هرچی بیشتر بشناسیمت، پیشنهادهای جذاب‌تری برات داریم. لازم نیست همه‌چی رو همین الان کامل کنی؛ هر وقت خواستی برگرد و ادامه بده."
@@ -83,13 +68,13 @@ export default async function HomePage() {
           />
         )}
 
-        <SoonEventsSection events={soon} />
+        <WorldsPicker worlds={worlds} />
 
-        <ActivitiesSection cards={activities} />
+        <SoonEventsSection events={soon} />
 
         <UpcomingEventsSection events={events} without={soon} />
 
-        <WorldBanners worlds={worlds} />
+        <ActivitiesSection cards={activities} />
       </ScreenBody>
 
       <BottomNav />

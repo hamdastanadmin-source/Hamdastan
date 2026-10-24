@@ -3,4 +3,4 @@
  * component cannot pull `next/headers` into its bundle.
  */
 
-export { getHomeWorlds, getWorldPage, getWorldPreview } from './services/worlds.server';
+export { getHomeWorlds, getWorldActivities, getWorldHome, getWorldList, getWorldPreview } from './services/worlds.server';

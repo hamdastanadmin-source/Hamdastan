@@ -13,7 +13,7 @@ import {
   WORLD_SECTION_LABELS,
 } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { WorldHomeKind, WorldNavItem } from '@hamdastan/types';
+import type { WorldHomeKind } from '@hamdastan/types';
 import {
   Alert,
   AlertDescription,
@@ -44,19 +44,18 @@ import { FeaturedPicker } from './FeaturedPicker';
 const LIMITS = Array.from({ length: WORLD_LIMITS.SECTION_ITEMS_MAX }, (_, index) => index + 1);
 
 /**
- * «خانه»: the sections of the world's home, in order. Each is on or off,
- * has its title and size, takes the newest eligible items or only the ones
- * featured here, and hides or says «فعلاً چیزی نیست» when it has none. A
- * section whose tab is off in the menu is not shown, whatever it says here.
+ * «خانه»: the sections of the world's home, in order — events always first,
+ * as the app shows them in a carousel; the rest are the admin's to order.
+ * Each is on or off, has its title and size, takes the newest eligible items
+ * or only the ones featured here, and hides or says «فعلاً چیزی نیست» when
+ * it has none.
  */
 export function HomeTab({
   worldId,
-  navigation,
   writable,
   primary,
 }: {
   worldId: string;
-  navigation: WorldNavItem[];
   writable: boolean;
   /** Whether saving is the screen's one primary action (it is not while «انتشار» is offered). */
   primary: boolean;
@@ -64,7 +63,6 @@ export function HomeTab({
   const home = useWorldHome(worldId);
   const [picking, setPicking] = useState<WorldHomeKind | null>(null);
   const [busy, setBusy] = useState(false);
-  const tabOff = new Set(navigation.filter((item) => !item.enabled).map((item) => item.section));
 
   const save = async () => {
     setBusy(true);
@@ -112,6 +110,8 @@ export function HomeTab({
       <ol className="flex flex-col gap-4">
         {sections.map((section, index) => {
           const label = WORLD_SECTION_LABELS[section.kind];
+          // Events are pinned first; nothing moves above them.
+          const pinned = section.kind === 'events';
           const error = home.errors[section.kind];
           return (
             <li key={section.kind}>
@@ -120,7 +120,7 @@ export function HomeTab({
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="text-xs tabular-nums text-muted-foreground">{toPersianDigits(index + 1)}</span>
                     <h3 className="font-semibold">{label}</h3>
-                    {tabOff.has(section.kind) && <Badge variant="outline">تب این بخش در منو خاموش است</Badge>}
+                    {section.kind === 'events' && <Badge variant="outline">همیشه اول، به‌صورت اسلایدر</Badge>}
                     <div className="ms-auto flex items-center gap-1">
                       <Switch
                         checked={section.enabled}
@@ -128,13 +128,13 @@ export function HomeTab({
                         onCheckedChange={(enabled) => home.update(section.kind, { enabled })}
                         aria-label={`نمایش «${label}» در خانه`}
                       />
-                      <Button variant="ghost" size="icon-sm" disabled={!writable || index === 0} onClick={() => home.moveSection(section.kind, -1)} aria-label={`بالا بردن «${label}»`}>
+                      <Button variant="ghost" size="icon-sm" disabled={!writable || pinned || index <= 1} onClick={() => home.moveSection(section.kind, -1)} aria-label={`بالا بردن «${label}»`}>
                         <ArrowUp aria-hidden="true" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        disabled={!writable || index === sections.length - 1}
+                        disabled={!writable || pinned || index === sections.length - 1}
                         onClick={() => home.moveSection(section.kind, 1)}
                         aria-label={`پایین بردن «${label}»`}
                       >

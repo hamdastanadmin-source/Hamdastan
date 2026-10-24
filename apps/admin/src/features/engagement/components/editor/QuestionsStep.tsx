@@ -225,6 +225,7 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
         <aside className="lg:sticky lg:top-20 lg:self-start lg:border-e lg:pe-6">
           <QuestionOutline
             type={state.type}
+            mode={assessment?.mode}
             steps={steps}
             selection={selection}
             errors={errors}

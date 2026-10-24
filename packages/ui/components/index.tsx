@@ -48,6 +48,14 @@ import {
   CardHeader,
   CardTitle,
 } from '../primitives/card';
+import {
+  Carousel as CarouselPrimitive,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from '../primitives/carousel';
 import { Checkbox } from '../primitives/checkbox';
 import { DirectionProvider } from '../primitives/direction';
 import {
@@ -131,6 +139,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../primitives/select';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
+  ItemGroup,
+  ItemHeader,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+} from '../primitives/item';
 import { Separator } from '../primitives/separator';
 import {
   Sheet,
@@ -212,6 +232,8 @@ export {
 };
 export { Button, buttonVariants };
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export { CarouselContent, CarouselItem, CarouselPrevious, CarouselNext };
+export type { CarouselApi };
 // The chart is `@hamdastan/ui/chart`, not here: see `../chart.ts`.
 export { Checkbox };
 export { DirectionProvider };
@@ -290,6 +312,7 @@ export {
   SelectTrigger,
   SelectValue,
 };
+export { Item, ItemActions, ItemContent, ItemDescription, ItemFooter, ItemGroup, ItemHeader, ItemMedia, ItemSeparator, ItemTitle };
 export { Separator };
 export {
   Sheet,
@@ -374,6 +397,14 @@ export const DropdownMenu = ({
 }: React.ComponentProps<typeof DropdownMenuPrimitive> & {
   dir?: 'ltr' | 'rtl';
 }) => <DropdownMenuPrimitive dir={dir ?? APP_DIR} {...props} />;
+
+// Embla reads the direction from its options, not from the DOM.
+export const Carousel = ({
+  opts,
+  ...props
+}: React.ComponentProps<typeof CarouselPrimitive>) => (
+  <CarouselPrimitive opts={{ direction: APP_DIR, ...opts }} {...props} />
+);
 
 /** Tables default to start-aligned text so Persian content reads correctly. */
 export const Table = ({

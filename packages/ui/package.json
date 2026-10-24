@@ -22,6 +22,7 @@
     "@hamdastan/config": "*",
     "@hamdastan/shared": "*",
     "class-variance-authority": "^0.7.1",
+    "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.5.0",
     "lucide-react": "^0.563.0",
     "radix-ui": "^1.6.7",

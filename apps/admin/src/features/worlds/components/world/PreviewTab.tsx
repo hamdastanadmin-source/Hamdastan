@@ -90,7 +90,7 @@ export function PreviewTab({ worldId }: { worldId: string }) {
               <h2 className="text-xl font-bold">{home.world.name}</h2>
               {home.world.tagline && <p className="text-sm text-muted-foreground">{home.world.tagline}</p>}
             </div>
-            <nav aria-label="تب‌های دنیا" className="flex gap-4 overflow-x-auto border-b pb-2 text-sm">
+            <nav aria-label="منوی دنیا" className="flex gap-4 overflow-x-auto border-b pb-2 text-sm">
               {home.world.navigation.map((item, index) => (
                 <span key={item.section} className={index === 0 ? 'font-semibold' : 'text-muted-foreground'}>
                   {item.label}

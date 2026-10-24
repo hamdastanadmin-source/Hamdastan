@@ -42,6 +42,22 @@ export const QUESTION_KIND_LABELS: Record<QuestionKindId, string> = {
 /** Kinds no assessment dimension can measure: a personality item is never one of these. */
 export const UNDIMENSIONED_KINDS: readonly QuestionKindId[] = ['text', 'matching'];
 
+/**
+ * The kinds each assessment mode scores (`engagement.scoring.ts` in
+ * `apps/api`). Any other kind is still asked and its answer stored, but it
+ * leaves the score, the leaderboard and the outcome alone — the builder
+ * marks it so the admin is not surprised.
+ */
+export const SCORED_KINDS: Record<'knowledge' | 'personality' | 'profile', readonly QuestionKindId[]> = {
+  knowledge: ['single', 'multiple', 'matching'],
+  personality: QUESTION_KINDS.filter((kind) => !UNDIMENSIONED_KINDS.includes(kind)),
+  profile: ['single', 'multiple'],
+};
+
+/** The builder's word for a question its assessment does not score; the short one fits the question list. */
+export const UNSCORED_LABEL = 'در نتیجه حساب نمی‌شود';
+export const UNSCORED_SHORT_LABEL = 'بدون امتیاز';
+
 export const ENGAGEMENT_LIMITS = {
   TITLE_MAX: 120,
   SUMMARY_MAX: 200,

@@ -1,33 +1,26 @@
-import { WORLD_SECTIONS, type WorldSectionId, type WorldThemeId } from '@hamdastan/config';
 import type { ActivityCard, ArticleCard, EventCard, Paginated, WorldDetail, WorldHomeBlock } from '@hamdastan/types';
 
-export type WorldTab = WorldSectionId;
+/**
+ * A world's pages. Its menu has two — home and «فعالیت‌ها» — and each home
+ * section of news, knowledge or events has a «همه» page of its own, one
+ * step down. `null` is a list that could not be read.
+ */
 
-/** What one tab of a world's page shows. `null` is a list that could not be read. */
-export type WorldTabContent =
-  | { tab: 'home'; sections: WorldHomeBlock[] | null }
-  | { tab: 'news' | 'knowledge'; page: Paginated<ArticleCard> | null }
-  | { tab: 'events'; page: Paginated<EventCard> | null }
-  | { tab: 'activities'; cards: ActivityCard[] | null };
+/** The home sections that open a «همه» page. */
+export const WORLD_LIST_KINDS = ['events', 'news', 'knowledge'] as const;
+export type WorldListKind = (typeof WORLD_LIST_KINDS)[number];
 
-export type WorldPage = { world: WorldDetail; content: WorldTabContent };
+export type WorldHomePage = { world: WorldDetail; sections: WorldHomeBlock[] | null };
+export type WorldActivitiesPage = { world: WorldDetail; cards: ActivityCard[] | null };
+export type WorldListPage =
+  | { world: WorldDetail; kind: 'news' | 'knowledge'; page: Paginated<ArticleCard> | null }
+  | { world: WorldDetail; kind: 'events'; page: Paginated<EventCard> | null };
 
-/** `?tab=` as asked, if the world's menu has it on; anything else is home. */
-export function tabOf(world: WorldDetail, asked: string | undefined): WorldTab {
-  const tab = WORLD_SECTIONS.find((section) => section === asked);
-  return tab && world.navigation.some((item) => item.section === tab) ? tab : 'home';
-}
+export const worldHref = (slug: string) => `/worlds/${slug}`;
 
-/** A tab's address. Home is the world's own address. */
-export const tabHref = (slug: string, tab: WorldTab, page = 1) =>
-  `/worlds/${slug}${tab === 'home' ? '' : `?tab=${tab}`}${page > 1 ? `${tab === 'home' ? '?' : '&'}page=${page}` : ''}`;
+export const worldActivitiesHref = (slug: string) => `/worlds/${slug}/activities`;
 
-/** Each theme's tint, as a whole class so the build sees it. The colours are tokens (`--world-*`). */
-export const THEME_BAND: Record<WorldThemeId, string> = {
-  neutral: 'bg-world-neutral',
-  emerald: 'bg-world-emerald',
-  amber: 'bg-world-amber',
-  rose: 'bg-world-rose',
-  sky: 'bg-world-sky',
-  indigo: 'bg-world-indigo',
-};
+export const worldListHref = (slug: string, kind: WorldListKind, page = 1) => `/worlds/${slug}/${kind}${page > 1 ? `?page=${page}` : ''}`;
+
+/** Whether the world's menu has «فعالیت‌ها» on. */
+export const hasActivities = (world: WorldDetail) => world.navigation.some((item) => item.section === 'activities');

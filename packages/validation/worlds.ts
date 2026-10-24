@@ -50,7 +50,6 @@ export const worldInputSchema = z.object({
   tagline: line(L.TAGLINE_MAX, null),
   description: paragraph(L.DESCRIPTION_MAX),
   coverId: mediaIdSchema.nullable(),
-  logoId: mediaIdSchema.nullable(),
   theme: z.enum(WORLD_THEMES),
   navigation: navigationSchema,
 });

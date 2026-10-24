@@ -20,7 +20,7 @@ export function SoonEventsSection({ events }: { events: EventCardData[] }) {
       <ul className="flex flex-col gap-3">
         {events.map((card) => (
           <li key={card.id}>
-            <EventCard card={card} layout="row" className="border-primary/40" />
+            <EventCard card={card} className="border-primary/40" />
           </li>
         ))}
       </ul>

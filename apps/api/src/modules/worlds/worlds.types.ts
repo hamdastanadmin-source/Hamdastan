@@ -16,7 +16,6 @@ export type WorldRecord = {
   tagline: string;
   description: string;
   coverId: string | null;
-  logoId: string | null;
   theme: WorldTheme;
   navigation: WorldNavItem[];
   position: number;

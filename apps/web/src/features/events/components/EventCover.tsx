@@ -10,7 +10,9 @@ import { eventsService } from '@/services';
 /**
  * An event's image from the media library, filling its box. Without one —
  * or if it fails to load — a quiet tile with the events icon, never a
- * broken image.
+ * broken image. The box's size is the caller's (`aspect-video`, a height):
+ * the image is laid over it, so its own dimensions never stretch the box —
+ * which Safari otherwise lets them do in a stretched card, as in a carousel.
  */
 export function EventCover({ id, alt, className }: { id: string | null; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -21,7 +23,7 @@ export function EventCover({ id, alt, className }: { id: string | null; alt: str
         <img
           src={eventsService.mediaUrl(id)}
           alt={alt}
-          className="size-full object-cover"
+          className="absolute inset-0 size-full object-cover"
           decoding="async"
           loading="lazy"
           onError={() => setFailed(true)}

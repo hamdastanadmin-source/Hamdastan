@@ -55,7 +55,7 @@ export function MyEventsScreen({ soon, lists }: { soon: EventCardData[]; lists: 
                   <ul className="flex flex-col gap-3">
                     {events.map((card) => (
                       <li key={card.id}>
-                        <EventCard card={card} layout="row" />
+                        <EventCard card={card} />
                       </li>
                     ))}
                   </ul>

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { Button } from '@hamdastan/ui';
 
-/** Earlier and later pages of a tab's list, as addresses. Absent when there is one page. */
+/** Earlier and later pages of a world's list, as addresses. Absent when there is one page. */
 export function WorldPager({ page, total, pageSize, hrefOf }: { page: number; total: number; pageSize: number; hrefOf: (page: number) => string }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   if (pages <= 1) return null;

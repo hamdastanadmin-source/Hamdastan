@@ -388,7 +388,7 @@ describe.skipIf(!hasDatabase)('events against a migrated database', () => {
 
     expect((await call('GET', '/admin/events', reviewer)).statusCode).toBe(403);
     expect((await call('POST', '/admin/events', reviewer, complete())).statusCode).toBe(403);
-    const world = { slug: 'x', name: 'x', summary: '', tagline: '', description: '', coverId: null, logoId: null, theme: 'neutral', navigation: WORLD_DEFAULT_NAVIGATION };
+    const world = { slug: 'x', name: 'x', summary: '', tagline: '', description: '', coverId: null, theme: 'neutral', navigation: WORLD_DEFAULT_NAVIGATION };
     expect((await call('POST', '/admin/worlds', reviewer, world)).statusCode).toBe(403);
     expect((await call('GET', '/admin/events', {})).statusCode).toBe(401);
     const { cookies } = await newUser();

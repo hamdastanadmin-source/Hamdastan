@@ -418,18 +418,19 @@ Notification Center with the unread count (§4.11); the bottom nav holds خان�
   «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
   آدم‌های مناسب‌تری برات پیدا کنیم.», «حدود ۵ دقیقه», «+50 XP» and
   «شروع آزمون», the screen's one primary action.
-- **Done:** the card is gone; a quiet row «پروفایل اجتماعی‌ات آماده‌ست» with
-  the result's title and «مشاهده نتیجه» leads to `/profile/social`.
+- **Done:** the card is gone; nothing on home stands in for it — the
+  result lives in the profile («دیدن نتیجه‌ی کامل» → `/profile/social`).
+- Then «جهان‌های هم‌داستان» — at the top once the questionnaire is done: one row (shadcn `Item`, outlined, never violet) — «دنیای داستانی‌ات رو انتخاب کن» under the title, the number of worlds and the forward chevron — that opens a bottom sheet of every published world, in the admin's order (§4.10), each a banner linking to `/worlds/:slug` — its cover, or for the four seeded worlds (Hogwarts, GTA, Game of Thrones, Liverpool) the artwork they shipped with, or a plain tile with its name — and «بستن». Absent when no world is published; home never fails because of it.
+- Then «رویدادهای پیش‌رو» (§4.9): up to three events the person can still
+  attend — not ended, not cancelled, not sold out — side by side in a
+  carousel of discovery's card (the next one peeking in), each a whole-card
+  link, and «همه» → `/events`. Absent when there are none; home never fails
+  because of it.
 - Then «فعالیت‌ها» (§4.7): up to three activities the person can do now or is
   waiting on, open ones first, each a whole-card link (no button inside, so the
   screen keeps one primary action), and «همه» → `/activities`. The section is
   absent when there is nothing to do, and home never fails because of it — if
   the activities cannot be read, there are none.
-- Then «رویدادهای پیش‌رو» (§4.9): up to three events the person can still
-  attend — not ended, not cancelled, not sold out — each a whole-card link,
-  and «همه» → `/events`. Absent when there are none; home never fails
-  because of it.
-- Below it, the story-world picker under «دنیای داستانی‌ات رو انتخاب کن»: every published world, in the admin's order (§4.10), each a banner linking to `/worlds/:slug` — its cover, or for the four seeded worlds (Hogwarts, GTA, Game of Thrones, Liverpool) the artwork they shipped with, or a plain tile with its name. Absent when no world is published; home never fails because of it.
 
 ### 4.4 Account — حساب من
 
@@ -747,7 +748,9 @@ the submissions allowed).
 **Scoring** (`engagement.scoring.ts`, pure). *Knowledge:* a choice question is
 right when the picks are exactly its correct options, a matching question when
 every prompt has its own match (all or nothing — it counts as one question);
-the score is the share right, 0–100; passed when ≥ the pass mark. *Personality:* each answered item
+the score is the share right, 0–100; passed when ≥ the pass mark. Text,
+rating and scale questions are asked but leave the score — and a
+competition's leaderboard — alone. *Personality:* each answered item
 is put on 0–1 — a rating or scale by its position on its range, a choice by
 its option's points relative to the question's lowest and highest — turned
 round when the item is reverse-keyed, and averaged per dimension (0–100). The
@@ -775,6 +778,11 @@ profile, and the CSV adds a «امتیاز <profile>» column per profile. Weigh
 question weights and profiles are cleared when the mode or the type changes.
 Question and option counts keep the usual caps (50 questions, 12 options);
 options, like questions, can be moved up and down in the editor.
+Which kinds each mode scores is one list (`SCORED_KINDS` in
+`@hamdastan/config`); the builder marks every question its mode leaves out —
+«بدون امتیاز» in the question list (the full «در نتیجه حساب نمی‌شود» on
+hover), and under «نوع سؤال» a line naming the kinds that do count — so an
+admin is never surprised by a score.
 The answer key, the points and the weights never leave the API.
 
 **The admin panel — «استودیو», `/engagement`.** The list shows, per activity: title and
@@ -1187,8 +1195,12 @@ otherwise. **Planned (phase 5):** end-to-end tests and polish.
   the list is newest first (the API's `sort=newest`), as is a world's;
   home's «رویدادهای پیش‌رو» stays soonest first. The API keeps its other
   orders for later.
-- **The card** — one component for discovery, a world, related events and
-  home: cover (a quiet placeholder when there is none or it fails), one
+- **The card** — one component, one layout, wherever an event is listed —
+  discovery, home, a world, related events and «رویدادهای من» — so an event
+  looks the same everywhere. Where events are a section rather than the
+  page's list (home's «رویدادهای پیش‌رو», a world's home, related events)
+  the cards sit side by side in a carousel (shadcn `Carousel`, RTL, the next
+  card peeking in). The card: cover (a quiet placeholder when there is none or it fails), one
   state badge when there is something to say (لغو شد، برگزار شد، در حال
   برگزاری، تکمیل ظرفیت، ظرفیت محدود), the first category, title, summary,
   when («شنبه ۲۵ مهر، ساعت ۱۸:۰۰», or «۱ آبان تا ۳ آبان»), where (or
@@ -1201,7 +1213,7 @@ otherwise. **Planned (phase 5):** end-to-end tests and polish.
   with «مسیریابی» (a map route by coordinates, or by address); online
   instructions, and the join link only when the API sends it; the
   organizer; the description (folded behind «ادامه‌ی توضیحات» when long);
-  the tickets; related events. An event the person may not see is the 404
+  the tickets; related events (a carousel). An event the person may not see is the 404
   page. A signed-out visitor who opens one is brought back to it after
   signing in (the proxy's `hd_return_to`, as for journey invitations).
 - **Taking part** (the bottom of `/events/:slug`, phase 4) — a bookmark
@@ -1409,7 +1421,9 @@ and article pages) are built. Trivia explanations and competitions with a
 leaderboard (phase 4) and end-to-end tests (phase 5) follow.*
 
 **A world** (`v2_worlds`): slug, name, short summary, tagline, long
-description (plain text), cover and logo from the media library, a theme
+description (plain text), a cover from the media library (no logo: its
+name, in its theme, is its mark — `v2_worlds.logo_media_id`, from `0020`,
+is no longer read or written), a theme
 preset (`WORLD_THEMES`: neutral, emerald, amber, rose, sky, indigo — drawn
 from tokens, never a colour an admin types), its menu, and its place in the
 list.
@@ -1427,12 +1441,16 @@ list.
   record; a world anything is filed under cannot be deleted
   (`409 WORLD_IN_USE`) — only an empty one can. The four worlds `0018`
   seeded were active, so `0020` made them `published`.
-- **Menu** (`navigation`): every section once — خانه, اخبار, دانستنی‌ها,
-  رویدادها, فعالیت‌ها (`WORLD_SECTIONS`) — in the admin's order and with the
-  admin's labels; خانه is always first and on. Switching a section off is
-  how a world «does not support» it: its tab and its home section both go.
-- **Home** (`v2_world_home_sections`, one per kind — news, knowledge,
-  events, activities — in the admin's order). Each section: on or off, a
+- **Menu** (`navigation`): the world's bottom bar — خانه and فعالیت‌ها
+  (`WORLD_SECTIONS`), each with the admin's label; خانه is always first and
+  on, فعالیت‌ها may be switched off (its menu item and page go; the home's
+  activities section is its own switch). News, knowledge and events are not
+  menus but sections of the home. A world saved when they were menus is
+  read with its خانه and فعالیت‌ها items kept and the rest dropped — no
+  migration.
+- **Home** (`v2_world_home_sections`, one per kind — events, news,
+  knowledge, activities). Events always come first, whatever position they
+  were saved at; the admin orders the rest. Each section: on or off, a
   title (empty: the default), how many items (1–12), where the items come
   from — **latest** (the newest eligible ones) or **featured** (only the
   ones the admin chose, in their order, `v2_world_home_items`) — and what an
@@ -1483,17 +1501,17 @@ happens in each kind's own editor.
   it is offered, saves what is on the screen first, and is disabled with a
   «برای انتشار:» checklist until the world is complete — and five tabs:
   - **هویت** — name, slug, tagline, short summary, description, cover
-    (3:1), logo (square) and theme (presets as neutral toggles).
-  - **منو** — every section with its label, on/off switch and up/down;
-    خانه is fixed first and on. هویت and منو are one form and one
+    (3:1) and theme (presets as neutral toggles).
+  - **منو** — خانه (always on) and فعالیت‌ها, each with its label, and an
+    on/off switch for فعالیت‌ها. هویت and منو are one form and one
     «ذخیره‌ی تغییرات», checked with `worldInputSchema`.
-  - **خانه** — the four sections in order (up/down), each on/off, with its
+  - **خانه** — the four sections in order — رویدادها pinned first (marked
+    «همیشه اول، به‌صورت اسلایدر»), the rest up/down — each on/off, with its
     title, size (1–12), source (جدیدترین / فقط موارد ویژه), what an empty
     section does, and its featured items: added from a picker that offers
     only items of that kind filed under this world (in any status, with a
     search), ordered with up/down, removed with ×, each with its status and
-    «نمایش داده نمی‌شود» when it is not live. A section whose tab is off in
-    the menu says so. «ذخیره‌ی چیدمان» saves the whole home; a problem lands
+    «نمایش داده نمی‌شود» when it is not live. «ذخیره‌ی چیدمان» saves the whole home; a problem lands
     on its section.
   - **محتوا** — the content index for this world only, with «ایجاد» → خبر,
     دانستنی, رویداد or فعالیت, each opening its editor with this world
@@ -1521,42 +1539,51 @@ happens in each kind's own editor.
 
 **The product screens.**
 
-- **`/worlds/:slug`** — back to خانه; the hero: cover (or the seeded
-  world's built-in artwork, or a quiet tile), then a band in the world's
-  theme tint (`--world-*` tokens; the words stay the foreground, so every
-  theme reads in light and dark) with the logo, name and tagline (the
-  summary when there is no tagline); then the menu — the tabs left on, in
-  the admin's order and with their labels, each an address (`?tab=`), the
-  current one a foreground rule, never violet; then the open tab:
-  - **خانه** — the sections the API sent, in order, each with «همه» to its
-    tab; a section kept when empty says «فعلاً چیزی نیست»; then «درباره‌ی
-    …» with the description, paragraph by paragraph.
-  - **اخبار / دانستنی‌ها** — the world's live articles, newest first, pages
-    of 20 (`?page=`).
-  - **رویدادها** — the world's events (`GET /events?world=`, newest first,
-    pages of 20) and a link to the same filter in «رویدادها».
-  - **فعالیت‌ها** — every open activity filed under the world that the
-    person may take part in (`GET /worlds/:slug/activities`).
+- **`/worlds/:slug`** — a world's home: back to «هم‌داستان» (`APP_NAME` — not «خانه», which is the world's own menu item); the world's card:
+  cover (or the seeded world's built-in artwork, or a quiet tile), then a
+  band in the world's theme tint (`--world-*` tokens; the words stay the
+  foreground, so every theme reads in light and dark) with the name and
+  tagline (the summary when there is no tagline), and — when there is a
+  description — «درباره‌ی …» at the card's foot, an accordion closed by
+  default that opens the description paragraph by paragraph. Then the
+  sections the API sent — رویدادها first as a carousel of the events card,
+  then news, knowledge and activities in the admin's order — each with
+  «همه» to its own page; a section kept when empty says «فعلاً چیزی نیست».
+  The page ends in the world's menu.
+- **The world's menu** — the app's `BottomNav` with the world's items:
+  خانه (`/worlds/:slug`) and فعالیت‌ها (`/worlds/:slug/activities`), in the
+  admin's labels, the current one by weight, never violet. A world with
+  فعالیت‌ها off has no menu.
+- **`/worlds/:slug/activities`** — every open activity filed under the
+  world that the person may take part in (`GET /worlds/:slug/activities`),
+  over the world's menu. The 404 page when the menu item is off. The home's
+  activities «همه» leads here.
+- **`/worlds/:slug/news|knowledge|events`** — a home section's «همه»: one
+  step down, back to the world, no menu. Articles newest first, events from
+  `GET /events?world=` (newest first) with the events card and a link to
+  the same filter in «رویدادها»; pages of 20 (`?page=`). Any other segment
+  is the 404 page.
   Every list has its empty state and, if it cannot be read, «تلاش دوباره»;
-  the page still opens. A world that is not published, and a tab that is
-  off, is the 404 page / the home tab.
-- **`/articles/:slug`** — back to the article's first world (its tab), or
+  the page still opens. A world that is not published is the 404 page.
+  `?tab=` — the address of the sections when they were tabs — redirects to
+  the page that replaced it.
+- **`/articles/:slug`** — back to its first world's news or knowledge page, or
   home; cover, kind and category, the Jalali publication day, title,
   summary, the body paragraph by paragraph, and «از دنیای …» linking to
   each world. An article that is not live is the 404 page.
 - A signed-out visitor who opens a world's or an article's link is brought
   back to it after signing in (`hd_return_to`, like events and journeys).
 - **Previews for the panel** — `/preview/worlds/:id` (the world's home, any
-  status, tabs shown but not followed, with a banner saying where it
+  status, links not followed, with a banner saying where it
   stands) and `/preview/articles/:id` (the article page, any status), opened
   from the panel's «نمای کامل در اپلیکیشن». The API checks the admin
   session they carry; nothing is recorded.
 
 **Product reads.** `GET /worlds` (published, in order), `GET /worlds/:slug`
-(identity and the tabs that are on), `GET /worlds/:slug/home`, `GET
+(identity and the menu items that are on), `GET /worlds/:slug/home`, `GET
 /worlds/:slug/activities`, `GET
 /content/articles?world=&kind=` and `GET /content/articles/:slug`. A
-world's events tab reads `GET /events?world=`, as before.
+world's events page reads `GET /events?world=`, as before.
 
 **Not built:** community moderation (no community exists yet), world
 membership and following, world-scoped admins, drafts of a published world
@@ -2206,7 +2233,7 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/worlds` | — | `World[]` (published) |
 | GET | `/worlds/:slug` | — | `WorldDetail`; 404 unless published |
 | GET | `/worlds/:slug/home` | — | `WorldHome`: the sections that are on, each with the items that may appear now |
-| GET | `/worlds/:slug/activities` | — | `ActivityCard[]` — open activities filed under the world, for this person; 404 when the tab is off |
+| GET | `/worlds/:slug/activities` | — | `ActivityCard[]` — open activities filed under the world, for this person; 404 when the world's فعالیت‌ها menu is off |
 | GET | `/content/articles` | `?world=&kind=news\|knowledge&page=&pageSize=` | `Paginated<ArticleCard>` — live only |
 | GET | `/content/articles/:slug` | — | `ArticleDetail`; 404 unless live |
 | GET | `/events` | `?q=&category=a,b&type=&world=&from=&to=&city=&price=free\|paid&available=&interested=&sort=&page=&pageSize=` | `Paginated<EventCard>` |
@@ -2393,7 +2420,8 @@ foreground, not violet.
   200ms `Accordion` open/close (`animate-accordion-down` / `-up`).
   Everything honours `prefers-reduced-motion`.
 - Top-level screens (home, events, profile) end in `BottomNav` — خانه, رویدادها and پروفایل —
-  instead of a footer; a screen one step down has a back control instead.
+  instead of a footer; a world's home and activities end in the same bar
+  with the world's own items. A screen one step down has a back control instead.
   The current tab is weight and full-strength text, not colour.
 - A sticky footer holds the primary action, inside the column and clear of the
   iOS home indicator.
@@ -2505,7 +2533,7 @@ app background; re-export them all when the master changes.
 | Onboarding stage 3 (avatar) | High | Intro, stage 1 (interests) and stage 2 (questionnaire) are built; the result screen goes home until stage 3 exists |
 | Matching on the social profile | High | The profile, roles, availability and conflict sensitivities are stored; nothing reads them yet |
 | Confirm questionnaire scoring v1 | High | Check the v1 choices in §4.2 against the scoring spec; bump `social-matching-v1` if they change |
-| Home screen | High | Carries the questionnaire mission and the story-world picker |
+| Home screen | High | Carries the questionnaire mission and «جهان‌های هم‌داستان» (a row that opens a sheet of worlds) |
 | Read the privacy setting | Medium | `showSocialProfile` is stored; nothing reads it until other people's profiles exist |
 | Level-gated avatar items | Low | `unlockLevel` is enforced by the API; the dress-up studio is gone and no item uses it |
 | «ساخت آواتار» mission | Low | No longer reachable — there is no avatar screen. Earned XP and «خوش‌استایل» badges stay; missions are not listed on the profile |

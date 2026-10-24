@@ -34,13 +34,13 @@ import type { HomeSectionRecord, WorldFields, WorldRecord } from './worlds.types
  * What a world's home shows is decided here, section by section, from the
  * admin's configuration — and each item's eligibility is decided by the
  * module that owns it (`worldCards`): an unpublished, scheduled, ended or
- * restricted item never appears, featured or not. A section whose tab is
- * switched off in the menu is not on the home either.
+ * restricted item never appears, featured or not. Events lead the home;
+ * the menu (home and activities) no longer decides which sections show.
  */
 
 const notFound = () => new NotFoundError('دنیا پیدا نشد');
 
-/** Open activities are few at a time; the tab lists them without pages. */
+/** Open activities are few at a time; the «فعالیت‌ها» menu lists them without pages. */
 const WORLD_TAB_ACTIVITIES_MAX = 50;
 
 const iso = (date: Date | null) => date?.toISOString() ?? null;
@@ -57,7 +57,6 @@ const toDetail = (record: WorldRecord): WorldDetail => ({
   ...toWorld(record),
   tagline: record.tagline,
   description: record.description,
-  logoId: record.logoId,
   theme: record.theme,
   navigation: record.navigation.filter((item) => item.enabled),
 });
@@ -77,7 +76,6 @@ const toAdminWorld = (record: WorldRecord): AdminWorld => ({
 const toAdminDetail = (record: WorldRecord): AdminWorldDetail => ({
   ...toAdminWorld(record),
   description: record.description,
-  logoId: record.logoId,
   theme: record.theme,
   navigation: record.navigation,
 });
@@ -91,7 +89,7 @@ function assertPublishable(fields: Pick<WorldFields, 'name' | 'summary' | 'cover
   }
 }
 
-const checkMedia = (fields: WorldFields) => mediaService.requireImages({ coverId: fields.coverId, logoId: fields.logoId });
+const checkMedia = (fields: WorldFields) => mediaService.requireImages({ coverId: fields.coverId });
 
 /** Which statuses each action may start from, and where it goes. Archiving keeps every link. */
 const TRANSITIONS: Record<WorldStatusAction, { to: WorldStatus; from: WorldStatus[] }> = {
@@ -129,8 +127,7 @@ function itemsFor(kind: WorldHomeKind, worldId: string, options: { ids?: string[
 }
 
 async function buildHome(record: WorldRecord, userId: string | null): Promise<WorldHome> {
-  const tabs = new Set(record.navigation.filter((item) => item.enabled).map((item) => item.section));
-  const sections = (await worldsRepository().findHome(record.id)).filter((section) => section.enabled && tabs.has(section.kind));
+  const sections = (await worldsRepository().findHome(record.id)).filter((section) => section.enabled);
   const blocks = await Promise.all(
     sections.map(async (section) => {
       const items = await cardsFor(section, record.id, userId);
@@ -166,7 +163,7 @@ export const worldsService = {
     return buildHome(found, user.id);
   },
 
-  /** The world's activities tab: every open activity filed under it that the person may take part in. */
+  /** The world's «فعالیت‌ها» menu: every open activity filed under it that the person may take part in. */
   async activities(user: UserRecord, slug: string): Promise<ActivityCard[]> {
     const found = await worldsRepository().findPublishedBySlug(slug);
     if (!found || !found.navigation.some((item) => item.section === 'activities' && item.enabled)) throw notFound();

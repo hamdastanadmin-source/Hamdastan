@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { SCORED_KINDS } from '@hamdastan/config';
 import type { ActivityDefinition } from '@hamdastan/types';
 import { activityInputSchema, validateAnswers } from '@hamdastan/validation';
 
@@ -122,6 +123,32 @@ describe('scoreAssessment', () => {
     };
     expect(scoreAssessment(quiz, { pairs: ['m1', 'm2', 'm3', 'm4'] })).toMatchObject({ score: 100 });
     expect(scoreAssessment(quiz, { pairs: ['m2', 'm1', 'm3', 'm4'] })).toMatchObject({ score: 0 });
+  });
+
+  it('leaves out of a knowledge score the kinds the builder marks as not counting', () => {
+    const quiz: ActivityDefinition = {
+      ...base,
+      steps: [
+        {
+          id: 's',
+          title: '',
+          description: '',
+          questions: [
+            { id: 'q', kind: 'single', title: 'q', required: true, options: [{ id: 'y', label: 'y', correct: true }, { id: 'n', label: 'n' }] },
+            { id: 't', kind: 'text', title: 't', required: true, multiline: false },
+            { id: 'r', kind: 'rating', title: 'r', required: true, max: 5 },
+            { id: 'c', kind: 'scale', title: 'c', required: true, min: 0, max: 10, minLabel: '', maxLabel: '' },
+          ],
+        },
+      ],
+      assessment: { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true, revealAnswers: false },
+    };
+    expect(SCORED_KINDS.knowledge).not.toContain('text');
+    expect(SCORED_KINDS.knowledge).not.toContain('rating');
+    expect(SCORED_KINDS.knowledge).not.toContain('scale');
+    // One keyed question, answered right: 100, whatever the others hold.
+    expect(scoreAssessment(quiz, { q: 'y', t: 'هر چیزی', r: 1, c: 0 })).toMatchObject({ score: 100 });
+    expect(scoreAssessment(quiz, { q: 'n', r: 5, c: 10 })).toMatchObject({ score: 0 });
   });
 });
 

@@ -157,10 +157,13 @@ rule that picks the character is `traitScores`/`pickCharacter` in
 lets it through without a product session, and the API decides by the
 admin session it carries.
 
-`worlds` is home's world picker (`WorldBanners`) and a world's page
-(`/worlds/:slug`): the hero in its theme, the menu as address-backed tabs,
-and each tab's list — borrowing `ArticleCard` from `content`, `EventCard`
-from `events` and `ActivityCard` from `activities` through their public
+`worlds` is home's world picker (`WorldsPicker` — a row that opens a bottom sheet of worlds) and a world's pages: its
+home (`/worlds/:slug` — the hero in its theme and the home sections, events
+first), its «فعالیت‌ها» (`/worlds/:slug/activities`), the two behind its
+menu (`WorldMenu`, which is `BottomNav` with the world's items), and each
+section's «همه» page (`/worlds/:slug/news|knowledge|events`) — borrowing
+`ArticleCard` from `content`, `EventCard` and `EventsCarousel` from
+`events` and `ActivityCard` from `activities` through their public
 surfaces. `content` is the article card and page (`/articles/:slug`). Which
 world is published and which item may appear is the API's answer; neither
 feature filters. A library file is drawn by `MediaImage` (`src/components`),
@@ -314,7 +317,9 @@ one from beside it:
 **`BottomNav`** (`components/layout/BottomNav.tsx`) ends the top-level
 screens — home, events and the profile — in place of a `ScreenFooter`:
 sticky for the same reason, with the current tab told by weight rather than
-colour. A tab is current on its own page and the pages under it.
+colour. A tab is current on its own page and the pages under it; when two
+match, the deeper wins. A world passes its own `items` (its home and
+activities) — the same bar, not a second component.
 A screen one level down has `ScreenBack` instead and no bottom nav.
 
 **`XpAmount`** (`components/xp/`) is the app's one way to write an amount
@@ -750,6 +755,16 @@ a product that gets wider and this one never does:
   mode rounds and borders with `rounded-s`/`rounded-e`/`border-s`. The RTL
   lint only catches `left-`/`right-` with a dash, so check `text-left`,
   `rounded-l` and `border-l` by eye when adding a component.
+- **`Carousel` follows the reading direction.** Embla takes its direction
+  from options, not the DOM, so the `@hamdastan/ui` wrapper passes
+  `direction: APP_DIR`; the primitive's spacing is `-ms-4`/`ps-4`, its
+  arrows flip under `rtl:` and ArrowLeft/ArrowRight swap in RTL. It arrived
+  by hand (`embla-carousel-react` in `packages/ui`) because the shadcn CLI
+  cannot resolve this workspace's aliases.
+- **`Item` is a row that opens something.** Stock shadcn (`variant="outline"`),
+  taken from the registry by hand like `Carousel`. With `asChild` it becomes
+  the trigger it wraps — home's «جهان‌های هم‌داستان» row is `Item` over
+  `SheetTrigger`. Neutral, never violet.
 - **`Card` is shadcn's earlier `Card`.** Its padding lives on `CardHeader`
   (`p-6`) and `CardContent` (`p-6 pt-0`), not on `Card` — so a card with
   only a `CardContent` must give it its own top padding (`p-4 sm:p-6`), and

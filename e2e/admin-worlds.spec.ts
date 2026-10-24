@@ -48,9 +48,9 @@ test('a world from draft to a featured, published news item', async ({ browser }
     await page.getByRole('button', { name: 'انتشار' }).click();
     await expect(page.getByText('منتشرشده', { exact: true })).toBeVisible();
 
-    // The menu: a tab renamed.
+    // The menu: an item renamed.
     await page.getByRole('tab', { name: 'منو' }).click();
-    await page.getByLabel('برچسب «اخبار» در منو').fill('تازه‌ها');
+    await page.getByLabel('برچسب «فعالیت‌ها» در منو').fill('ماموریت‌ها');
     await page.getByRole('button', { name: 'ذخیره‌ی تغییرات' }).click();
     await expect(page.getByText('تغییرات ذخیره شد')).toBeVisible();
 
@@ -83,7 +83,7 @@ test('a world from draft to a featured, published news item', async ({ browser }
 
     // The preview builds the home as a person would get it.
     await page.getByRole('tab', { name: 'پیش‌نمایش' }).click();
-    await expect(page.getByRole('navigation', { name: 'تب‌های دنیا' })).toContainText('تازه‌ها');
+    await expect(page.getByRole('navigation', { name: 'منوی دنیا' })).toContainText('ماموریت‌ها');
     await expect(page.getByText(title, { exact: true })).toBeVisible();
 
     // And the central content area finds it, by world: the only item filed under it.

@@ -15,11 +15,12 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { isQuizType, QUESTION_KIND_LABELS } from '@hamdastan/config';
+import { isQuizType, QUESTION_KIND_LABELS, SCORED_KINDS, UNSCORED_LABEL, UNSCORED_SHORT_LABEL } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityStep, ActivityType } from '@hamdastan/types';
+import type { ActivityStep, ActivityType, AssessmentMode } from '@hamdastan/types';
 import {
+  Badge,
   Button,
   DropdownMenu,
   DropdownMenuContent,
@@ -108,11 +109,12 @@ function RowMenu({ label, actions }: { label: string; actions: RowActions }) {
  * and a dot when it has something to fix. A mission groups them under its
  * steps; a journey shows one day at a time (`visibleSteps`), numbered from 1
  * within it, under a row that opens the day's settings; an assessment opens
- * with its scoring. Choosing a row opens it in
+ * with its scoring, and marks a question its scoring leaves out. Choosing a row opens it in
  * the editing panel; «⋯» moves, duplicates or removes it.
  */
 export function QuestionOutline({
   type,
+  mode,
   steps,
   selection,
   errors,
@@ -127,6 +129,8 @@ export function QuestionOutline({
   visibleSteps,
 }: {
   type: ActivityType;
+  /** The assessment's scoring, if it has one: decides which questions count. */
+  mode?: AssessmentMode;
   steps: ActivityStep[];
   /** The steps to list, by index; all of them when absent. */
   visibleSteps?: number[];
@@ -231,9 +235,14 @@ export function QuestionOutline({
                             {toPersianDigits(number)}
                           </span>
                           <Icon aria-label={QUESTION_KIND_LABELS[question.kind]} className="size-4 shrink-0 text-muted-foreground" />
-                          <span className={cn('flex-1 truncate', !question.title && 'font-normal text-muted-foreground')}>
+                          <span className={cn('min-w-0 flex-1 truncate', !question.title && 'font-normal text-muted-foreground')}>
                             {question.title || 'سؤال بدون متن'}
                           </span>
+                          {mode && !SCORED_KINDS[mode].includes(question.kind) && (
+                            <Badge variant="outline" title={UNSCORED_LABEL} className="shrink-0 font-normal text-muted-foreground">
+                              {UNSCORED_SHORT_LABEL}
+                            </Badge>
+                          )}
                           {hasError(`definition.steps.${s}.questions.${q}.`) && <ErrorDot />}
                         </button>
                         <RowMenu label={`سؤال ${toPersianDigits(number)}`} actions={questionActions(s, q)} />

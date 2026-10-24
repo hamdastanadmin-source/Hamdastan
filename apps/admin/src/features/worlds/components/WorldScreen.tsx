@@ -34,7 +34,7 @@ const TAB_LABELS: Record<WorldTab, string> = {
   preview: 'پیش‌نمایش',
 };
 
-const FIELDS = ['slug', 'name', 'summary', 'tagline', 'description', 'coverId', 'logoId', 'theme', 'navigation'] as const;
+const FIELDS = ['slug', 'name', 'summary', 'tagline', 'description', 'coverId', 'theme', 'navigation'] as const;
 
 const toForm = (world: AdminWorldDetail): WorldFormInput => ({
   slug: world.slug,
@@ -43,7 +43,6 @@ const toForm = (world: AdminWorldDetail): WorldFormInput => ({
   tagline: world.tagline,
   description: world.description,
   coverId: world.coverId,
-  logoId: world.logoId,
   theme: world.theme,
   navigation: world.navigation.map((item) => ({ ...item })),
 });
@@ -214,8 +213,7 @@ export function WorldScreen({ initial, initialTab = 'identity' }: { initial: Adm
         )}
 
         <TabsContent value="home" className="mt-4">
-          {/* The saved menu decides which sections can show; an unsaved change applies once saved. */}
-          <HomeTab worldId={world.id} navigation={world.navigation} writable={writable} primary={!publishable} />
+          <HomeTab worldId={world.id} writable={writable} primary={!publishable} />
         </TabsContent>
 
         <TabsContent value="content" className="mt-4">

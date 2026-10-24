@@ -107,26 +107,6 @@ export function IdentityTab({ form }: { form: WorldForm }) {
         />
         <FormField
           control={form.control}
-          name="logoId"
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <FormLabel>لوگو</FormLabel>
-              <MediaField
-                value={field.value}
-                onChange={field.onChange}
-                kind="image"
-                category="other"
-                pickerTitle="لوگوی دنیا"
-                invalid={Boolean(fieldState.error)}
-                frame={IMAGE_FRAMES.logo}
-              />
-              <FormDescription>اختیاری؛ کنار نام دنیا.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
           name="theme"
           render={({ field }) => (
             <FormItem>

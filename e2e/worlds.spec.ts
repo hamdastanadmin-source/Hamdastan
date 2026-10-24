@@ -6,10 +6,11 @@ import { requireApi, testPhone } from './helpers/api';
 import { adminApi, API, ok, readyPerson, uniqueSlug } from './helpers/people';
 
 /**
- * A world as a person meets it: the home banner that leads to it, its hero
- * and menu, the home the admin arranged — featured news in the admin's
- * order, an empty section that asked to stay — its tabs, an article and the
- * way back, and the world gone the moment it is unpublished.
+ * A world as a person meets it: home's «جهان‌های هم‌داستان» sheet that leads to it, its hero
+ * and bottom menu, the home the admin arranged — featured news in the
+ * admin's order, an empty section that asked to stay — a section's «همه»
+ * page, an article and the way back, and the world gone the moment it is
+ * unpublished.
  *
  * Needs `apps/api` running against a database migrated through 0020, with
  * `OTP_DEBUG_DISPLAY=true`; skips with a reason otherwise. What it makes is
@@ -65,7 +66,6 @@ test.beforeAll(async ({ browser }) => {
         tagline: 'برای آزمودن صفحه‌ی دنیا',
         description: 'این دنیا را تست‌های e2e ساخته‌اند.',
         coverId: null,
-        logoId: null,
         theme: 'emerald',
         navigation: WORLD_DEFAULT_NAVIGATION,
       },
@@ -107,14 +107,21 @@ test.afterAll(async () => {
 
 test('home leads to the world, which opens on the home its admin arranged', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: world.name }).click();
+  await page.getByRole('button', { name: /جهان‌های هم‌داستان/ }).click();
+  await page.getByRole('dialog', { name: 'جهان‌های هم‌داستان' }).getByRole('link', { name: world.name }).click();
   await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}$`));
 
   await expect(page.getByRole('heading', { level: 1, name: world.name })).toBeVisible();
   await expect(page.getByText('برای آزمودن صفحه‌ی دنیا')).toBeVisible();
-  const tabs = page.getByRole('navigation', { name: 'بخش‌های دنیا' }).getByRole('link');
-  await expect(tabs).toHaveText(WORLD_DEFAULT_NAVIGATION.map((item) => item.label));
-  await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
+  // The menu is the bottom bar: home and activities.
+  const menu = page.getByRole('navigation', { name: `منوی ${world.name}` }).getByRole('link');
+  await expect(menu).toHaveText(WORLD_DEFAULT_NAVIGATION.map((item) => item.label));
+  await expect(menu.first()).toHaveAttribute('aria-current', 'page');
+
+  // Events lead the home, here kept with their empty state.
+  const events = page.locator('section[aria-labelledby^="world-section-"]').first();
+  await expect(events).toHaveAttribute('aria-labelledby', 'world-section-events');
+  await expect(events).toContainText('فعلاً چیزی نیست');
 
   const news = page.locator('section[aria-labelledby="world-section-news"]');
   await expect(news.getByRole('link').filter({ hasText: 'خبر' })).toHaveText([/خبر دوم/, /خبر نخست/]);
@@ -122,20 +129,37 @@ test('home leads to the world, which opens on the home its admin arranged', asyn
   await expect(page.getByRole('heading', { name: `درباره‌ی ${world.name}` })).toBeVisible();
 });
 
-test('a tab is an address, and an article leads back to it', async ({ page }) => {
+test('«همه» opens a page of its own, and an article leads back to it', async ({ page }) => {
   await page.goto(`/worlds/${world.slug}`);
-  await page.getByRole('navigation', { name: 'بخش‌های دنیا' }).getByRole('link', { name: 'دانستنی‌ها' }).click();
-  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}\\?tab=knowledge$`));
+  await page.locator('section[aria-labelledby="world-section-knowledge"]').getByRole('link', { name: 'همه' }).click();
+  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}/knowledge$`));
+  await expect(page.getByRole('heading', { level: 1, name: 'دانستنی‌ها' })).toBeVisible();
   await expect(page.getByRole('link', { name: /یک دانستنی/ })).toBeVisible();
 
+  // The address the section had as a tab still lands on its page.
   await page.goto(`/worlds/${world.slug}?tab=news`);
+  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}/news$`));
   await page.getByRole('link', { name: /خبر نخست/ }).click();
   await expect(page).toHaveURL(/\/articles\//);
   await expect(page.getByRole('heading', { level: 1, name: 'خبر نخست' })).toBeVisible();
   await expect(page.getByText('پاراگراف دوم.')).toBeVisible();
 
   await page.getByRole('link', { name: world.name }).first().click();
-  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}\\?tab=news$`));
+  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}/news$`));
+});
+
+test('the menu leads to the world\'s «فعالیت‌ها», which is its own address', async ({ page }) => {
+  await page.goto(`/worlds/${world.slug}`);
+  const menu = page.getByRole('navigation', { name: `منوی ${world.name}` });
+  await menu.getByRole('link', { name: 'فعالیت‌ها' }).click();
+  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}/activities$`));
+  await expect(page.getByRole('heading', { level: 1, name: `فعالیت‌ها · ${world.name}` })).toBeVisible();
+  await expect(menu.getByRole('link', { name: 'فعالیت‌ها' })).toHaveAttribute('aria-current', 'page');
+  await expect(menu.getByRole('link', { name: 'خانه' })).not.toHaveAttribute('aria-current', 'page');
+
+  // The old tab address lands here too.
+  await page.goto(`/worlds/${world.slug}?tab=activities`);
+  await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}/activities$`));
 });
 
 test('an unpublished article leaves the home, an unpublished world is gone', async ({ page }) => {
@@ -151,5 +175,6 @@ test('an unpublished article leaves the home, an unpublished world is gone', asy
   await page.goto(`/worlds/${world.slug}`);
   await expect(page.getByRole('heading', { level: 1, name: world.name })).toHaveCount(0);
   await page.goto('/');
-  await expect(page.getByRole('link', { name: world.name })).toHaveCount(0);
+  await page.getByRole('button', { name: /جهان‌های هم‌داستان/ }).click();
+  await expect(page.getByRole('dialog', { name: 'جهان‌های هم‌داستان' }).getByRole('link', { name: world.name })).toHaveCount(0);
 });

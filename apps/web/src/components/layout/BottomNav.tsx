@@ -11,8 +11,10 @@ import { cn } from '@hamdastan/shared/cn';
  * one step down (edit profile, settings) has a back control instead.
  *
  * Three destinations, because three exist. A tab for a section that is not
- * built would be a promise the product cannot keep yet. A tab is current on
- * its own page and the pages under it.
+ * built would be a promise the product cannot keep yet. A world brings its
+ * own items — its home and its activities — in place of these. A tab is
+ * current on its own page and the pages under it; when two match, the
+ * deeper one wins, so a world's activities are not also its home.
  *
  * Sticky, like `ScreenFooter` and for the same reason: a fixed bar spans the
  * browser on a laptop instead of the column. The current tab is told apart
@@ -20,24 +22,30 @@ import { cn } from '@hamdastan/shared/cn';
  * the primary action's alone.
  */
 
-const ITEMS: ReadonlyArray<{ href: string; label: string; icon: LucideIcon }> = [
+export type BottomNavItem = { href: string; label: string; icon: LucideIcon };
+
+const ITEMS: ReadonlyArray<BottomNavItem> = [
   { href: '/', label: 'خانه', icon: House },
   { href: '/events', label: 'رویدادها', icon: CalendarDays },
   { href: '/profile', label: 'پروفایل', icon: UserRound },
 ];
 
-export function BottomNav() {
+export function BottomNav({ items = ITEMS, label = 'ناوبری اصلی' }: { items?: ReadonlyArray<BottomNavItem>; label?: string }) {
   const pathname = usePathname();
+  const current = items
+    .map(({ href }) => href)
+    .filter((href) => pathname === href || (href !== '/' && pathname.startsWith(`${href}/`)))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav
-      aria-label="ناوبری اصلی"
+      aria-label={label}
       className="sticky bottom-0 z-10 shrink-0 border-t border-border/70 bg-background/95"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul className="flex">
-        {ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+        {items.map(({ href, label: text, icon: Icon }) => {
+          const active = href === current;
           return (
             <li key={href} className="flex-1">
               <Link
@@ -50,7 +58,7 @@ export function BottomNav() {
                 )}
               >
                 <Icon aria-hidden="true" className="size-5" strokeWidth={active ? 2.2 : 1.8} />
-                {label}
+                {text}
               </Link>
             </li>
           );

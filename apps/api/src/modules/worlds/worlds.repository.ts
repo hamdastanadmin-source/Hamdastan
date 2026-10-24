@@ -1,4 +1,4 @@
-import { WORLD_DEFAULT_HOME_ORDER } from '@hamdastan/config';
+import { WORLD_DEFAULT_HOME_ORDER, WORLD_DEFAULT_NAVIGATION, WORLD_SECTIONS } from '@hamdastan/config';
 import type { WorldHomeKind, WorldStatus } from '@hamdastan/types';
 
 import { query, queryOne, withTransaction, type DbClient } from '../../data';
@@ -27,7 +27,7 @@ export interface WorldsRepository {
   /** Positions follow the order of `ids`; ids not in the list are left alone. */
   reorder(ids: string[]): Promise<void>;
   remove(id: string, adminId: string): Promise<'deleted' | 'in_use' | 'not_found'>;
-  /** Every home section, in home order. */
+  /** Every home section, in home order — events first, whatever their stored position. */
   findHome(worldId: string): Promise<HomeSectionRecord[]>;
   /** Replaces the home as a whole: sections in the given order, each with its featured ids. */
   saveHome(worldId: string, sections: HomeSectionRecord[], adminId: string): Promise<void>;
@@ -48,7 +48,7 @@ export const setWorldsRepository = slot.set;
 /** PostgreSQL's unique_violation. */
 const UNIQUE_VIOLATION = '23505';
 
-const COLUMNS = `w.id, w.slug, w.name, w.summary, w.tagline, w.description, w.cover_media_id, w.logo_media_id,
+const COLUMNS = `w.id, w.slug, w.name, w.summary, w.tagline, w.description, w.cover_media_id,
   w.theme, w.navigation, w.position, w.status, w.published_at, w.updated_at,
   (SELECT count(*) FROM v2_event_world_links l WHERE l.world_id = w.id)::int AS event_count,
   (SELECT count(*) FROM v2_article_world_links l WHERE l.world_id = w.id)::int AS article_count,
@@ -62,7 +62,6 @@ type Row = {
   tagline: string;
   description: string;
   cover_media_id: string | null;
-  logo_media_id: string | null;
   theme: WorldRecord['theme'];
   navigation: WorldRecord['navigation'];
   position: number;
@@ -74,6 +73,14 @@ type Row = {
   activity_count: number;
 };
 
+/**
+ * The menu as it is now: one item per section, in `WORLD_SECTIONS` order. A
+ * world saved when news, knowledge and events were menus too keeps its
+ * labels and switches for the sections that remain.
+ */
+const menuOf = (stored: WorldRecord['navigation']): WorldRecord['navigation'] =>
+  WORLD_SECTIONS.map((section) => stored.find((item) => item.section === section) ?? WORLD_DEFAULT_NAVIGATION.find((item) => item.section === section)!);
+
 const toRecord = (row: Row): WorldRecord => ({
   id: row.id,
   slug: row.slug,
@@ -82,9 +89,8 @@ const toRecord = (row: Row): WorldRecord => ({
   tagline: row.tagline,
   description: row.description,
   coverId: row.cover_media_id,
-  logoId: row.logo_media_id,
   theme: row.theme,
-  navigation: row.navigation,
+  navigation: menuOf(row.navigation),
   position: row.position,
   status: row.status,
   publishedAt: row.published_at,
@@ -156,10 +162,10 @@ export const sqlWorldsRepository: WorldsRepository = {
     try {
       return await withTransaction(async (client) => {
         const { rows } = await client.query<{ id: string }>(
-          `INSERT INTO v2_worlds (slug, name, summary, tagline, description, cover_media_id, logo_media_id, theme, navigation, position)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, (SELECT coalesce(max(position), 0) + 1 FROM v2_worlds))
+          `INSERT INTO v2_worlds (slug, name, summary, tagline, description, cover_media_id, theme, navigation, position)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, (SELECT coalesce(max(position), 0) + 1 FROM v2_worlds))
            RETURNING id`,
-          [fields.slug, fields.name, fields.summary, fields.tagline, fields.description, fields.coverId, fields.logoId, fields.theme, JSON.stringify(fields.navigation)]
+          [fields.slug, fields.name, fields.summary, fields.tagline, fields.description, fields.coverId, fields.theme, JSON.stringify(fields.navigation)]
         );
         const id = rows[0].id;
         await client.query(
@@ -180,9 +186,9 @@ export const sqlWorldsRepository: WorldsRepository = {
       const rows = await query(
         `UPDATE v2_worlds
             SET slug = $2, name = $3, summary = $4, tagline = $5, description = $6, cover_media_id = $7,
-                logo_media_id = $8, theme = $9, navigation = $10, updated_at = now()
+                theme = $8, navigation = $9, updated_at = now()
           WHERE id = $1 RETURNING id`,
-        [id, fields.slug, fields.name, fields.summary, fields.tagline, fields.description, fields.coverId, fields.logoId, fields.theme, JSON.stringify(fields.navigation)]
+        [id, fields.slug, fields.name, fields.summary, fields.tagline, fields.description, fields.coverId, fields.theme, JSON.stringify(fields.navigation)]
       );
       if (rows.length === 0) return false;
       await audit(null, id, adminId, 'update', { name: fields.name });
@@ -249,7 +255,7 @@ export const sqlWorldsRepository: WorldsRepository = {
       `SELECT s.kind, s.title, s.source, s.item_limit, s.when_empty, s.is_enabled,
               ARRAY(SELECT coalesce(i.article_id, i.event_id, i.activity_id) FROM v2_world_home_items i
                      WHERE i.section_id = s.id ORDER BY i.position) AS featured_ids
-         FROM v2_world_home_sections s WHERE s.world_id = $1 ORDER BY s.position, s.kind`,
+         FROM v2_world_home_sections s WHERE s.world_id = $1 ORDER BY s.kind = 'events' DESC, s.position, s.kind`,
       [worldId]
     );
     return rows.map((row) => ({

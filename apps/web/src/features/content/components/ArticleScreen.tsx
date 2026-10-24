@@ -25,7 +25,7 @@ const PREVIEW_STATUS: Record<string, string> = {
  */
 export function ArticleScreen({ article }: { article: ArticleDetail }) {
   const home = article.worlds[0];
-  const back = home ? { href: `/worlds/${home.slug}?tab=${article.kind}`, label: home.name } : { href: '/', label: 'خانه' };
+  const back = home ? { href: `/worlds/${home.slug}/${article.kind}`, label: home.name } : { href: '/', label: 'خانه' };
 
   return (
     <Screen>

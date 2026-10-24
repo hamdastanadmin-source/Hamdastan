@@ -8,6 +8,7 @@
  */
 
 export { EventCard } from './components/EventCard';
+export { EventsCarousel } from './components/EventsCarousel';
 export { EventDetailScreen } from './components/EventDetailScreen';
 export { EventsScreen } from './components/EventsScreen';
 export { MyEventsScreen } from './components/MyEventsScreen';

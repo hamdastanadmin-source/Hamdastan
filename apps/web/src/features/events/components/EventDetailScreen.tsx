@@ -12,7 +12,7 @@ import { eventTimeRange, eventWhen, formatDateTime } from '../utils/dates';
 import { formatToman, stateBadge } from '../utils/labels';
 import { EventActionsProvider } from '../hooks/use-event-actions';
 import { EventBookingBar } from './EventBookingBar';
-import { EventCard } from './EventCard';
+import { EventsCarousel } from './EventsCarousel';
 import { EventCover } from './EventCover';
 import { EventDescription } from './EventDescription';
 import { ReminderCard } from './ReminderCard';
@@ -217,13 +217,7 @@ export function EventDetailScreen({ event, related }: { event: EventDetail; rela
             <h2 id="related-heading" className="text-lg font-bold">
               رویدادهای مرتبط
             </h2>
-            <ul className="flex flex-col gap-3">
-              {related.map((card) => (
-                <li key={card.id}>
-                  <EventCard card={card} layout="row" />
-                </li>
-              ))}
-            </ul>
+            <EventsCarousel events={related} label="رویدادهای مرتبط" />
           </section>
         )}
       </ScreenBody>

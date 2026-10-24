@@ -1,25 +1,23 @@
 'use client';
 
 import { useFieldArray } from 'react-hook-form';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 
 import { WORLD_LIMITS, WORLD_SECTION_LABELS } from '@hamdastan/config';
-import { Button, FormControl, FormField, FormItem, FormMessage, Input, Switch } from '@hamdastan/ui';
+import { FormControl, FormField, FormItem, FormMessage, Input, Switch } from '@hamdastan/ui';
 
 import type { WorldForm } from './types';
 
 /**
- * «منو»: the tabs of the world's page, in order, each with its label and
- * on or off. «خانه» is always first and on. A tab that is off takes its
- * section off the world's home too — that is how a world «does not have»
- * news, events or activities.
+ * «منو»: the bar at the bottom of the world's pages — «خانه», always on,
+ * and «فعالیت‌ها», which may be switched off. Each takes its own label.
+ * News, knowledge and events are sections of the home, set in «خانه».
  */
 export function NavigationTab({ form, disabled }: { form: WorldForm; disabled: boolean }) {
-  const { fields, move } = useFieldArray({ control: form.control, name: 'navigation' });
+  const { fields } = useFieldArray({ control: form.control, name: 'navigation' });
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">ترتیب این فهرست، ترتیب تب‌های صفحه‌ی دنیا در اپلیکیشن است.</p>
+      <p className="text-sm text-muted-foreground">منوی پایین صفحه‌ی دنیا در اپلیکیشن. اخبار، دانستنی‌ها و رویدادها بخش‌های «خانه»اند و در تب «خانه» چیده می‌شوند.</p>
       <ol className="flex flex-col gap-2">
         {fields.map((item, index) => {
           const home = item.section === 'home';
@@ -54,28 +52,6 @@ export function NavigationTab({ form, disabled }: { form: WorldForm; disabled: b
                   </FormItem>
                 )}
               />
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={disabled || home || index <= 1}
-                  onClick={() => move(index, index - 1)}
-                  aria-label={`بالا بردن «${WORLD_SECTION_LABELS[item.section]}»`}
-                >
-                  <ArrowUp aria-hidden="true" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={disabled || home || index === fields.length - 1}
-                  onClick={() => move(index, index + 1)}
-                  aria-label={`پایین بردن «${WORLD_SECTION_LABELS[item.section]}»`}
-                >
-                  <ArrowDown aria-hidden="true" />
-                </Button>
-              </div>
             </li>
           );
         })}

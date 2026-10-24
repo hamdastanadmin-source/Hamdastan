@@ -23,7 +23,7 @@ export type WorldHomeKind = WorldHomeKindId;
 export type WorldHomeSource = WorldHomeSourceId;
 export type WorldHomeWhenEmpty = WorldHomeWhenEmptyId;
 
-/** One tab of a world's menu. The array's order is the menu's. */
+/** One item of a world's menu (its bottom bar). The array's order is the menu's. */
 export type WorldNavItem = { section: WorldSection; label: string; enabled: boolean };
 
 // ─── Product ─────────────────────────────────────────────────────────────────
@@ -41,7 +41,6 @@ export type World = {
 export type WorldDetail = World & {
   tagline: string;
   description: string;
-  logoId: string | null;
   theme: WorldTheme;
   navigation: WorldNavItem[];
 };
@@ -76,7 +75,6 @@ export type AdminWorld = World & {
 
 export type AdminWorldDetail = AdminWorld & {
   description: string;
-  logoId: string | null;
   theme: WorldTheme;
   /** Every section, on or off, in menu order. */
   navigation: WorldNavItem[];
@@ -90,7 +88,6 @@ export type WorldInput = {
   tagline: string;
   description: string;
   coverId: string | null;
-  logoId: string | null;
   theme: WorldTheme;
   navigation: WorldNavItem[];
 };

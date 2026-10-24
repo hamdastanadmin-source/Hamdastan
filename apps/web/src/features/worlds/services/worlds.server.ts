@@ -5,12 +5,12 @@ import type { World, WorldHome } from '@hamdastan/types';
 
 import { contentService, eventsService, HttpError, worldsService } from '@/services';
 
-import { tabOf, type WorldPage, type WorldTabContent } from '../utils/tabs';
+import { hasActivities, WORLD_LIST_KINDS, type WorldActivitiesPage, type WorldHomePage, type WorldListPage } from '../utils/pages';
 
 /**
  * Worlds read on the server with the request's own cookies, so the page
- * opens complete. A world that is not published is the 404 page; a tab
- * whose list cannot be read says so, and the rest of the page still opens.
+ * opens complete. A world that is not published is the 404 page; a list
+ * that cannot be read says so, and the rest of the page still opens.
  */
 
 const cookie = async () => (await cookies()).toString();
@@ -21,29 +21,31 @@ function missing(error: unknown): never {
   throw error;
 }
 
-export async function getWorldPage(slug: string, askedTab: string | undefined, page: number): Promise<WorldPage> {
+/** A world's home: the world, then its sections. */
+export async function getWorldHome(slug: string): Promise<WorldHomePage> {
   const options = { cookie: await cookie() };
   const world = await worldsService.get(slug, options).catch(missing);
-  const tab = tabOf(world, askedTab);
-  const failed = () => null;
+  return { world, sections: await worldsService.home(slug, options).then((home) => home.sections, () => null) };
+}
 
-  let content: WorldTabContent;
-  switch (tab) {
-    case 'home':
-      content = { tab, sections: await worldsService.home(slug, options).then((home) => home.sections, failed) };
-      break;
-    case 'news':
-    case 'knowledge':
-      content = { tab, page: await contentService.articles({ world: slug, kind: tab, page }, options).catch(failed) };
-      break;
-    case 'events':
-      content = { tab, page: await eventsService.list({ world: slug, sort: 'newest', page }, options).catch(failed) };
-      break;
-    case 'activities':
-      content = { tab, cards: await worldsService.activities(slug, options).catch(failed) };
-      break;
+/** A world's «فعالیت‌ها» menu; the 404 page when the world has it off. */
+export async function getWorldActivities(slug: string): Promise<WorldActivitiesPage> {
+  const options = { cookie: await cookie() };
+  const world = await worldsService.get(slug, options).catch(missing);
+  if (!hasActivities(world)) notFound();
+  return { world, cards: await worldsService.activities(slug, options).catch(() => null) };
+}
+
+/** A home section's «همه» page: one page of the world's news, knowledge or events. Any other kind is the 404 page. */
+export async function getWorldList(slug: string, askedKind: string, page: number): Promise<WorldListPage> {
+  const kind = WORLD_LIST_KINDS.find((item) => item === askedKind);
+  if (!kind) notFound();
+  const options = { cookie: await cookie() };
+  const world = await worldsService.get(slug, options).catch(missing);
+  if (kind === 'events') {
+    return { world, kind, page: await eventsService.list({ world: slug, sort: 'newest', page }, options).catch(() => null) };
   }
-  return { world, content };
+  return { world, kind, page: await contentService.articles({ world: slug, kind, page }, options).catch(() => null) };
 }
 
 /** An admin's preview of a world's home: the admin's own session cookie goes with it, and the API decides. */

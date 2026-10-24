@@ -8,7 +8,9 @@ import {
   MOTION_DURATION,
   QUESTION_KIND_LABELS,
   QUESTION_KINDS,
+  SCORED_KINDS,
   UNDIMENSIONED_KINDS,
+  UNSCORED_LABEL,
 } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityQuestion, AssessmentSettings, ChoiceOption, JourneyTrait, MatchingPair } from '@hamdastan/types';
@@ -93,6 +95,7 @@ export function QuestionEditor({
   const imageOptions = 'options' in question && question.optionStyle === 'image';
   const personality = assessment?.mode === 'personality';
   const profile = assessment?.mode === 'profile';
+  const unscored = assessment !== null && !SCORED_KINDS[assessment.mode].includes(question.kind);
 
   const setOptions = (options: ChoiceOption[]) =>
     (question.kind === 'single' || question.kind === 'multiple') && onChange({ ...question, options });
@@ -117,6 +120,7 @@ export function QuestionEditor({
           {stepTitle && <span className="text-xs text-muted-foreground">{stepTitle}</span>}
         </div>
         {!question.required && <Badge variant="outline">اختیاری</Badge>}
+        {unscored && <Badge variant="outline">{UNSCORED_LABEL}</Badge>}
         <div className="ms-auto flex gap-1">
           <Button
             variant="ghost"
@@ -141,7 +145,15 @@ export function QuestionEditor({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-        <Field label="نوع سؤال" htmlFor={`${id}-kind`}>
+        <Field
+          label="نوع سؤال"
+          htmlFor={`${id}-kind`}
+          hint={
+            unscored && assessment
+              ? `پرسیده و ثبت می‌شود، اما در ${knowledge ? 'امتیاز و رتبه‌بندی' : 'نتیجه'} اثری ندارد؛ در این روش فقط سؤال‌های ${SCORED_KINDS[assessment.mode].map((kind) => QUESTION_KIND_LABELS[kind]).join('، ')} حساب می‌شوند.`
+              : undefined
+          }
+        >
           <Select
             value={question.kind}
             onValueChange={(kind) => onChange(emptyQuestion(kind as ActivityQuestion['kind'], question))}
