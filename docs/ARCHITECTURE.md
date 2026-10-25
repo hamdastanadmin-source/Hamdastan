@@ -225,11 +225,13 @@ count, preview and send confirmation, the report and history), `engagement`
 (Engagement Studio — the builder, the list and the results dashboard),
 `media` (the media & motion library, and the fields the builder picks files
 with — `MediaField`, `MotionSettingField`, imported by `engagement` through
-`@/features/media`) and `sessions` (a product account's live sessions, ended
-one or all at once). Pieces more than one feature needs live outside them:
+`@/features/media`), `onboarding` (the interest catalog and the
+questionnaire's questions, two tabs at `/onboarding`) and `sessions` (a
+product account's live sessions, ended one or all at once). Pieces more than one feature needs live outside them:
 `WorldsField` (the world checkboxes every editor that files content under a
 world uses) and `NEUTRAL_TOGGLE` / `NEUTRAL_TAB` in `src/components`,
-`useWorldOptions` in `src/hooks`, and `worldIdParam` (the `?world=` a «new»
+`useWorldOptions` and `useInterestCategories` (the audience pickers in
+`engagement` and `notifications`) in `src/hooks`, and `worldIdParam` (the `?world=` a «new»
 page is opened with from a world's page) in `src/lib`. Lottie motions are drawn with `lottie-web`'s *light*
 build — SVG only, without the expression engine, so an uploaded animation
 never runs `eval`.
@@ -241,13 +243,16 @@ sections the role opens; a page calls `requireAdminPermission(...)`
 (`@/features/auth/server`), which sends an admin without it to their first
 permitted section; inside a screen, `useAdminCan()` (`@/features/auth`,
 provided by `AdminShell`) hides the buttons the API would refuse. None of it
-is access control — `requireAdminPermission` in `apps/api` is. The builder reads
-and writes the question spreadsheet in the browser with `read-excel-file` and
-`write-excel-file` (dependencies of `apps/admin` alone, loaded on demand); the
-row → question mapping is `packages/validation/engagement-import.ts`, so it
-is checked by the same schema as the builder and tested with the API's
-suite. Reading a local file is not a network call — nothing leaves the
-browser until the activity is saved through `apps/api`. Formatting shared
+is access control — `requireAdminPermission` in `apps/api` is. Every Excel
+import — the builder's questions, the onboarding catalogs — reads and writes
+the spreadsheet in the browser with `read-excel-file` and `write-excel-file`
+(dependencies of `apps/admin` alone, loaded on demand, behind `src/lib/excel.ts`)
+and shows it in one dialog, `SheetImportDialog` in `src/components`. The
+row → item mapping lives in `packages/validation` (`engagement-import.ts`,
+`onboarding-import.ts`, over the shared cell and header helpers in
+`sheet.ts`), so it is checked by the same schemas as the forms and tested
+with the API's suite. Reading a local file is not a network call — nothing
+leaves the browser until it is saved through `apps/api`. Formatting shared
 by both features — Jalali dates, Persian counts and percentages — is
 `src/lib/format.ts`.
 
@@ -413,7 +418,10 @@ module/
 answers on. Most take a prefix of their own name; `users` takes the bare
 prefix because every route it owns is about *the* current user and `/me` reads
 better than `/users/me`. `onboarding` is mounted at `/me/onboarding` for the
-same reason.
+same reason; it owns both stages — stage 1's interests as well as the
+questionnaire — and both catalogs, which its `/admin/onboarding` routes edit.
+`users` keeps the account and its step (`/me/onboarding/complete`), and knows
+nothing of either catalog.
 
 A module that **only composes other modules** has no repository, because
 it owns no data. `account` is the one: its service reads the profile row

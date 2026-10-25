@@ -7,3 +7,4 @@ export { AdminShell } from './AdminShell';
 export { ThemeToggle } from './ThemeToggle';
 export { Field, invalid, NEUTRAL_CHECKBOX, NEUTRAL_TAB, NEUTRAL_TOGGLE, SwitchRow } from './EditorField';
 export { WorldsField } from './WorldsField';
+export { SheetImportDialog, type SheetPreviewRow } from './SheetImportDialog';

@@ -16,8 +16,6 @@ export {
 } from './users.repository';
 export type {
   BasicInfo,
-  InterestSelection,
-  OnboardingInterestsRecord,
   OnboardingStep,
   ProfileFields,
   UserRecord,

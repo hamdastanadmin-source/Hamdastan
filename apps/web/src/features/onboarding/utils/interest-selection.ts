@@ -1,20 +1,22 @@
 import type { InterestCategory } from '@hamdastan/config';
-import { interestCategoryCount, interestsSchema } from '@hamdastan/validation';
+import { interestCategoryCount, interestSelectionError } from '@hamdastan/validation';
 
 /**
- * Stage 1's selection, as pure functions over one flat set of interest ids.
+ * Stage 1's selection, as pure functions over one flat set of interest ids
+ * and the catalog's interest → category index.
  *
  * The rule itself — at least three different categories, no maximum — is
- * `interestsSchema` in `@hamdastan/validation`, the same object the API
- * parses with. The button enables exactly when the server would accept.
+ * `interestSelectionError` in `@hamdastan/validation`, the same function the
+ * API runs against the same catalog. The button enables exactly when the
+ * server would accept.
  */
 
-export function selectedCategoryCount(selected: ReadonlySet<string>): number {
-  return interestCategoryCount(selected);
+export function selectedCategoryCount(selected: ReadonlySet<string>, categoryOf: ReadonlyMap<string, string>): number {
+  return interestCategoryCount(selected, categoryOf);
 }
 
-export function canContinueInterests(selected: ReadonlySet<string>): boolean {
-  return interestsSchema.safeParse({ interestIds: [...selected] }).success;
+export function canContinueInterests(selected: ReadonlySet<string>, categoryOf: ReadonlyMap<string, string>): boolean {
+  return interestSelectionError([...selected], categoryOf) === null;
 }
 
 /** One category's picks, in catalog order — the value its toggle group holds. */

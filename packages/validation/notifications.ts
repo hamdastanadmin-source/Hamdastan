@@ -6,7 +6,6 @@
 
 import {
   CAMPAIGN_CATEGORIES,
-  INTEREST_CATEGORIES,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_LIMITS as L,
   OPTIONAL_NOTIFICATION_CATEGORIES,
@@ -18,6 +17,7 @@ import { z } from 'zod';
 import { phoneSchema } from './auth';
 import { line, paragraph } from './common';
 import { mediaIdSchema } from './media';
+import { interestCategoryIdsSchema } from './onboarding';
 
 const fa = (n: number) => toPersianDigits(n);
 
@@ -46,10 +46,7 @@ export const notificationAudienceSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('interests'),
-    categoryIds: z
-      .array(z.enum(INTEREST_CATEGORIES.map((category) => category.id) as [string, ...string[]]))
-      .min(1, { error: 'حداقل یک گروه انتخاب کنید' })
-      .transform((ids) => [...new Set(ids)]),
+    categoryIds: interestCategoryIdsSchema,
   }),
   z.object({
     kind: z.literal('event'),

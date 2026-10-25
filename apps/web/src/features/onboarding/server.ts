@@ -5,5 +5,5 @@
  * into its bundle by accident.
  */
 
-export { getSavedInterestIds } from './services/saved-interests.service';
+export { getOnboardingInterests } from './services/onboarding-interests.service';
 export { getQuestionnaireState } from './services/questionnaire-state.service';

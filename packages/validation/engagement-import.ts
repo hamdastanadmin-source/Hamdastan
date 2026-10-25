@@ -16,10 +16,18 @@ import {
   type QuestionKindId,
   UNDIMENSIONED_KINDS,
 } from '@hamdastan/config';
-import { normalizePersianText, toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
+import { toLatinDigits, toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityQuestion, ActivityType, AssessmentMode } from '@hamdastan/types';
 
 import { activityQuestionSchema } from './engagement';
+import {
+  sheetInteger as integer,
+  sheetKey as headerKey,
+  sheetList as list,
+  sheetRecords,
+  sheetText as text,
+  type SheetCell as Cell,
+} from './sheet';
 
 /** The template's columns, in order. A header is recognised by its title; order and extra columns do not matter. */
 export const QUESTION_IMPORT_COLUMNS = [
@@ -67,16 +75,7 @@ export type QuestionImportResult =
   | { ok: true; rows: ImportedQuestionRow[] }
   | { ok: false; error: string };
 
-type Cell = string | number | boolean | Date | null | undefined;
-
 const fa = (n: number) => toPersianDigits(n);
-
-/** A cell as trimmed text, with Persian letters and Latin digits. */
-const text = (cell: Cell) =>
-  cell === null || cell === undefined ? '' : normalizePersianText(cell instanceof Date ? cell.toISOString() : String(cell));
-
-/** A header as compared: no spaces or ZWNJ, so «متن سوال» and «متن‌ سؤال» match. */
-const headerKey = (cell: Cell) => text(cell).replace(/[\s‌]/g, '').replace(/ؤ/g, 'و').toLowerCase();
 
 const KIND_BY_NAME = new Map<string, QuestionKindId>([
   ...QUESTION_KINDS.map((kind) => [headerKey(QUESTION_KIND_LABELS[kind]), kind] as const),
@@ -99,22 +98,6 @@ function flag(cell: Cell, fallback: boolean): boolean | null {
   if (YES.has(value)) return true;
   if (NO.has(value)) return false;
   return null;
-}
-
-/** «a | b | c», or one per line in the cell. */
-const list = (cell: Cell) =>
-  text(cell) === ''
-    ? []
-    : String(cell)
-        .split(/[|\n]/)
-        .map((part) => normalizePersianText(part))
-        .filter(Boolean);
-
-function integer(cell: Cell): number | null {
-  const value = text(cell);
-  if (!value) return null;
-  const n = Number(toLatinDigits(value));
-  return Number.isInteger(n) ? n : NaN;
 }
 
 function rowToQuestion(
@@ -243,22 +226,10 @@ function rowToQuestion(
  * question or its errors — nothing is dropped silently.
  */
 export function parseQuestionRows(rows: Cell[][], context: QuestionImportContext): QuestionImportResult {
-  const headerIndex = rows.findIndex((row) => row.some((cell) => text(cell) !== ''));
-  if (headerIndex === -1) return { ok: false, error: 'فایل خالی است' };
+  const sheet = sheetRecords(rows, QUESTION_IMPORT_COLUMNS, 'title');
+  if (!sheet.ok) return sheet;
 
-  const columnByHeader = new Map(QUESTION_IMPORT_COLUMNS.map((column) => [headerKey(column.title), column.key]));
-  const columns = rows[headerIndex].map((cell) => columnByHeader.get(headerKey(cell)));
-  if (!columns.includes('title')) {
-    return { ok: false, error: 'ستون «متن سؤال» پیدا نشد. از فایل نمونه استفاده کنید.' };
-  }
-
-  const parsed: ImportedQuestionRow[] = [];
-  rows.slice(headerIndex + 1).forEach((row, offset) => {
-    if (!row.some((cell) => text(cell) !== '')) return;
-    const cells = Object.fromEntries(
-      QUESTION_IMPORT_COLUMNS.map(({ key }) => [key, row[columns.indexOf(key)]])
-    ) as Record<ColumnKey, Cell>;
-
+  const parsed: ImportedQuestionRow[] = sheet.records.map(({ row, cells }) => {
     const { question, errors, dimensionTitle } = rowToQuestion(cells, context);
     let checked: ActivityQuestion | null = null;
     if (question && errors.length === 0) {
@@ -266,17 +237,16 @@ export function parseQuestionRows(rows: Cell[][], context: QuestionImportContext
       if (result.success) checked = result.data as ActivityQuestion;
       else errors.push(...new Set(result.error.issues.map((issue) => issue.message)));
     }
-    parsed.push({
-      row: headerIndex + offset + 2,
+    return {
+      row,
       title: text(cells.title),
       stepTitle: context.type === 'mission' ? text(cells.step) : '',
       dimensionTitle,
       question: checked,
       errors,
-    });
+    };
   });
 
-  if (parsed.length === 0) return { ok: false, error: 'زیر سرستون‌ها هیچ سؤالی وجود ندارد' };
   if (parsed.length > L.QUESTIONS_MAX) {
     return { ok: false, error: `حداکثر ${fa(L.QUESTIONS_MAX)} سؤال در هر فعالیت` };
   }

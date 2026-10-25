@@ -8,3 +8,4 @@ export { formatCount, formatDate, formatDateTime, formatDayTimeIn, formatPercent
 export { can, homeFor, ROLE_LABELS, SECTIONS } from './access';
 export { BASE_PATH, withBasePath } from './base-path';
 export { worldIdParam } from './world-param';
+export { downloadSheetTemplate, MAX_IMPORT_BYTES, readSheet } from './excel';

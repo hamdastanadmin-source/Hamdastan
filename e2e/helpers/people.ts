@@ -3,7 +3,8 @@ import path from 'node:path';
 
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from '@playwright/test';
 
-import { API_BASE_URL, API_PREFIX, INTEREST_CATEGORIES } from '@hamdastan/config';
+import { API_BASE_URL, API_PREFIX } from '@hamdastan/config';
+import type { OnboardingInterests } from '@hamdastan/types';
 
 /**
  * Signing people in for the specs that build their own content: a product
@@ -65,7 +66,9 @@ export async function readyPerson(page: Page, phone: string, firstName = 'سار
   // Keeps the generated username: the step only has to be answered.
   const session = await (await page.request.get(`${API}/me`)).json();
   expect((await page.request.put(`${API}/me/username`, { data: { username: session.data.user.username } })).ok()).toBe(true);
-  const interestIds = INTEREST_CATEGORIES.slice(0, 3).map((category) => category.interests[0].id);
+  // The catalog is data, edited from the panel: one interest from each of the first three categories.
+  const stage1: OnboardingInterests = (await (await page.request.get(`${API}/me/onboarding/interests`)).json()).data;
+  const interestIds = stage1.categories.slice(0, 3).map((category) => category.interests[0].id);
   expect((await page.request.put(`${API}/me/onboarding/interests`, { data: { interestIds } })).ok()).toBe(true);
   expect((await page.request.post(`${API}/me/onboarding/complete`)).ok()).toBe(true);
 }

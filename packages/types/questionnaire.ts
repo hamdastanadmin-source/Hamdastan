@@ -7,7 +7,7 @@
  * the server: it is for matching, not for display.
  */
 
-import type { OnboardingEventName, QuestionId, SectionId } from '@hamdastan/config';
+import type { OnboardingEventName, Question, QuestionId, SectionId } from '@hamdastan/config';
 
 import type { Gender } from './auth';
 
@@ -75,6 +75,8 @@ export type QuestionnaireResult = {
 };
 
 export type QuestionnaireState = {
+  /** The questions, in presentation order — sections first, then position. */
+  questions: Question[];
   answers: QuestionnaireAnswers;
   /** The first unanswered question in presentation order; null when none is left. */
   resumeQuestionId: QuestionId | null;

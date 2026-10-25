@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { QUESTIONS, type QuestionId, type SectionId } from '@hamdastan/config';
+import type { QuestionId, SectionId } from '@hamdastan/config';
 import type {
   OnboardingEventInput,
   QuestionnaireAnswer,
@@ -60,6 +60,8 @@ function track(event: OnboardingEventInput) {
 
 export function useQuestionnaire(initial: QuestionnaireState) {
   const router = useRouter();
+  // The questions as the API served them; they do not change while the page is open.
+  const { questions } = initial;
   const [answers, setAnswers] = useState(initial.answers);
   const [step, setStep] = useState<QuestionnaireStep>(() => initialStep(initial));
   const [result, setResult] = useState<QuestionnaireResult | null>(initial.result);
@@ -90,12 +92,12 @@ export function useQuestionnaire(initial: QuestionnaireState) {
       track({
         event: 'quiz_question_viewed',
         questionId: step.questionId,
-        sectionId: QUESTIONS[step.questionId].section,
+        sectionId: questions.find(({ id }) => id === step.questionId)?.section,
       });
     }
     if (step.kind === 'reward') track({ event: 'quiz_section_completed', sectionId: step.section });
     if (step.kind === 'result') track({ event: 'quiz_result_viewed' });
-  }, [step]);
+  }, [questions, step]);
 
   /**
    * Every change of screen goes through here: the current one fades out,
@@ -125,9 +127,9 @@ export function useQuestionnaire(initial: QuestionnaireState) {
       setStep({ kind: 'result' });
     } catch (error) {
       reportError(error);
-      setStep({ kind: 'question', questionId: 'Q17' });
+      setStep({ kind: 'question', questionId: questions[questions.length - 1].id });
     }
-  }, [show]);
+  }, [questions, show]);
 
   const goTo = useCallback(
     (next: QuestionnaireStep) => {
@@ -149,18 +151,19 @@ export function useQuestionnaire(initial: QuestionnaireState) {
           onboardingService.saveAnswer(questionId, answer),
           options?.feedback ? wait(SINGLE_CHOICE_FEEDBACK_MS) : null,
         ]);
+        const question = questions.find(({ id }) => id === questionId);
         track({
           event: 'quiz_question_answered',
           questionId,
-          sectionId: QUESTIONS[questionId].section,
+          sectionId: question?.section,
           properties: {
-            answerType: QUESTIONS[questionId].kind,
+            answerType: question?.kind,
             timeSpentMs: Math.min(Date.now() - viewedAt.current, 3_600_000),
             selectionCount: selectionCount(answer),
           },
         });
         setAnswers(state.answers);
-        goTo(stepAfter({ kind: 'question', questionId }, state.answers));
+        goTo(stepAfter({ kind: 'question', questionId }, questions, state.answers));
         return true;
       } catch (error) {
         reportError(error);
@@ -169,48 +172,48 @@ export function useQuestionnaire(initial: QuestionnaireState) {
         setIsSaving(false);
       }
     },
-    [goTo]
+    [goTo, questions]
   );
 
-  /** Q1's order of importance. Saved as Q1's answer — the ranking *is* the answer. */
+  /** A ranked question's order of importance. Saved as its answer — the ranking *is* the answer. */
   const submitRanking = useCallback(
-    async (ranked: string[]) => {
+    async (questionId: QuestionId, ranked: string[]) => {
       setIsSaving(true);
       try {
-        const state = await onboardingService.saveAnswer('Q1', { ranked });
+        const state = await onboardingService.saveAnswer(questionId, { ranked });
         setAnswers(state.answers);
-        goTo(stepAfter({ kind: 'rank' }, state.answers));
+        goTo(stepAfter({ kind: 'rank', questionId }, questions, state.answers));
       } catch (error) {
         reportError(error);
       } finally {
         setIsSaving(false);
       }
     },
-    [goTo]
+    [goTo, questions]
   );
 
   const start = useCallback(() => {
     if (leavingRef.current) return;
     track({ event: 'quiz_started' });
-    goTo(stepAfter({ kind: 'intro' }, answers));
-  }, [answers, goTo]);
+    goTo(stepAfter({ kind: 'intro' }, questions, answers));
+  }, [answers, goTo, questions]);
 
   const continueFromReward = useCallback(
     (section: SectionId) => {
-      if (!leavingRef.current) goTo(stepAfter({ kind: 'reward', section }, answers));
+      if (!leavingRef.current) goTo(stepAfter({ kind: 'reward', section }, questions, answers));
     },
-    [answers, goTo]
+    [answers, goTo, questions]
   );
 
   const back = useCallback(() => {
-    const previous = stepBefore(step, answers);
+    const previous = stepBefore(step, questions, answers);
     if (!previous || leavingRef.current) return;
     track({
       event: 'quiz_back_clicked',
       questionId: step.kind === 'question' ? step.questionId : undefined,
     });
     void show(previous);
-  }, [answers, show, step]);
+  }, [answers, questions, show, step]);
 
   /**
    * «بعداً انجام می‌دم», on the intro — the one place the questionnaire can be
@@ -249,6 +252,7 @@ export function useQuestionnaire(initial: QuestionnaireState) {
 
   return {
     step,
+    questions,
     answers,
     result,
     xpAwarded,

@@ -183,9 +183,14 @@ has its own back to this screen.
 
 - The title «به چه چیزهایی علاقه داری؟» (no step counter or progress bar),
   and a quiet line that every pick shapes the avatar.
-- Six categories: موسیقی و اجرا، هنر و خلاقیت، آموزش و مهارت، تفریح و سبک
-  زندگی، اجتماعی و کسب‌وکار، آنلاین. The catalog, with its ids, is
-  `packages/config/app/onboarding.config.ts`, shared with `apps/api`.
+- The categories and their interests are data, edited from the admin panel
+  («آنبوردینگ», §4.6): `v2_interest_categories` and `v2_interests` (0023),
+  seeded with the original six — موسیقی و اجرا، هنر و خلاقیت، آموزش و مهارت،
+  تفریح و سبک زندگی، اجتماعی و کسب‌وکار، آنلاین. `GET /me/onboarding/interests`
+  serves the catalog (categories with no interests left out) with the
+  person's picks; the page reads it on the server. The rule
+  (`interestSelectionError` in `@hamdastan/validation`) takes the catalog as
+  an argument, so the button and the API still judge the same way.
 - Each category is a card in a shadcn `Accordion` (`type="single"`). All
   start collapsed, so the screen opens on six cards and no chips; tapping a
   card opens it and closes whichever was open. Which row is open is view
@@ -234,10 +239,18 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   (50%) → Section 3 *Experience style* (Q8, Q9, Q11, Q12, Q13) → reward
   (75%) → Section 4 *Group compatibility* (Q10, Q14, Q15, Q16, Q17) →
   the detective owl → result → «ورود به اپلیکیشن» → home.
-- **Ids versus order.** Questions keep the source ids `Q1`–`Q20`; the order
-  above is presentation only (`QUESTIONNAIRE_ORDER`). Nothing is scored by
-  position. The questions, option codes and copy are
-  `packages/config/app/questionnaire.config.ts`.
+- **Ids versus order.** The questions are data, edited from the admin panel
+  (`v2_questionnaire_questions`, 0023), in presentation order — section, then
+  position — and `GET /me/onboarding/questionnaire` serves them with the
+  answers. The journey above is the seeded questionnaire. The twenty seeded
+  questions keep the source ids `Q1`–`Q20` and are **scored**: the scoring
+  engine reads them by id (`SCORED_QUESTION_IDS`), so the panel may reword
+  and move them but not change their kind, cap or option codes, nor delete
+  them. A question added from the panel gets a generated id, is asked in its
+  section and its answer is stored — but it is not scored. Nothing is scored
+  by position. Option codes never change once a question exists; only labels
+  do. Any ranked question gets the ranking screen when more than one option
+  is picked; a section's questions share its quarter of the progress bar.
 - **Interaction.** A single-choice tap saves, shows the selection for a beat,
   and advances on its own. Multi-select (Q3 ≤ 2, Q6 ≤ 3, Q20 ≤ 3, Q1 ≤ 3,
   Q15 any) enables «ادامه» at the first pick and disables the remaining
@@ -656,9 +669,11 @@ reads the same table only to hide what would be refused.
 | `notifications.write` — create, edit a draft, duplicate, archive | ✓ | ✓ | |
 | `notifications.send` — send, schedule, cancel, stop pushes | ✓ | ✓ | |
 | `notifications.broadcast` — send to everyone | ✓ | | |
+| `onboarding.read` — the onboarding catalogs; the interest-category pickers in every audience | ✓ | ✓ | ✓ |
+| `onboarding.write` — edit stage 1's interests and stage 2's questions | ✓ | ✓ | |
 
 A fourth role, **مدیر اعلان‌ها (`notification_manager`)**, holds the four
-`notifications.*` permissions and nothing else (migration `0019` adds it to
+`notifications.*` permissions and `onboarding.read` (for the audience picker) (migration `0019` adds it to
 `v2_admin_role`). A content manager can send a campaign to a chosen audience
 but not to everyone; «everyone» is checked again by the API on send, not only
 hidden in the panel.
@@ -675,7 +690,7 @@ hidden in the panel.
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
 start), with the panel's name at the top, the sections the admin's role opens
 — مدیریت کاربران, استودیو (Engagement Studio, §4.7), رویدادها (§4.9),
-دنیاها and محتوا (§4.10), اعلان‌ها (§4.11), کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
+دنیاها and محتوا (§4.10), اعلان‌ها (§4.11), آنبوردینگ, کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
 the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
@@ -702,6 +717,51 @@ neutral highlight, never the brand colour.
 - Every write ends in a toast; the list shows skeleton rows while it first
   loads, an error with «تلاش دوباره» if it fails, and an empty state.
 - Light and dark, through the same theme store as the product.
+
+**آنبوردینگ — `/onboarding`** (`onboarding.write`). The two catalogs
+onboarding asks from, as two tabs. A change shows to the next person who
+opens that stage. Code in `apps/admin/src/features/onboarding` and the
+`onboarding` module of `apps/api`.
+
+- **علاقه‌مندی‌ها.** The categories in display order, each with its
+  interests listed under its title, how many interests it has and how many
+  people have picked from it. Up/down arrows reorder; «دسته‌ی جدید» and the
+  pencil open one dialog — the title, then the interests as a list to add
+  to, reword, reorder and remove — saved together. An interest keeps its id
+  while it stays in the list, so everyone who picked it keeps it under its
+  new wording; an interest never moves between categories (audiences match
+  on the category stored with each pick). Deleting a category asks first and
+  says how many people picked from it; their rows stay as history. The API
+  refuses any change that would leave fewer than three categories with
+  interests, since stage 1 could no longer be finished.
+- **پرسش‌نامه.** A card per section (انرژی اجتماعی، سبک ارتباط، سبک تجربه،
+  هماهنگی گروهی), its questions in the order they are asked, each with its
+  kind and «امتیازدار» for the scored twenty. Arrows move a question within
+  its section; the dialog edits the section, the kind (تک‌انتخابی،
+  چندانتخابی، انتخاب و رتبه‌بندی، طیف ۱ تا ۱۰), the text, an optional helper,
+  the cap for multi and ranked, the two end labels for a slider and the
+  options for the rest (2–20). On a scored question the dialog says only
+  its wording and section can change, locks the kind, the cap and the
+  option list (labels stay editable), and the bin is disabled; the API
+  answers 400 to anything else. A new question goes to the end of its
+  section; deleting one asks first, and answers already given stay stored.
+- **ورود از اکسل.** Each tab has «ورود از اکسل» beside its «جدید» button —
+  the same dialog as the activity builder's: download a template, choose an
+  `.xlsx` (≤ 2 MB), see every row with what it becomes or what is wrong with
+  it, then add the valid ones. The file is read in the browser; the valid
+  rows go to the API in one request, saved in one transaction — all or
+  nothing.
+  - *Interests:* one row per interest — «دسته», «علاقه‌مندی». A category
+    whose title matches one in the catalog (spacing and ZWNJ aside) gets the
+    interests at its end; any other title becomes a new category at the end
+    of the list. A row the category already has, or that repeats an earlier
+    row, is refused in the preview (and skipped by the API regardless). At
+    most 500 rows, and 60 interests per category.
+  - *Questionnaire:* one row per question — «بخش» (1–4 or its name), «نوع»
+    (the panel's four kinds), «متن سؤال», «راهنما», «گزینه‌ها» (separated by
+    `|`), «سقف انتخاب», «برچسب ابتدا» / «برچسب انتها» for a slider. Each row
+    is checked with the form's `questionInputSchema`; the questions are added
+    at the end of their sections, unscored. At most 100 rows.
 
 **نشست‌های کاربران — `/sessions`** (`sessions.manage`). A product account's
 live sign-ins.
@@ -1942,9 +2002,19 @@ v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
 - **`v2_users.onboarding_stage`** — the last onboarding stage finished,
   `0`–`3`. It only moves forward, so editing stage 1 again does not undo a
   later stage.
+- **`v2_interest_categories`, `v2_interests` (0023)** — stage 1's catalog,
+  each with a `position`; an interest belongs to one category for good
+  (deleting the category deletes its interests). Seeded ids are the
+  original English slugs; ids made from the panel are generated and never
+  reused.
+- **`v2_questionnaire_questions` (0023)** — stage 2's questions: `section`
+  (1–4), `position`, `kind`, `title`, `helper`, `max_selections`,
+  `min_label`/`max_label` for a slider, `options` (jsonb `[{code, label}]`)
+  and `scored` (the seeded twenty). 0023 also widens `question_id` to 40
+  characters on the answers, the profile and the funnel events, and drops
+  the `Q1`–`Q20` and 1–20 CHECKs.
 - **`v2_user_interests`** — one row per selected interest, keyed by
-  `(user_id, interest_id)`. The catalog is not a table: it is
-  `@hamdastan/config`, and the API refuses ids outside it. `category_id` is
+  `(user_id, interest_id)`. The API refuses ids outside the catalog. `category_id` is
   stored for querying and is always derived by the API, never taken from
   the client. Saving stage 1 replaces the whole set in one transaction.
 - **`v2_otp_challenges`** — keyed by phone, so at most one live code per
@@ -2112,7 +2182,8 @@ The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
 everyone who finished it before XP existed), `0009_admin_users.sql`,
 `0010_engagement_studio.sql`, `0015_engagement_journeys.sql`,
-`0018_events.sql` and `0019_notifications.sql`.
+`0018_events.sql`, `0019_notifications.sql` and
+`0023_onboarding_catalog.sql`.
 
 ---
 
@@ -2132,9 +2203,9 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | GET | `/me/username/availability?username=` | access cookie | — | `{ username, available }` — the name normalised; the caller's own name is `available`; 400 for an invalid name |
 | PUT | `/me/username` | access cookie | `{ username }` | `{ user, nextStep }`; 403 before basic info, 409 for a taken username |
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
-| GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |
-| PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | `{ onboardingStage, selectedCategories, selectedInterests }` |
-| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, role, summary, insights, interests, dimensions }` (`role`: `{ key, label, avatarId }`, `avatarId` = `<role>-<gender>` or null without a gender) (`interests`: stage 1's picks as `{ key, title, interests: label[] }` per category); 403 before stage 1 |
+| GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, categories, selectedCategories, selectedInterests }` — `categories` is the catalog |
+| PUT | `/me/onboarding/interests` | access cookie | `{ interestIds }` | the same; 400 for an id outside the catalog or fewer than three categories |
+| GET | `/me/onboarding/questionnaire` | access cookie | — | `QuestionnaireState`: `{ questions, answers, resumeQuestionId, progress, completed, result }` — `result` is `{ title, description, role, summary, insights, interests, dimensions }` (`role`: `{ key, label, avatarId }`, `avatarId` = `<role>-<gender>` or null without a gender) (`interests`: stage 1's picks as `{ key, title, interests: label[] }` per category); 403 before stage 1 |
 | PUT | `/me/onboarding/questionnaire/answers/:questionId` | access cookie | `{ answer }` (shape per question) | `QuestionnaireState` |
 | POST | `/me/onboarding/questionnaire/complete` | access cookie | — | `QuestionnaireCompletion` — the state with `result`, plus `xpAwarded` (50 once, then 0); 400 until every question is answered |
 | POST | `/me/onboarding/events` | access cookie | `{ event, questionId?, sectionId?, properties? }` | `null` |
@@ -2247,6 +2318,18 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/admin/notifications/overview` | — | `NotificationsOverview` — `notifications.read` |
 | GET | `/admin/notifications/options` | — | `CampaignOptions`: events, activities, worlds, `pushAvailable` — `notifications.write` |
 | POST | `/admin/notifications/audience` | `{ audience, category, destination }` | `AudienceEstimate`: `{ eligible, push }` — `notifications.write` |
+| GET | `/admin/onboarding/interest-categories` | — | `AdminInterestCategory[]` (with `pickedBy`) — `onboarding.read` |
+| POST | `/admin/onboarding/interest-categories` | `{ title, interests: [{ label }] }` | the list (201) — `onboarding.write` |
+| PUT | `/admin/onboarding/interest-categories/order` | `{ ids }` | the list — `onboarding.write` |
+| PUT | `/admin/onboarding/interest-categories/:id` | `{ title, interests: [{ id?, label }] }` | the list; 400 if fewer than three categories would have interests — `onboarding.write` |
+| DELETE | `/admin/onboarding/interest-categories/:id` | — | `{ deleted: true }`; 400 as above — `onboarding.write` |
+| GET | `/admin/onboarding/questions` | — | `AdminQuestion[]` (with `scored`), in presentation order — `onboarding.read` |
+| POST | `/admin/onboarding/questions` | `QuestionInput` | the list (201) — `onboarding.write` |
+| PUT | `/admin/onboarding/questions/order` | `{ ids }` | the list — `onboarding.write` |
+| PUT | `/admin/onboarding/questions/:id` | `QuestionInput` (`options: [{ code?, label }]`) | the list; 400 when a scored question's kind, cap or codes change — `onboarding.write` |
+| POST | `/admin/onboarding/interest-categories/import` | `{ categories: [{ title, interests: string[] }] }` | the list (201); 400 past 60 interests in a category — `onboarding.write` |
+| POST | `/admin/onboarding/questions/import` | `{ questions: QuestionInput[] }` (≤ 100) | the list (201); 400 if any question is invalid — `onboarding.write` |
+| DELETE | `/admin/onboarding/questions/:id` | — | `{ deleted: true }`; 400 for a scored question — `onboarding.write` |
 | GET | `/admin/notifications/campaigns` | `?search=&status=&page=` | `Paginated<AdminCampaignSummary>` — `notifications.read` |
 | POST | `/admin/notifications/campaigns` | `CampaignInput` | `AdminCampaign` (201) — `notifications.write` |
 | GET | `/admin/notifications/campaigns/:id` | — | `AdminCampaign` — `notifications.read` |
@@ -2344,6 +2427,7 @@ against the same objects, including the Persian messages.
 | Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options (each with text, or — image options — each with a library image); scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension and every non-text, non-matching question tied to one; profile: 2–20 profiles with distinct titles, question weight 0–10, option weights −100…100 toward existing profiles only, ≥ 1 choice question, priority questions distinct and among the choice questions, a default profile; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
 | Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
 | Media file | ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم فایل باید حداکثر ۲۵۰ کیلوبایت باشه» / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
+| Onboarding import row | Interests: «علاقه‌مندی» header; both cells, ≤ 80 characters, not already in that category nor repeated in the file. Questions: «متن سؤال» header; a section 1–4 or its name, a known kind, an integer cap, then `questionInputSchema` (`packages/validation/onboarding-import.ts`) | «این علاقه‌مندی از قبل در همین دسته هست» / «بخش «…» شناخته نشد» / «دست‌کم دو گزینه لازم است» |
 | Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
 | Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; matching: one distinct match per prompt, in the prompts' order; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 | XP revocation reason | Required, ≤ 300 | «دلیل ابطال رو بنویس» |

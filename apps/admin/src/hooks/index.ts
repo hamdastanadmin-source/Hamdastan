@@ -5,5 +5,6 @@
  * A hook that `apps/web` would also want belongs in `@hamdastan/ui`.
  */
 
+export { useInterestCategories } from './use-interest-categories';
 export { useOrderedList } from './use-ordered-list';
 export { useWorldOptions } from './use-world-options';

@@ -1,4 +1,4 @@
-import { INTEREST_CATEGORIES } from '@hamdastan/config';
+import type { InterestCategory } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type {
   ActivityAudience,
@@ -84,15 +84,14 @@ export const AUDIT_LABELS: Record<ActivityAuditAction, string> = {
   xp_revoked: 'یک XP باطل شد',
 };
 
-const CATEGORY_TITLES = new Map(INTEREST_CATEGORIES.map((category) => [category.id, category.title]));
-
-export function describeAudience(audience: ActivityAudience): string {
+/** `categories` names an interests audience; an id it does not know is shown as it is. */
+export function describeAudience(audience: ActivityAudience, categories: readonly Pick<InterestCategory, 'id' | 'title'>[] = []): string {
   switch (audience.kind) {
     case 'all':
       return 'همه‌ی کاربران';
     case 'users':
       return `${toPersianDigits(audience.phones.length)} کاربر منتخب`;
     case 'interests':
-      return `علاقه‌مندان ${audience.categoryIds.map((id) => CATEGORY_TITLES.get(id) ?? id).join('، ')}`;
+      return `علاقه‌مندان ${audience.categoryIds.map((id) => categories.find((category) => category.id === id)?.title ?? id).join('، ')}`;
   }
 }

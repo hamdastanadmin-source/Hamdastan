@@ -183,6 +183,16 @@ column v2_idempotency_keys.outcome jsonb nullable=YES default=
 column v2_idempotency_keys.owner_id uuid nullable=NO default=
 column v2_idempotency_keys.request_hash character nullable=NO default=
 column v2_idempotency_keys.scope character varying nullable=NO default=
+column v2_interest_categories.created_at timestamp with time zone nullable=NO default=now()
+column v2_interest_categories.id character varying nullable=NO default=
+column v2_interest_categories.position integer nullable=NO default=0
+column v2_interest_categories.title character varying nullable=NO default=
+column v2_interest_categories.updated_at timestamp with time zone nullable=NO default=now()
+column v2_interests.category_id character varying nullable=NO default=
+column v2_interests.created_at timestamp with time zone nullable=NO default=now()
+column v2_interests.id character varying nullable=NO default=
+column v2_interests.label character varying nullable=NO default=
+column v2_interests.position integer nullable=NO default=0
 column v2_journey_answers.activity_id uuid nullable=NO default=
 column v2_journey_answers.answered_at timestamp with time zone nullable=NO default=now()
 column v2_journey_answers.day_id character varying nullable=NO default=
@@ -304,6 +314,19 @@ column v2_questionnaire_answers.presentation_index smallint nullable=NO default=
 column v2_questionnaire_answers.question_id character varying nullable=NO default=
 column v2_questionnaire_answers.updated_at timestamp with time zone nullable=NO default=now()
 column v2_questionnaire_answers.user_id uuid nullable=NO default=
+column v2_questionnaire_questions.created_at timestamp with time zone nullable=NO default=now()
+column v2_questionnaire_questions.helper text nullable=YES default=
+column v2_questionnaire_questions.id character varying nullable=NO default=
+column v2_questionnaire_questions.kind character varying nullable=NO default=
+column v2_questionnaire_questions.max_label character varying nullable=YES default=
+column v2_questionnaire_questions.max_selections smallint nullable=YES default=
+column v2_questionnaire_questions.min_label character varying nullable=YES default=
+column v2_questionnaire_questions.options jsonb nullable=NO default='[]'::jsonb
+column v2_questionnaire_questions.position integer nullable=NO default=0
+column v2_questionnaire_questions.scored boolean nullable=NO default=false
+column v2_questionnaire_questions.section smallint nullable=NO default=
+column v2_questionnaire_questions.title text nullable=NO default=
+column v2_questionnaire_questions.updated_at timestamp with time zone nullable=NO default=now()
 column v2_refresh_tokens.expires_at timestamp with time zone nullable=NO default=
 column v2_refresh_tokens.session_id uuid nullable=NO default=
 column v2_refresh_tokens.token_hash character nullable=NO default=
@@ -516,6 +539,9 @@ constraint v2_events v2_events_slug_unique UNIQUE (slug)
 constraint v2_events v2_events_time_order CHECK (((end_at IS NULL) OR (start_at IS NULL) OR (end_at > start_at)))
 constraint v2_events v2_events_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_idempotency_keys v2_idempotency_keys_pkey PRIMARY KEY (scope, owner_id, idem_key)
+constraint v2_interest_categories v2_interest_categories_pkey PRIMARY KEY (id)
+constraint v2_interests v2_interests_category_id_fkey FOREIGN KEY (category_id) REFERENCES v2_interest_categories(id) ON DELETE CASCADE
+constraint v2_interests v2_interests_pkey PRIMARY KEY (id)
 constraint v2_journey_answers v2_journey_answers_participation FOREIGN KEY (activity_id, user_id) REFERENCES v2_engagement_participations(activity_id, user_id) ON DELETE CASCADE
 constraint v2_journey_answers v2_journey_answers_pkey PRIMARY KEY (activity_id, user_id, question_id)
 constraint v2_journey_answers v2_journey_answers_version_id_fkey FOREIGN KEY (version_id) REFERENCES v2_engagement_versions(id) ON DELETE CASCADE
@@ -564,9 +590,12 @@ constraint v2_push_subscriptions v2_push_subscriptions_endpoint UNIQUE (endpoint
 constraint v2_push_subscriptions v2_push_subscriptions_pkey PRIMARY KEY (id)
 constraint v2_push_subscriptions v2_push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_questionnaire_answers v2_questionnaire_answers_pkey PRIMARY KEY (user_id, question_id)
-constraint v2_questionnaire_answers v2_questionnaire_answers_presentation_index CHECK (((presentation_index >= 1) AND (presentation_index <= 20)))
-constraint v2_questionnaire_answers v2_questionnaire_answers_question_id CHECK (((question_id)::text ~ '^Q([1-9]|1[0-9]|20)$'::text))
+constraint v2_questionnaire_answers v2_questionnaire_answers_presentation_index CHECK ((presentation_index >= 1))
 constraint v2_questionnaire_answers v2_questionnaire_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
+constraint v2_questionnaire_questions v2_questionnaire_questions_kind CHECK (((kind)::text = ANY ((ARRAY['single'::character varying, 'multi'::character varying, 'ranked'::character varying, 'slider'::character varying])::text[])))
+constraint v2_questionnaire_questions v2_questionnaire_questions_max CHECK (((max_selections IS NULL) OR (max_selections >= 1)))
+constraint v2_questionnaire_questions v2_questionnaire_questions_pkey PRIMARY KEY (id)
+constraint v2_questionnaire_questions v2_questionnaire_questions_section CHECK (((section >= 1) AND (section <= 4)))
 constraint v2_refresh_tokens v2_refresh_tokens_pkey PRIMARY KEY (token_hash)
 constraint v2_refresh_tokens v2_refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES v2_sessions(id) ON DELETE CASCADE
 constraint v2_refresh_tokens v2_refresh_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
@@ -697,6 +726,9 @@ index v2_events_pkey CREATE UNIQUE INDEX v2_events_pkey ON public.v2_events USIN
 index v2_events_slug_unique CREATE UNIQUE INDEX v2_events_slug_unique ON public.v2_events USING btree (slug)
 index v2_idempotency_keys_expires_at CREATE INDEX v2_idempotency_keys_expires_at ON public.v2_idempotency_keys USING btree (expires_at)
 index v2_idempotency_keys_pkey CREATE UNIQUE INDEX v2_idempotency_keys_pkey ON public.v2_idempotency_keys USING btree (scope, owner_id, idem_key)
+index v2_interest_categories_pkey CREATE UNIQUE INDEX v2_interest_categories_pkey ON public.v2_interest_categories USING btree (id)
+index v2_interests_category CREATE INDEX v2_interests_category ON public.v2_interests USING btree (category_id, "position")
+index v2_interests_pkey CREATE UNIQUE INDEX v2_interests_pkey ON public.v2_interests USING btree (id)
 index v2_journey_answers_day CREATE INDEX v2_journey_answers_day ON public.v2_journey_answers USING btree (activity_id, day_id)
 index v2_journey_answers_pkey CREATE UNIQUE INDEX v2_journey_answers_pkey ON public.v2_journey_answers USING btree (activity_id, user_id, question_id)
 index v2_journey_day_completions_pkey CREATE UNIQUE INDEX v2_journey_day_completions_pkey ON public.v2_journey_day_completions USING btree (activity_id, user_id, day_id)
@@ -732,6 +764,8 @@ index v2_push_subscriptions_endpoint CREATE UNIQUE INDEX v2_push_subscriptions_e
 index v2_push_subscriptions_pkey CREATE UNIQUE INDEX v2_push_subscriptions_pkey ON public.v2_push_subscriptions USING btree (id)
 index v2_push_subscriptions_user CREATE INDEX v2_push_subscriptions_user ON public.v2_push_subscriptions USING btree (user_id)
 index v2_questionnaire_answers_pkey CREATE UNIQUE INDEX v2_questionnaire_answers_pkey ON public.v2_questionnaire_answers USING btree (user_id, question_id)
+index v2_questionnaire_questions_order CREATE INDEX v2_questionnaire_questions_order ON public.v2_questionnaire_questions USING btree (section, "position")
+index v2_questionnaire_questions_pkey CREATE UNIQUE INDEX v2_questionnaire_questions_pkey ON public.v2_questionnaire_questions USING btree (id)
 index v2_refresh_tokens_expires_at CREATE INDEX v2_refresh_tokens_expires_at ON public.v2_refresh_tokens USING btree (expires_at)
 index v2_refresh_tokens_pkey CREATE UNIQUE INDEX v2_refresh_tokens_pkey ON public.v2_refresh_tokens USING btree (token_hash)
 index v2_refresh_tokens_session CREATE INDEX v2_refresh_tokens_session ON public.v2_refresh_tokens USING btree (session_id)

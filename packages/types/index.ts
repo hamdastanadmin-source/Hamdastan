@@ -19,7 +19,13 @@ export type {
   PaginationQuery,
   SortDirection,
 } from './api';
-export type { OnboardingInterests } from './onboarding';
+export type {
+  AdminInterestCategory,
+  AdminQuestion,
+  InterestCategoryInput,
+  OnboardingInterests,
+  QuestionInput,
+} from './onboarding';
 export type {
   OnboardingEventInput,
   QuestionnaireAnswer,

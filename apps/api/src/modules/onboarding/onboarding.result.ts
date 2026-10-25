@@ -1,4 +1,4 @@
-import { INTEREST_CATEGORIES } from '@hamdastan/config';
+import type { InterestCategory } from '@hamdastan/config';
 import type {
   Gender,
   QuestionnaireResult,
@@ -245,9 +245,12 @@ function summary(profile: SocialProfile): string {
  * Stage 1's picks as labels, grouped by category in catalog order. An id
  * that has since left the catalog is dropped; an empty category is left out.
  */
-function interestGroups(interestIds: readonly string[]): ResultInterestGroup[] {
+export function interestGroups(
+  catalog: readonly InterestCategory[],
+  interestIds: readonly string[]
+): ResultInterestGroup[] {
   const saved = new Set(interestIds);
-  return INTEREST_CATEGORIES.flatMap((category) => {
+  return catalog.flatMap((category) => {
     const interests = category.interests.filter(({ id }) => saved.has(id)).map(({ label }) => label);
     return interests.length ? [{ key: category.id, title: category.title, interests }] : [];
   });
@@ -276,7 +279,7 @@ function primaryRole(profile: SocialProfile, gender: Gender | null): ResultRole 
 
 export function buildResult(
   profile: SocialProfile,
-  interestIds: readonly string[] = [],
+  interests: ResultInterestGroup[] = [],
   gender: Gender | null = null
 ): QuestionnaireResult {
   return {
@@ -284,7 +287,7 @@ export function buildResult(
     role: primaryRole(profile, gender),
     summary: summary(profile),
     insights: insights(profile),
-    interests: interestGroups(interestIds),
+    interests,
     dimensions: bars(profile),
   };
 }

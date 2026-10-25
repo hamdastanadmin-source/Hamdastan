@@ -1,5 +1,5 @@
-import type { QuestionId, SectionId } from '@hamdastan/config';
-import type { QuestionnaireAnswer, QuestionnaireAnswers } from '@hamdastan/types';
+import type { QuestionId, QuestionOption, SectionId } from '@hamdastan/config';
+import type { QuestionInput, QuestionnaireAnswer, QuestionnaireAnswers } from '@hamdastan/types';
 
 import type { ResumePoint, SocialProfile } from './onboarding.scoring';
 
@@ -32,3 +32,15 @@ export type OnboardingEventRecord = {
   sectionId: SectionId | null;
   properties: Record<string, unknown>;
 };
+
+/** One selected interest, with the category the server looked up for it. */
+export type InterestSelection = { interestId: string; categoryId: string };
+
+/** A category as it is written: every interest already has its id, in order. */
+export type InterestCategoryFields = {
+  title: string;
+  interests: { id: string; label: string }[];
+};
+
+/** A question as it is written: every option already has its code, in order. */
+export type QuestionFields = Omit<QuestionInput, 'options'> & { options: QuestionOption[] };

@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@hamdastan/ui';
 
+import { useInterestCategories } from '@/hooks';
 import { useAdminCan } from '@/features/auth';
 import { errorMessage, formatCount, formatDate, formatPercent } from '@/lib';
 
@@ -50,6 +51,7 @@ const COLUMNS = 8;
  * ledger's net sum.
  */
 export function ActivitiesScreen() {
+  const interestCategories = useInterestCategories();
   const router = useRouter();
   const can = useAdminCan();
   const { filters, setFilters, page, setPage, data, loading, error, reload, changeStatus, duplicate } = useActivities();
@@ -235,7 +237,7 @@ export function ActivitiesScreen() {
                     <Badge variant={STATUS_BADGE[activity.status]}>{STATUS_LABELS[activity.status]}</Badge>
                   </TableCell>
                   <TableCell className="hidden text-sm xl:table-cell">
-                    {describeAudience(activity.audience)}
+                    {describeAudience(activity.audience, interestCategories)}
                     <span className="block text-xs text-muted-foreground">
                       {formatCount(activity.stats.eligible)} نفر واجد شرایط
                     </span>

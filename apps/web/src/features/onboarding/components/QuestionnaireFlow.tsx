@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { QUESTIONS } from '@hamdastan/config';
+import type { ChoiceQuestion } from '@hamdastan/config';
 import type { QuestionnaireState } from '@hamdastan/types';
 
 import { OwlLoader } from '@/components';
@@ -38,7 +38,7 @@ export function QuestionnaireFlow({
 }) {
   const q = useQuestionnaire(initialState);
   const { step } = q;
-  const progress = progressOf(step);
+  const progress = progressOf(step, q.questions);
   // The owl plays on the way to the result, not when a finished person reopens it.
   const [owlDone, setOwlDone] = useState(() => step.kind === 'result');
 
@@ -66,7 +66,8 @@ export function QuestionnaireFlow({
         <QuestionStep
           // A fresh component per question, so no selection carries over.
           key={step.questionId}
-          question={QUESTIONS[step.questionId]}
+          question={q.questions.find(({ id }) => id === step.questionId)!}
+          isFirstSlider={step.questionId === q.questions.find(({ kind }) => kind === 'slider')?.id}
           answer={q.answers[step.questionId]}
           progress={progress}
           isSaving={q.isSaving}
@@ -79,11 +80,12 @@ export function QuestionnaireFlow({
     case 'rank':
       return (
         <MotivationRanking
-          initialRanking={selectedCodes(q.answers.Q1)}
+          question={q.questions.find(({ id }) => id === step.questionId) as ChoiceQuestion}
+          initialRanking={selectedCodes(q.answers[step.questionId])}
           progress={progress}
           isSaving={q.isSaving}
           leaving={q.leaving}
-          onSubmit={(ranked) => void q.submitRanking(ranked)}
+          onSubmit={(ranked) => void q.submitRanking(step.questionId, ranked)}
           onBack={q.back}
         />
       );

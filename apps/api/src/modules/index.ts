@@ -11,7 +11,7 @@ import { eventsAdminRoutes, eventsRoutes, myEventsRoutes } from './events';
 import { mediaAdminRoutes, mediaRoutes } from './media';
 import { missionsRoutes } from './missions';
 import { notificationsAdminRoutes, notificationsRoutes } from './notifications';
-import { onboardingRoutes } from './onboarding';
+import { onboardingAdminRoutes, onboardingRoutes } from './onboarding';
 import { progressRoutes } from './progress';
 import { searchRoutes } from './search';
 import { triviaRoutes } from './trivia';
@@ -31,7 +31,7 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/auth', routes: authRoutes },
   // The Users module answers on `/me`, not `/users` — see its routes file.
   { prefix: '', routes: usersRoutes },
-  // Stage 2 of onboarding, beside stage 1's `/me/onboarding/interests`.
+  // Onboarding's two stages: interests and the questionnaire.
   { prefix: '/me/onboarding', routes: onboardingRoutes },
   // The account area — profile, avatar, settings and the hub that reads them.
   { prefix: '/me', routes: accountRoutes },
@@ -62,5 +62,7 @@ export const moduleRoutes: ReadonlyArray<{
   { prefix: '/admin/content', routes: contentAdminRoutes },
   // Notification campaigns: compose, target, schedule, report.
   { prefix: '/admin/notifications', routes: notificationsAdminRoutes },
+  // The onboarding catalogs: stage 1's interests and stage 2's questions.
+  { prefix: '/admin/onboarding', routes: onboardingAdminRoutes },
   { prefix: '/media', routes: mediaRoutes },
 ];

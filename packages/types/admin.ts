@@ -63,6 +63,10 @@ export const ADMIN_PERMISSIONS = [
   'notifications.send',
   /** Send to everyone. Kept apart from `notifications.send` so a narrow audience never needs it. */
   'notifications.broadcast',
+  /** The onboarding catalogs, for reading — and for every audience picker that targets interest categories. */
+  'onboarding.read',
+  /** Edit stage 1's interests and stage 2's questions. */
+  'onboarding.write',
 ] as const;
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
 
@@ -85,9 +89,17 @@ export const ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[
     'notifications.read',
     'notifications.write',
     'notifications.send',
+    'onboarding.read',
+    'onboarding.write',
   ],
-  mission_reviewer: ['activities.read', 'results.read', 'results.individual', 'submissions.review'],
-  notification_manager: ['notifications.read', 'notifications.write', 'notifications.send', 'notifications.broadcast'],
+  mission_reviewer: ['activities.read', 'results.read', 'results.individual', 'submissions.review', 'onboarding.read'],
+  notification_manager: [
+    'notifications.read',
+    'notifications.write',
+    'notifications.send',
+    'notifications.broadcast',
+    'onboarding.read',
+  ],
 };
 
 export type AdminUser = {

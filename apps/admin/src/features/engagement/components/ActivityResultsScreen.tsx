@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, CircleAlert, Download, Lock, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ACTIVITY_TYPE_LABELS, INTEREST_CATEGORIES } from '@hamdastan/config';
+import { ACTIVITY_TYPE_LABELS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityStats, ActivityStatusAction } from '@hamdastan/types';
 import {
@@ -33,6 +33,7 @@ import {
   TabsTrigger,
 } from '@hamdastan/ui';
 
+import { useInterestCategories } from '@/hooks';
 import { useAdminCan } from '@/features/auth';
 import { errorMessage, formatCount, formatDateTime, formatPercent } from '@/lib';
 
@@ -71,6 +72,7 @@ const dayAfter = (value: string) =>
  * a date and group filter, and the CSV export of what may be exported.
  */
 export function ActivityResultsScreen({ id }: { id: string }) {
+  const interestCategories = useInterestCategories();
   const can = useAdminCan();
   const individual = can('results.individual');
   const seesXp = can('xp.read');
@@ -143,7 +145,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
               </h1>
               <p className="text-sm text-muted-foreground">
                 {ACTIVITY_TYPE_LABELS[activity.type]} · نسخه‌ی {toPersianDigits(activity.version)} ·{' '}
-                {describeAudience(activity.audience)} ·{' '}
+                {describeAudience(activity.audience, interestCategories)} ·{' '}
                 {activity.xpAmount === null ? (
                   'بدون XP'
                 ) : (
@@ -209,7 +211,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>همه‌ی گروه‌ها</SelectItem>
-                {INTEREST_CATEGORIES.map((category) => (
+                {interestCategories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.title}
                   </SelectItem>

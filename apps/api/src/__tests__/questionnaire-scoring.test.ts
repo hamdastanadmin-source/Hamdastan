@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { QUESTIONNAIRE_ORDER, QUESTIONS } from '@hamdastan/config';
+import type { InterestCategory, Question } from '@hamdastan/config';
 import type { QuestionnaireAnswers } from '@hamdastan/types';
 import { questionnaireAnswerSchema } from '@hamdastan/validation';
 
@@ -8,8 +8,10 @@ import {
   buildResult,
   computeProfile,
   deriveQuestionnaire,
+  interestGroups,
   pickRoles,
   resumePoint,
+  SCORED_QUESTION_IDS,
 } from '../modules/onboarding';
 
 /**
@@ -44,11 +46,30 @@ const withAnswer = (patch: QuestionnaireAnswers): QuestionnaireAnswers => ({ ...
 const dims = (answers: QuestionnaireAnswers) => computeProfile(answers).dimensions;
 const contrib = (answers: QuestionnaireAnswers) => computeProfile(answers).rawScoreContributions;
 
-describe('the base answer set is valid', () => {
-  it('passes every question schema', () => {
-    for (const id of QUESTIONNAIRE_ORDER) {
-      expect(questionnaireAnswerSchema(id).safeParse({ answer: BASE[id] }).success, id).toBe(true);
-    }
+/** The questionnaire is data now (seeded by 0023); resuming only needs ids and sections in order. */
+const slider = (id: string, section: 1 | 2 | 3 | 4): Question => ({ id, section, kind: 'slider', title: id, minLabel: '', maxLabel: '' });
+const ORDER: Question[] = [
+  slider('Q2', 1), slider('Q4', 1), slider('Q5', 1), slider('Q19', 1),
+  slider('Q3', 1), slider('Q6', 2), slider('Q7', 2), slider('Q18', 2),
+  slider('Q20', 2), slider('Q1', 2), slider('Q8', 3), slider('Q9', 3),
+  slider('Q11', 3), slider('Q12', 3), slider('Q13', 3), slider('Q10', 4),
+  slider('Q14', 4), slider('Q15', 4), slider('Q16', 4), slider('Q17', 4),
+];
+
+describe('the base answer set', () => {
+  it('answers every scored question', () => {
+    expect(Object.keys(BASE).sort()).toEqual([...SCORED_QUESTION_IDS].sort());
+  });
+
+  it('is checked against the question as stored', () => {
+    const choice: Question = { id: 'Q7', section: 2, kind: 'single', title: '', options: [{ code: 'DEBATES', label: '' }] };
+    expect(questionnaireAnswerSchema(choice).safeParse({ answer: BASE.Q7 }).success).toBe(true);
+    expect(questionnaireAnswerSchema(choice).safeParse({ answer: { option: 'CALM' } }).success).toBe(false);
+    expect(questionnaireAnswerSchema(slider('Q4', 1)).safeParse({ answer: BASE.Q4 }).success).toBe(true);
+  });
+
+  it('scores roles only once every scored question is answered — extra questions do not matter', () => {
+    expect(computeProfile({ ...BASE, q_extra: { option: 'X' } }).roleScores).toEqual(computeProfile(BASE).roleScores);
   });
 });
 
@@ -265,23 +286,21 @@ describe('editing and recomputation', () => {
 
 describe('resume', () => {
   it('points at the first unanswered question in presentation order, not by id', () => {
-    expect(resumePoint({})).toEqual({ currentQuestionId: 'Q2', currentSection: 1, progress: 0 });
-    expect(resumePoint({ Q2: BASE.Q2, Q4: BASE.Q4 })).toMatchObject({
+    expect(resumePoint({}, ORDER)).toEqual({ currentQuestionId: 'Q2', currentSection: 1, progress: 0 });
+    expect(resumePoint({ Q2: BASE.Q2, Q4: BASE.Q4 }, ORDER)).toMatchObject({
       currentQuestionId: 'Q5',
       progress: 10,
     });
-    expect(resumePoint(BASE)).toEqual({ currentQuestionId: null, currentSection: null, progress: 100 });
+    expect(resumePoint(BASE, ORDER)).toEqual({ currentQuestionId: null, currentSection: null, progress: 100 });
   });
 
-  it('the presentation order covers each question once, in four sections of five', () => {
-    expect(new Set(QUESTIONNAIRE_ORDER).size).toBe(20);
-    for (const [i, id] of QUESTIONNAIRE_ORDER.entries()) {
-      expect(QUESTIONS[id].section).toBe(Math.floor(i / 5) + 1);
-    }
+  it('counts a question added later as one more to answer', () => {
+    const longer = [...ORDER, slider('q_new', 4)];
+    expect(resumePoint(BASE, longer)).toEqual({ currentQuestionId: 'q_new', currentSection: 4, progress: 95 });
   });
 
   it('derives the stored row as profile plus resume point', () => {
-    expect(deriveQuestionnaire(BASE)).toMatchObject({ progress: 100, currentQuestionId: null });
+    expect(deriveQuestionnaire(BASE, ORDER)).toMatchObject({ progress: 100, currentQuestionId: null });
   });
 });
 
@@ -344,12 +363,19 @@ describe('the result card', () => {
   });
 
   it('carries the stage-1 interests as labels, grouped in catalog order', () => {
-    const { interests } = buildResult(computeProfile(BASE), ['photography', 'cafe', 'gone-id', 'concert']);
-    expect(interests).toEqual([
+    const catalog: InterestCategory[] = [
+      { id: 'music', title: 'موسیقی و اجرا', interests: [{ id: 'concert', label: 'کنسرت' }] },
+      { id: 'art', title: 'هنر و خلاقیت', interests: [{ id: 'photography', label: 'عکاسی' }] },
+      { id: 'online', title: 'آنلاین', interests: [{ id: 'webinar', label: 'وبینار' }] },
+      { id: 'lifestyle', title: 'تفریح و سبک زندگی', interests: [{ id: 'cafe', label: 'کافه' }] },
+    ];
+    const groups = interestGroups(catalog, ['photography', 'cafe', 'gone-id', 'concert']);
+    expect(groups).toEqual([
       { key: 'music', title: 'موسیقی و اجرا', interests: ['کنسرت'] },
       { key: 'art', title: 'هنر و خلاقیت', interests: ['عکاسی'] },
       { key: 'lifestyle', title: 'تفریح و سبک زندگی', interests: ['کافه'] },
     ]);
+    expect(buildResult(computeProfile(BASE), groups).interests).toBe(groups);
   });
 
   it('names the primary role and picks its character by gender', () => {

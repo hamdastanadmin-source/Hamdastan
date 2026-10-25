@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { INTEREST_CATEGORIES, MIN_INTEREST_CATEGORIES } from '@hamdastan/config';
+import { MIN_INTEREST_CATEGORIES } from '@hamdastan/config';
+import type { OnboardingInterests } from '@hamdastan/types';
 import { Accordion } from '@hamdastan/ui';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
@@ -26,13 +27,13 @@ import { OnboardingBottomCTA } from './OnboardingBottomCTA';
  * footer, which sits in the flow — so the last card ends above it rather than
  * underneath it, with no padding to keep in step.
  *
- * `initialInterestIds` is what `apps/api` already holds, read by the page on
- * the server, so a person coming back sees their earlier picks.
+ * `initial` is what `apps/api` holds — the catalog, edited from the admin
+ * panel, and the earlier picks — read by the page on the server.
  */
-export function InterestsStep({ initialInterestIds }: { initialInterestIds: string[] }) {
+export function InterestsStep({ initial }: { initial: OnboardingInterests }) {
   const router = useRouter();
   const { selected, selectedCategoryCount, canContinue, isSaving, setCategorySelection, save } =
-    useInterestSelection(initialInterestIds);
+    useInterestSelection(initial);
   const [openCategoryId, setOpenCategoryId] = useState('');
 
   const handleContinue = async () => {
@@ -74,7 +75,7 @@ export function InterestsStep({ initialInterestIds }: { initialInterestIds: stri
           onValueChange={setOpenCategoryId}
           className="flex flex-col gap-2"
         >
-          {INTEREST_CATEGORIES.map((category) => (
+          {initial.categories.map((category) => (
             <InterestCategoryCard
               key={category.id}
               category={category}

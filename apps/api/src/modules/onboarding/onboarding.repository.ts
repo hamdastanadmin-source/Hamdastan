@@ -1,13 +1,16 @@
-import type { QuestionId, SectionId } from '@hamdastan/config';
-import type { QuestionnaireAnswer, QuestionnaireAnswers } from '@hamdastan/types';
+import type { InterestCategory, QuestionId, SectionId } from '@hamdastan/config';
+import type { AdminInterestCategory, AdminQuestion, QuestionnaireAnswer, QuestionnaireAnswers } from '@hamdastan/types';
 
-import { query, queryOne, withTransaction } from '../../data';
+import { query, queryOne, withTransaction, type DbClient } from '../../data';
 import { createRepositorySlot } from '../../shared/repository';
 
 import type {
   AnswerToSave,
   DerivedQuestionnaire,
+  InterestCategoryFields,
+  InterestSelection,
   OnboardingEventRecord,
+  QuestionFields,
   QuestionnaireRecord,
 } from './onboarding.types';
 
@@ -22,6 +25,37 @@ import type {
  * stored answers, even when two saves from the same person race.
  */
 export interface OnboardingRepository {
+  // ─── Stage 1: the catalog and the person's picks ─────────────────
+  /** Categories in display order, each with its interests in order. Empty categories included. */
+  listInterestCategories(): Promise<InterestCategory[]>;
+  /** The same, with how many people have picked from each. */
+  listAdminInterestCategories(): Promise<AdminInterestCategory[]>;
+  /** The saved interest ids. The stage that goes with them is on the user row. */
+  findInterestIds(userId: string): Promise<string[]>;
+  /**
+   * Replaces the person's whole interest set and records stage 1 as
+   * finished, in one transaction. Answers with the onboarding stage.
+   */
+  saveInterests(userId: string, interests: InterestSelection[]): Promise<number>;
+  /**
+   * Writes categories in one transaction: a new one is appended at the end;
+   * an existing one has its title and interest list rewritten — kept ids
+   * relabelled and reordered, the rest deleted.
+   */
+  saveInterestCategories(categories: (InterestCategoryFields & { id: string; isNew: boolean })[]): Promise<void>;
+  reorderInterestCategories(ids: string[]): Promise<void>;
+  removeInterestCategory(id: string): Promise<boolean>;
+
+  // ─── Stage 2: the questions ──────────────────────────────────────
+  /** In presentation order: section, then position. */
+  listQuestions(): Promise<AdminQuestion[]>;
+  /** Appends the questions, in order, at the end of the questionnaire — in one transaction. */
+  createQuestions(questions: (QuestionFields & { id: string })[]): Promise<void>;
+  updateQuestion(id: string, fields: QuestionFields): Promise<boolean>;
+  reorderQuestions(ids: string[]): Promise<void>;
+  removeQuestion(id: string): Promise<boolean>;
+
+  // ─── Stage 2: the person's answers ───────────────────────────────
   findQuestionnaire(userId: string): Promise<QuestionnaireRecord>;
   saveAnswer(
     userId: string,
@@ -120,7 +154,199 @@ const UPSERT_PROFILE = `
   RETURNING questionnaire_completed
 `;
 
+type CategoryRow = { id: string; title: string; interests: InterestCategory['interests']; picked_by?: number };
+
+/** Each category with its interests aggregated in order — one query for the whole catalog. */
+const CATEGORIES_QUERY = (withCounts: boolean) => `
+  SELECT c.id, c.title,
+         COALESCE((SELECT json_agg(json_build_object('id', i.id, 'label', i.label) ORDER BY i.position, i.label)
+                     FROM v2_interests i WHERE i.category_id = c.id), '[]') AS interests
+         ${withCounts ? `, (SELECT count(DISTINCT ui.user_id) FROM v2_user_interests ui WHERE ui.category_id = c.id)::int AS picked_by` : ''}
+    FROM v2_interest_categories c
+   ORDER BY c.position, c.title`;
+
+/** Writes a category's interests: upserts the given ones in order, deletes the rest. */
+async function writeInterests(client: DbClient, categoryId: string, interests: InterestCategoryFields['interests']) {
+  await client.query(`DELETE FROM v2_interests WHERE category_id = $1 AND NOT (id = ANY($2::varchar[]))`, [
+    categoryId,
+    interests.map((i) => i.id),
+  ]);
+  await client.query(
+    `INSERT INTO v2_interests (id, category_id, label, position)
+     SELECT t.id, $1, t.label, t.position
+       FROM unnest($2::varchar[], $3::varchar[]) WITH ORDINALITY AS t (id, label, position)
+     ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, position = EXCLUDED.position
+      WHERE v2_interests.category_id = EXCLUDED.category_id`,
+    [categoryId, interests.map((i) => i.id), interests.map((i) => i.label)]
+  );
+}
+
+type QuestionRow = {
+  id: string;
+  section: SectionId;
+  kind: AdminQuestion['kind'];
+  title: string;
+  helper: string | null;
+  max_selections: number | null;
+  min_label: string | null;
+  max_label: string | null;
+  options: { code: string; label: string }[];
+  scored: boolean;
+};
+
+/** The wire shape: only the fields the kind has, and none that are empty. */
+function toQuestion(row: QuestionRow): AdminQuestion {
+  const base = {
+    id: row.id,
+    section: row.section,
+    title: row.title,
+    scored: row.scored,
+    ...(row.helper ? { helper: row.helper } : {}),
+  };
+  return row.kind === 'slider'
+    ? { ...base, kind: 'slider', minLabel: row.min_label ?? '', maxLabel: row.max_label ?? '' }
+    : {
+        ...base,
+        kind: row.kind,
+        options: row.options,
+        ...(row.max_selections ? { maxSelections: row.max_selections } : {}),
+      };
+}
+
+/** `$2`… in column order, after the id. */
+const questionParams = (f: QuestionFields) => [
+  f.section,
+  f.kind,
+  f.title,
+  f.helper,
+  f.maxSelections,
+  f.minLabel,
+  f.maxLabel,
+  JSON.stringify(f.options),
+];
+
+/** Sets `position` from the order of `ids`. */
+const reorder = (table: string) => `
+  UPDATE ${table} t SET position = o.ordinality, updated_at = now()
+    FROM unnest($1::varchar[]) WITH ORDINALITY AS o(id, ordinality)
+   WHERE t.id = o.id`;
+
 export const sqlOnboardingRepository: OnboardingRepository = {
+  // ─── Stage 1 ──────────────────────────────────────────────────────
+  async listInterestCategories() {
+    const rows = await query<CategoryRow>(CATEGORIES_QUERY(false));
+    return rows.map(({ id, title, interests }) => ({ id, title, interests }));
+  },
+
+  async listAdminInterestCategories() {
+    const rows = await query<CategoryRow>(CATEGORIES_QUERY(true));
+    return rows.map(({ id, title, interests, picked_by }) => ({ id, title, interests, pickedBy: picked_by ?? 0 }));
+  },
+
+  async findInterestIds(userId) {
+    const rows = await query<{ interest_id: string }>(
+      `SELECT interest_id FROM v2_user_interests WHERE user_id = $1`,
+      [userId]
+    );
+    return rows.map((row) => row.interest_id);
+  },
+
+  async saveInterests(userId, interests) {
+    return withTransaction(async (client) => {
+      await client.query(`DELETE FROM v2_user_interests WHERE user_id = $1`, [userId]);
+
+      // One statement for the whole set: the two arrays are unnested side by
+      // side into rows.
+      await client.query(
+        `INSERT INTO v2_user_interests (user_id, interest_id, category_id)
+         SELECT $1, interest_id, category_id
+           FROM unnest($2::varchar[], $3::varchar[]) AS t (interest_id, category_id)`,
+        [userId, interests.map((i) => i.interestId), interests.map((i) => i.categoryId)]
+      );
+
+      // GREATEST: stage 1 being saved again must not undo a later stage.
+      const { rows } = await client.query<{ onboarding_stage: number }>(
+        `UPDATE v2_users
+            SET onboarding_stage = GREATEST(onboarding_stage, 1), updated_at = now()
+          WHERE id = $1
+      RETURNING onboarding_stage`,
+        [userId]
+      );
+      return rows[0].onboarding_stage;
+    });
+  },
+
+  async saveInterestCategories(categories) {
+    await withTransaction(async (client) => {
+      for (const { id, title, interests, isNew } of categories) {
+        await client.query(
+          isNew
+            ? `INSERT INTO v2_interest_categories (id, title, position)
+               VALUES ($1, $2, (SELECT COALESCE(max(position), 0) + 1 FROM v2_interest_categories))`
+            : `UPDATE v2_interest_categories SET title = $2, updated_at = now() WHERE id = $1`,
+          [id, title]
+        );
+        await writeInterests(client, id, interests);
+      }
+    });
+  },
+
+  async reorderInterestCategories(ids) {
+    await query(reorder('v2_interest_categories'), [ids]);
+  },
+
+  async removeInterestCategory(id) {
+    const rows = await query(`DELETE FROM v2_interest_categories WHERE id = $1 RETURNING id`, [id]);
+    return rows.length > 0;
+  },
+
+  // ─── Stage 2: questions ───────────────────────────────────────────
+  async listQuestions() {
+    const rows = await query<QuestionRow>(
+      `SELECT id, section, kind, title, helper, max_selections, min_label, max_label, options, scored
+         FROM v2_questionnaire_questions
+        ORDER BY section, position, created_at`
+    );
+    return rows.map(toQuestion);
+  },
+
+  async createQuestions(questions) {
+    await withTransaction(async (client) => {
+      for (const question of questions) {
+        await client.query(
+          `INSERT INTO v2_questionnaire_questions
+                  (id, section, kind, title, helper, max_selections, min_label, max_label, options, position)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+                   (SELECT COALESCE(max(position), 0) + 1 FROM v2_questionnaire_questions))`,
+          [question.id, ...questionParams(question)]
+        );
+      }
+    });
+  },
+
+  async updateQuestion(id, fields) {
+    const rows = await query(
+      `UPDATE v2_questionnaire_questions
+          SET section = $2, kind = $3, title = $4, helper = $5, max_selections = $6,
+              min_label = $7, max_label = $8, options = $9, updated_at = now()
+        WHERE id = $1
+    RETURNING id`,
+      [id, ...questionParams(fields)]
+    );
+    return rows.length > 0;
+  },
+
+  async reorderQuestions(ids) {
+    await query(reorder('v2_questionnaire_questions'), [ids]);
+  },
+
+  async removeQuestion(id) {
+    // Scored questions are the service's rule to refuse; the WHERE is the backstop.
+    const rows = await query(`DELETE FROM v2_questionnaire_questions WHERE id = $1 AND NOT scored RETURNING id`, [id]);
+    return rows.length > 0;
+  },
+
+  // ─── Stage 2: answers ─────────────────────────────────────────────
   async findQuestionnaire(userId) {
     const [rows, profile] = await Promise.all([
       query<AnswerRow>(

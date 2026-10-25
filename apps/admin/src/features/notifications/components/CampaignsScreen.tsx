@@ -38,6 +38,7 @@ import {
   TableRow,
 } from '@hamdastan/ui';
 
+import { useInterestCategories } from '@/hooks';
 import { useAdminCan } from '@/features/auth';
 import { errorMessage, formatCount, formatDateTime } from '@/lib';
 import { adminNotificationsService } from '@/services';
@@ -69,6 +70,7 @@ const CONFIRM: Record<Exclude<CampaignRowAction, 'duplicate'>, { title: string; 
  * preview and a confirmation.
  */
 export function CampaignsScreen() {
+  const interestCategories = useInterestCategories();
   const router = useRouter();
   const can = useAdminCan();
   const { filters, setFilters, page, setPage, data, overview, loading, error, reload } = useCampaigns();
@@ -265,7 +267,7 @@ export function CampaignsScreen() {
                       <span className="mt-1 block text-xs text-muted-foreground">{formatCount(campaign.recipientCount)} گیرنده</span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden max-w-60 whitespace-normal text-sm lg:table-cell">{describeAudience(campaign.audience)}</TableCell>
+                  <TableCell className="hidden max-w-60 whitespace-normal text-sm lg:table-cell">{describeAudience(campaign.audience, null, interestCategories)}</TableCell>
                   <TableCell className="hidden text-sm md:table-cell">{campaign.push ? 'درون برنامه + گوشی' : 'درون برنامه'}</TableCell>
                   <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                     {formatDateTime(campaign.sentAt ?? campaign.scheduledAt)}

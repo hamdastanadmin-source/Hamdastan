@@ -22,6 +22,4 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
   app.get('/me/username/availability', { preHandler: authenticate }, usersController.usernameAvailability);
   app.put('/me/username', { preHandler: authenticate }, usersController.confirmUsername);
   app.post('/me/onboarding/complete', { preHandler: authenticate }, usersController.completeOnboarding);
-  app.get('/me/onboarding/interests', { preHandler: authenticate }, usersController.onboardingInterests);
-  app.put('/me/onboarding/interests', { preHandler: authenticate }, usersController.saveOnboardingInterests);
 };

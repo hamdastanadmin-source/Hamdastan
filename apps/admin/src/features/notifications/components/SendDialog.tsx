@@ -17,6 +17,7 @@ import {
   ToggleGroupItem,
 } from '@hamdastan/ui';
 
+import { useInterestCategories } from '@/hooks';
 import { Field } from '@/components';
 import { formatCount, formatDateTime } from '@/lib';
 
@@ -47,6 +48,7 @@ export function SendDialog({
   onCancel: () => void;
   onConfirm: (scheduledAt: string | null) => Promise<void>;
 }) {
+  const interestCategories = useInterestCategories();
   const [mode, setMode] = useState<'now' | 'later'>('now');
   const [at, setAt] = useState('');
   const [busy, setBusy] = useState(false);
@@ -66,7 +68,7 @@ export function SendDialog({
     ['عنوان', value.title],
     ['متن', value.body],
     ['دسته', CATEGORY_LABELS[value.category]],
-    ['مخاطب', describeAudience(value.audience, options)],
+    ['مخاطب', describeAudience(value.audience, options, interestCategories)],
     [
       'تعداد گیرندگان (امروز)',
       estimate ? `${formatCount(estimate.eligible)} نفر${value.push ? `، ${formatCount(estimate.push)} نفر روی گوشی` : ''}` : '—',

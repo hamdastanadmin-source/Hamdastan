@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-import { QUESTIONS, type ChoiceQuestion } from '@hamdastan/config';
+import type { ChoiceQuestion } from '@hamdastan/config';
 import { Button } from '@hamdastan/ui';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
@@ -13,19 +13,17 @@ import { moveItem } from '../utils/questionnaire-flow';
 import { QuestionnaireScreen } from './QuestionnaireScreen';
 
 /**
- * Q1's second half: the picked motivations, in order of importance. Only the
- * two or three that were picked — never the whole list of nine.
+ * A ranked question's second half (Q1's motivations, or any ranked question
+ * added from the panel): the picks, in order of importance. Only the two or
+ * three that were picked — never the whole list.
  *
  * They arrive in the order they were tapped, which is usually the order that
  * mattered. Each moves with a pair of 44px buttons rather than a drag: a drag
  * is hard on a phone, impossible from a keyboard, and invisible to a screen
  * reader. The new position is announced.
  */
-
-const Q1 = QUESTIONS.Q1 as ChoiceQuestion;
-const labelOf = (code: string) => Q1.options.find((option) => option.code === code)?.label ?? code;
-
 export function MotivationRanking({
+  question,
   initialRanking,
   progress,
   isSaving,
@@ -33,6 +31,7 @@ export function MotivationRanking({
   onSubmit,
   onBack,
 }: {
+  question: ChoiceQuestion;
   initialRanking: string[];
   progress: number;
   isSaving: boolean;
@@ -42,6 +41,7 @@ export function MotivationRanking({
 }) {
   const [ranked, setRanked] = useState(initialRanking);
   const [announcement, setAnnouncement] = useState('');
+  const labelOf = (code: string) => question.options.find((option) => option.code === code)?.label ?? code;
 
   const move = (index: number, direction: -1 | 1) => {
     const next = moveItem(ranked, index, direction);

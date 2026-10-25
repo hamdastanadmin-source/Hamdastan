@@ -1,4 +1,4 @@
-import { INTEREST_CATEGORIES, NOTIFICATION_CATEGORY_LABELS } from '@hamdastan/config';
+import { NOTIFICATION_CATEGORY_LABELS, type InterestCategory } from '@hamdastan/config';
 import type {
   CampaignCategory,
   CampaignOptions,
@@ -64,8 +64,12 @@ export const DESTINATION_KINDS: { value: NotificationDestinationKind; label: str
   { value: 'profile', label: 'پروفایل' },
 ];
 
-/** Who a campaign goes to, in one line. */
-export function describeAudience(audience: NotificationAudience, options?: CampaignOptions | null): string {
+/** Who a campaign goes to, in one line. `categories` names an interests audience. */
+export function describeAudience(
+  audience: NotificationAudience,
+  options?: CampaignOptions | null,
+  categories: readonly Pick<InterestCategory, 'id' | 'title'>[] = []
+): string {
   switch (audience.kind) {
     case 'all':
       return 'همه‌ی کاربران';
@@ -73,7 +77,7 @@ export function describeAudience(audience: NotificationAudience, options?: Campa
       return `${formatCount(audience.phones.length)} شماره‌ی منتخب`;
     case 'interests':
       return `علاقه‌مندان ${audience.categoryIds
-        .map((id) => INTEREST_CATEGORIES.find((category) => category.id === id)?.title ?? id)
+        .map((id) => categories.find((category) => category.id === id)?.title ?? id)
         .join('، ')}`;
     case 'event': {
       const title = options?.events.find((event) => event.id === audience.eventId)?.title ?? 'یک رویداد';

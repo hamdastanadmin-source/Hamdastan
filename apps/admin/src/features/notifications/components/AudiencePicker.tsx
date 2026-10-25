@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Users } from 'lucide-react';
 
-import { INTEREST_CATEGORIES } from '@hamdastan/config';
 import type { AudienceEstimate, CampaignOptions, NotificationAudience, NotificationAudienceKind } from '@hamdastan/types';
 import {
   Checkbox,
@@ -18,6 +17,7 @@ import {
   ToggleGroupItem,
 } from '@hamdastan/ui';
 
+import { useInterestCategories } from '@/hooks';
 import { Field, invalid, NEUTRAL_CHECKBOX } from '@/components';
 import { formatCount } from '@/lib';
 
@@ -66,6 +66,7 @@ export function AudiencePicker({
   errors: Record<string, string>;
   disabled?: boolean;
 }) {
+  const interestCategories = useInterestCategories();
   const [phonesText, setPhonesText] = useState(value.kind === 'users' ? value.phones.join('\n') : '');
   const errorUnder = (prefix: string) => Object.entries(errors).find(([path]) => path.startsWith(prefix))?.[1];
 
@@ -149,7 +150,7 @@ export function AudiencePicker({
       {value.kind === 'interests' && (
         <Field label="گروه‌ها" error={errorUnder('audience.categoryIds')} hint="کاربرانی که در آنبوردینگ دست‌کم یکی از علاقه‌مندی‌های این دسته‌ها را انتخاب کرده‌اند.">
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {INTEREST_CATEGORIES.map((category) => (
+            {interestCategories.map((category) => (
               <li key={category.id}>
                 <Label className="flex items-center gap-3 rounded-lg border p-3 font-normal">
                   <Checkbox

@@ -19,6 +19,7 @@ import {
   ToggleGroupItem,
 } from '@hamdastan/ui';
 
+import { useInterestCategories } from '@/hooks';
 import { MediaPreview, useMediaAsset } from '@/features/media';
 import { errorMessage, formatDateTime } from '@/lib';
 
@@ -130,6 +131,7 @@ export function PreviewQuestion({ question, number }: { question: ActivityQuesti
  * for how much. Publishing is the footer's primary action.
  */
 export function PreviewStep({ editor }: { editor: ActivityEditorApi }) {
+  const interestCategories = useInterestCategories();
   const { state, errors } = editor;
   const { definition } = state;
   const input = toInput(state);
@@ -187,7 +189,7 @@ export function PreviewStep({ editor }: { editor: ActivityEditorApi }) {
           <dl className="grid gap-3 text-sm">
             {[
               ['نوع', ACTIVITY_TYPE_LABELS[state.type]],
-              ['مخاطبان', describeAudience(state.audience)],
+              ['مخاطبان', describeAudience(state.audience, interestCategories)],
               ['سؤال‌ها', toPersianDigits(questions.length)],
               ['XP', definition.xp.enabled ? toPersianDigits(definition.xp.amount) : 'ندارد'],
               ['شروع', input.startsAt ? formatDateTime(input.startsAt) : 'از لحظه‌ی انتشار'],

@@ -1,7 +1,6 @@
 import {
-  QUESTIONNAIRE_ORDER,
   QUESTIONNAIRE_SCORING_VERSION,
-  QUESTIONS,
+  type Question,
   type QuestionId,
   type SectionId,
 } from '@hamdastan/config';
@@ -17,10 +16,20 @@ import type { QuestionnaireAnswer, QuestionnaireAnswers } from '@hamdastan/types
  * That is also what makes a new scoring version a recompute rather than a
  * re-ask.
  *
+ * It reads the twenty scored questions by id (`SCORED_QUESTION_IDS`) and
+ * nothing else: a question added from the admin panel is stored and shown,
+ * never scored. The API keeps those twenty's kinds and option codes fixed.
+ *
  * The weights below are the spec's. Where the brief left a choice open, the
  * choice is written down beside the code that makes it and listed in
  * `docs/PRD.md` §4.2 — change it here and bump `QUESTIONNAIRE_SCORING_VERSION`.
  */
+
+/** The questions this engine reads. Seeded as `scored` (0023); the panel cannot delete them. */
+export const SCORED_QUESTION_IDS = [
+  'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10',
+  'Q11', 'Q12', 'Q13', 'Q14', 'Q15', 'Q16', 'Q17', 'Q18', 'Q19', 'Q20',
+] as const;
 
 export const DIMENSIONS = [
   'SI', 'SE', 'CD', 'AO', 'SP', 'CP', 'CO', 'NV', 'ST', 'FL', 'SO', 'BP', 'PU', 'WU',
@@ -334,7 +343,7 @@ export function computeProfile(answers: QuestionnaireAnswers): SocialProfile {
     normalizedSignals.DEBATE = toTen(raw.DEBATE, RAW_MAX.DEBATE);
   }
 
-  const roleScores = isComplete(answers)
+  const roleScores = SCORED_QUESTION_IDS.every((id) => answers[id] !== undefined)
     ? scoreRoles({
         q2: q2Points!,
         q3: q3!,
@@ -420,18 +429,19 @@ export function pickRoles(scores: Record<Role, number> | null): {
   };
 }
 
-export function isComplete(answers: QuestionnaireAnswers): boolean {
-  return QUESTIONNAIRE_ORDER.every((id) => answers[id] !== undefined);
+/** Whether every question currently in the questionnaire has an answer. */
+export function isComplete(answers: QuestionnaireAnswers, questions: readonly Question[]): boolean {
+  return questions.every(({ id }) => answers[id] !== undefined);
 }
 
-/** The first unanswered question in presentation order, and how far along that is. */
-export function resumePoint(answers: QuestionnaireAnswers): ResumePoint {
-  const answered = QUESTIONNAIRE_ORDER.filter((id) => answers[id] !== undefined).length;
-  const next = QUESTIONNAIRE_ORDER.find((id) => answers[id] === undefined) ?? null;
+/** The first unanswered question in presentation order (`questions`), and how far along that is. */
+export function resumePoint(answers: QuestionnaireAnswers, questions: readonly Question[]): ResumePoint {
+  const answered = questions.filter(({ id }) => answers[id] !== undefined).length;
+  const next = questions.find(({ id }) => answers[id] === undefined) ?? null;
 
   return {
-    currentQuestionId: next,
-    currentSection: next ? QUESTIONS[next].section : null,
-    progress: Math.round((answered / QUESTIONNAIRE_ORDER.length) * 100),
+    currentQuestionId: next?.id ?? null,
+    currentSection: next?.section ?? null,
+    progress: questions.length ? Math.round((answered / questions.length) * 100) : 100,
   };
 }

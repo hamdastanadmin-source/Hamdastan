@@ -13,7 +13,6 @@ import {
   ENGAGEMENT_LIMITS as L,
   ENGAGEMENT_PAGE_SIZE,
   COVER_ENTRY_EFFECTS,
-  INTEREST_CATEGORIES,
   JOURNEY_LIMITS as J,
   JOURNEY_DAY_END_DEFAULTS as DAY_END,
   MOTION_DURATION,
@@ -39,6 +38,7 @@ import { z } from 'zod';
 import { phoneSchema } from './auth';
 import { cleanText, line, paragraph, uniqueIdsSchema, uuidSchema } from './common';
 import { mediaIdSchema, motionOff, motionSettingSchema } from './media';
+import { interestCategoryIdsSchema } from './onboarding';
 
 const fa = (n: number) => toPersianDigits(n);
 
@@ -580,8 +580,6 @@ export function journeyResultDefaults() {
 
 // ─── Audience ────────────────────────────────────────────────────────────────
 
-const CATEGORY_IDS = INTEREST_CATEGORIES.map((category) => category.id) as [string, ...string[]];
-
 export const activityAudienceSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('all') }),
   z.object({
@@ -594,10 +592,7 @@ export const activityAudienceSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('interests'),
-    categoryIds: z
-      .array(z.enum(CATEGORY_IDS))
-      .min(1, { error: 'حداقل یک گروه انتخاب کنید' })
-      .transform((ids) => [...new Set(ids)]),
+    categoryIds: interestCategoryIdsSchema,
   }),
 ]);
 
@@ -655,7 +650,7 @@ export const activityStatusActionSchema = z.object({
 export const activityResultsQuerySchema = z.object({
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
-  categoryId: z.enum(CATEGORY_IDS).optional(),
+  categoryId: z.string().trim().min(1).max(40).optional(),
 });
 
 export const audiencePreviewSchema = z.object({ audience: activityAudienceSchema });

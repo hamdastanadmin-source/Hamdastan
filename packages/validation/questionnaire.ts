@@ -1,28 +1,24 @@
 /**
- * The questionnaire's answer rules, written once.
+ * The questionnaire's rules, written once: what an answer to a question may
+ * be, and what a question saved from the panel may be.
  *
- * The screen in `apps/web` uses the same limits to enable its button, and
  * `PUT /me/onboarding/questionnaire/answers/:questionId` parses with
- * `questionnaireAnswerSchema`, so an answer the screen allows is an answer
- * the API accepts — and an answer the API stores is always one the scoring
- * can read.
+ * `questionnaireAnswerSchema(question)` for the question as it is stored, so
+ * an answer the API stores is always one the scoring can read.
  */
 
 import {
   ONBOARDING_EVENTS,
-  QUESTION_IDS,
-  QUESTIONS,
   SLIDER_MAX,
   SLIDER_MIN,
   type ChoiceQuestion,
   type Question,
-  type QuestionId,
 } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
 import { z } from 'zod';
 
-export const questionIdSchema = z.enum(QUESTION_IDS, { error: 'سؤال معتبر نیست' });
+export const questionIdSchema = z.string({ error: 'سؤال معتبر نیست' }).trim().min(1).max(40);
 
 const INVALID_OPTION = 'یکی از گزینه‌ها معتبر نیست';
 const PICK_ONE = 'یک گزینه رو انتخاب کن';
@@ -63,13 +59,9 @@ function schemaFor(question: Question) {
   }
 }
 
-const ANSWER_SCHEMAS = Object.fromEntries(
-  QUESTION_IDS.map((id) => [id, schemaFor(QUESTIONS[id])])
-) as Record<QuestionId, ReturnType<typeof schemaFor>>;
-
-/** The request body for one answer to `questionId`. */
-export function questionnaireAnswerSchema(questionId: QuestionId) {
-  return z.object({ answer: ANSWER_SCHEMAS[questionId] });
+/** The request body for one answer to `question`. */
+export function questionnaireAnswerSchema(question: Question) {
+  return z.object({ answer: schemaFor(question) });
 }
 
 /**
@@ -92,3 +84,59 @@ export const onboardingEventSchema = z.object({
 });
 
 export type OnboardingEventBody = z.infer<typeof onboardingEventSchema>;
+
+// ─── The admin panel ─────────────────────────────────────────────────────────
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, { error: `حداکثر ${toPersianDigits(max)} نویسه` })
+    .nullable()
+    .transform((value) => value || null);
+
+/**
+ * A question as the panel saves it. What fits the kind is checked here —
+ * a slider has its two end labels and no options, a choice at least two
+ * options and a cap no larger than them. What fits a *scored* question
+ * (kind and codes fixed) is the API's rule, since only it knows which are.
+ */
+export const questionInputSchema = z
+  .object({
+    section: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)], { error: 'بخش را انتخاب کنید' }),
+    kind: z.enum(['single', 'multi', 'ranked', 'slider'], { error: 'نوع سؤال را انتخاب کنید' }),
+    title: z.string().trim().min(1, { error: 'متن سؤال را وارد کنید' }).max(300, { error: 'حداکثر ۳۰۰ نویسه' }),
+    helper: optionalText(120),
+    maxSelections: z.number().int().min(1, { error: 'دست‌کم ۱' }).nullable(),
+    minLabel: optionalText(80),
+    maxLabel: optionalText(80),
+    options: z
+      .array(
+        z.object({
+          code: z.string().max(40).optional(),
+          label: z.string().trim().min(1, { error: 'متن گزینه را وارد کنید' }).max(200, { error: 'حداکثر ۲۰۰ نویسه' }),
+        })
+      )
+      .max(20, { error: 'حداکثر ۲۰ گزینه' }),
+  })
+  .superRefine((question, ctx) => {
+    if (question.kind === 'slider') {
+      if (!question.minLabel) ctx.addIssue({ code: 'custom', path: ['minLabel'], message: 'برچسب ابتدای بازه را وارد کنید' });
+      if (!question.maxLabel) ctx.addIssue({ code: 'custom', path: ['maxLabel'], message: 'برچسب انتهای بازه را وارد کنید' });
+      return;
+    }
+    if (question.options.length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['options'], message: 'دست‌کم دو گزینه لازم است' });
+    }
+    if (question.maxSelections !== null && question.maxSelections > question.options.length) {
+      ctx.addIssue({ code: 'custom', path: ['maxSelections'], message: 'از تعداد گزینه‌ها بیشتر است' });
+    }
+  })
+  // What does not apply to the kind is dropped, so it is never stored.
+  .transform((question) =>
+    question.kind === 'slider'
+      ? { ...question, options: [], maxSelections: null }
+      : { ...question, minLabel: null, maxLabel: null, maxSelections: question.kind === 'single' ? null : question.maxSelections }
+  );
+
+export type QuestionInputBody = z.output<typeof questionInputSchema>;

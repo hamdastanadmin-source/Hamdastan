@@ -1,15 +1,9 @@
 import { randomInt } from 'node:crypto';
 
-import {
-  INTEREST_CATEGORIES,
-  INTEREST_CATEGORY_BY_ID,
-  type AccountSettings,
-  type AvatarConfig,
-} from '@hamdastan/config';
+import type { AccountSettings, AvatarConfig } from '@hamdastan/config';
 import type {
   AuthUser,
   NextStep,
-  OnboardingInterests,
   SessionResponse,
   UsernameAvailability,
 } from '@hamdastan/types';
@@ -19,7 +13,6 @@ import { ForbiddenError, NotFoundError } from '../../shared/errors';
 import { usersRepository } from './users.repository';
 import type {
   BasicInfo,
-  OnboardingInterestsRecord,
   ProfileFields,
   UserRecord,
 } from './users.types';
@@ -89,26 +82,6 @@ export function nextStepFor(record: UserRecord): NextStep {
 
 export function toSession(record: UserRecord): SessionResponse {
   return { user: toAuthUser(record), nextStep: nextStepFor(record) };
-}
-
-/**
- * The stored answers, in catalog order, with the categories derived from the
- * interests. An id that has since left the catalog is dropped rather than
- * sent back to a screen that has no chip for it.
- */
-export function toOnboardingInterests(record: OnboardingInterestsRecord): OnboardingInterests {
-  const saved = new Set(record.interestIds);
-  const categories = INTEREST_CATEGORIES.filter((category) =>
-    category.interests.some(({ id }) => saved.has(id))
-  );
-
-  return {
-    onboardingStage: record.onboardingStage,
-    selectedCategories: categories.map(({ id }) => id),
-    selectedInterests: categories.flatMap((category) =>
-      category.interests.filter(({ id }) => saved.has(id)).map(({ id }) => id)
-    ),
-  };
 }
 
 /** A suspended account stops working on its next request. */
@@ -212,34 +185,6 @@ export const usersService = {
       throw new ForbiddenError('اول مراحل آشنایی رو کامل کن');
     }
     return usersRepository().setOnboardingStep(user.id, 'done');
-  },
-
-  async getOnboardingInterests(user: UserRecord): Promise<OnboardingInterestsRecord> {
-    return {
-      onboardingStage: user.onboardingStage,
-      interestIds: await usersRepository().findInterestIds(user.id),
-    };
-  },
-
-  /**
-   * Stage 1. `interestIds` has already passed `interestsSchema` — every id is
-   * in the catalog and they span at least three categories — so what is left
-   * is the order of things: no answers before the profile exists, and the
-   * category of each interest looked up here rather than trusted from the
-   * request.
-   */
-  async saveInterests(user: UserRecord, interestIds: string[]): Promise<OnboardingInterestsRecord> {
-    if (nextStepFor(user) === 'basic_info') {
-      throw new ForbiddenError('اول اطلاعات پایه‌ات رو کامل کن');
-    }
-
-    return usersRepository().saveInterests(
-      user.id,
-      interestIds.map((interestId) => ({
-        interestId,
-        categoryId: INTEREST_CATEGORY_BY_ID.get(interestId)!,
-      }))
-    );
   },
 
   // ─── The account area ──────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { FIRST_SLIDER_ID, type Question } from '@hamdastan/config';
+import type { Question } from '@hamdastan/config';
 import type { QuestionnaireAnswer } from '@hamdastan/types';
 import { Button } from '@hamdastan/ui';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
@@ -22,7 +22,7 @@ import { QuestionnaireScreen } from './QuestionnaireScreen';
  * beneath it. Nothing else: no section name, no question number.
  *
  * - **Single choice** saves on the tap and moves on by itself; no button.
- * - **Multi-select** (and Q1) waits for «ادامه», enabled at the first pick.
+ * - **Multi-select** (and ranked) waits for «ادامه», enabled at the first pick.
  *   Its helper states the limit, and says so quietly once it is reached.
  * - **Slider** waits for «ادامه», enabled once the slider has been touched —
  *   a value nobody chose is not an answer. Only the first slider explains
@@ -38,6 +38,7 @@ const SLIDER_HINT = 'نقطه رو جابه‌جا کن و جایی بذار ک�
 
 export function QuestionStep({
   question,
+  isFirstSlider,
   answer,
   progress,
   isSaving,
@@ -46,6 +47,8 @@ export function QuestionStep({
   onBack,
 }: {
   question: Question;
+  /** The first slider shown is the only one that explains how to use a slider. */
+  isFirstSlider: boolean;
   answer: QuestionnaireAnswer | undefined;
   progress: number;
   isSaving: boolean;
@@ -93,7 +96,7 @@ export function QuestionStep({
 
   const helper =
     question.kind === 'slider'
-      ? question.id === FIRST_SLIDER_ID
+      ? isFirstSlider
         ? SLIDER_HINT
         : undefined
       : atCap

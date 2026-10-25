@@ -1,20 +1,16 @@
 import { cookies } from 'next/headers';
 
+import type { OnboardingInterests } from '@hamdastan/types';
+
 import { onboardingService } from '@/services';
 
 /**
- * Stage 1's saved answers, read on the server so the chips render already
- * selected — no empty flash, no client-side fetch on arrival.
- *
- * An empty list when there is nothing saved *or* the read failed: a person
- * who cannot see their earlier picks can still pick again, which beats an
- * error screen in the middle of onboarding.
+ * Stage 1 as `apps/api` holds it — the catalog and the saved picks — read on
+ * the server so the chips render already selected, with no empty flash and
+ * no client-side fetch on arrival. The catalog is the screen, so a failed
+ * read is left to the error boundary.
  */
-export async function getSavedInterestIds(): Promise<string[]> {
+export async function getOnboardingInterests(): Promise<OnboardingInterests> {
   const cookie = (await cookies()).toString();
-  try {
-    return (await onboardingService.getInterests({ cookie })).selectedInterests;
-  } catch {
-    return [];
-  }
+  return onboardingService.getInterests({ cookie });
 }

@@ -22,6 +22,7 @@ export const SECTIONS = [
   { href: '/worlds', label: 'دنیاها', permission: 'worlds.read' },
   { href: '/content', label: 'محتوا', permission: 'content.read' },
   { href: '/notifications', label: 'اعلان‌ها', permission: 'notifications.read' },
+  { href: '/onboarding', label: 'آنبوردینگ', permission: 'onboarding.write' },
   { href: '/media', label: 'کتابخانه‌ی رسانه', permission: 'activities.read' },
   { href: '/sessions', label: 'نشست‌های کاربران', permission: 'sessions.manage' },
 ] as const satisfies ReadonlyArray<{ href: string; label: string; permission: AdminPermission }>;
