@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
-import { CircleAlert, Loader2, RotateCcw } from 'lucide-react';
+import { CircleAlert, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { OTP } from '@hamdastan/config';
@@ -12,8 +12,8 @@ import {
   Button,
   InputOTP,
   InputOTPGroup,
-  InputOTPSeparator,
   InputOTPSlot,
+  Spinner,
 } from '@hamdastan/ui';
 
 import {
@@ -40,7 +40,15 @@ import { authErrorMessage } from '../utils/errors';
  * A wrong code is shown three ways at once, because one of them is not enough
  * for everybody: the boxes turn red (colour), they shake (motion), and the
  * reason appears underneath in words (`role="alert"`, so it is announced).
+ *
+ * While the code is being checked the form gives way to a loader, and on
+ * success it stays there until the next screen replaces it — the form never
+ * reappears, filled in and live again, between the verify and the redirect.
  */
+
+// Six equal boxes in one row, one gap between each: `flex-1` shrinks them to
+// fit the column at 320px, `max-w-12` stops them growing into slabs at 430px.
+const SLOT_CLASS = 'h-14 min-w-0 max-w-12 flex-1 rounded-xl text-xl font-semibold';
 
 /** `1:59` in Persian digits. */
 function formatCountdown(totalSeconds: number): string {
@@ -70,12 +78,13 @@ export function OtpForm({ phone }: { phone: string }) {
       setChecking(true);
       setError(null);
       try {
+        // On success `checking` is left on: the loader holds until the
+        // redirect unmounts this screen.
         await verifyOtp(phone, value);
       } catch (caught) {
         setError(authErrorMessage(caught));
         setCode('');
         submitted.current = null;
-      } finally {
         setChecking(false);
       }
     },
@@ -94,6 +103,19 @@ export function OtpForm({ phone }: { phone: string }) {
       toast.error(authErrorMessage(caught));
     }
   };
+
+  if (checking) {
+    return (
+      <Screen>
+        <ScreenBody center className="items-center">
+          <div role="status" aria-live="polite" className="flex flex-col items-center gap-3">
+            <Spinner aria-hidden="true" className="size-6 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">در حال بررسی کد…</p>
+          </div>
+        </ScreenBody>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -133,13 +155,8 @@ export function OtpForm({ phone }: { phone: string }) {
           >
             <InputOTP
               maxLength={OTP.LENGTH}
-              // The six boxes have to fit the column at 320px as well as at
-              // 430px, and a page may not carry a breakpoint. So they flex:
-              // each slot is `w-full` inside a `flex-1` group and shrinks
-              // with the row. The caps are what stop them growing into slabs
-              // on the wider phone — `max-w-12` per slot, and `max-w-36` per
-              // group, which is exactly three of them, so the row reaches its
-              // natural width and then centres instead of hugging one edge.
+              // A page may not carry a breakpoint, so the boxes flex (see
+              // SLOT_CLASS); once they reach their cap the row centres.
               containerClassName="w-full justify-center"
               value={code}
               // input-otp filters keystrokes and pastes against this, so a
@@ -154,30 +171,18 @@ export function OtpForm({ phone }: { phone: string }) {
                 // this is the event that produced it.
                 if (digits.length === OTP.LENGTH) void submit(digits);
               }}
-              disabled={checking}
               autoFocus
               autoComplete="one-time-code"
               aria-label="کد تأیید"
               aria-invalid={Boolean(error)}
             >
-              <InputOTPGroup className="max-w-36 flex-1">
-                {[0, 1, 2].map((index) => (
+              <InputOTPGroup className="w-full justify-center">
+                {Array.from({ length: OTP.LENGTH }, (_, index) => (
                   <InputOTPSlot
                     key={index}
                     index={index}
                     aria-invalid={Boolean(error)}
-                    className="h-14 w-full max-w-12 text-xl font-semibold"
-                  />
-                ))}
-              </InputOTPGroup>
-              <InputOTPSeparator className="text-muted-foreground/50" />
-              <InputOTPGroup className="max-w-36 flex-1">
-                {[3, 4, 5].map((index) => (
-                  <InputOTPSlot
-                    key={index}
-                    index={index}
-                    aria-invalid={Boolean(error)}
-                    className="h-14 w-full max-w-12 text-xl font-semibold"
+                    className={SLOT_CLASS}
                   />
                 ))}
               </InputOTPGroup>
@@ -189,14 +194,7 @@ export function OtpForm({ phone }: { phone: string }) {
               appears under them, which is the one place on this screen the
               user is looking. */}
           <div className="flex min-h-6 items-center justify-center">
-            {checking && (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-                در حال بررسی…
-              </p>
-            )}
-
-            {error && !checking && (
+            {error && (
               <p
                 role="alert"
                 className="flex items-center gap-1.5 text-sm font-medium text-destructive"

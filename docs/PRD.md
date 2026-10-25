@@ -1777,6 +1777,8 @@ or into `/onboarding/*`, which it has been through, apart from
                                                  │  code sent (or echoed)
         /auth/verify?phone=09… ─────────────────┘
           └─ sixth digit auto-submits ── POST /auth/otp/verify
+             │  the boxes give way to a full-screen loader, which holds
+             │  until the redirect (a wrong code brings the boxes back)
              │  the account is created here
              └─ nextStep = basic_info
                 └─ /auth/basic-info ── PUT /me/basic-info
@@ -2432,6 +2434,9 @@ foreground, not violet.
   colour above 4.5:1 on its tint, in both themes); other toasts stay neutral.
   Toasts are set in the app font at 14px, sit at the top of the column 16px
   in from its edges at every width, and never span past it.
+- The sign-in code is six separate rounded boxes (`InputOTPSlot`, in both
+  apps), evenly spaced in one row with no divider; the focused box takes a
+  foreground border.
 - Motion is `tailwindcss-animate`'s fade and slide, 150–300ms, plus one shake
   on a wrong code and the
   200ms `Accordion` open/close (`animate-accordion-down` / `-up`).

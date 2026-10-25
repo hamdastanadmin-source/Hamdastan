@@ -9,7 +9,6 @@ import {
   Button,
   InputOTP,
   InputOTPGroup,
-  InputOTPSeparator,
   InputOTPSlot,
 } from '@hamdastan/ui';
 
@@ -103,13 +102,7 @@ export function OtpStep({ phone, resendIn, onVerify, onResend, onEditPhone }: Ot
           aria-invalid={Boolean(error)}
         >
           <InputOTPGroup>
-            {[0, 1, 2].map((index) => (
-              <InputOTPSlot key={index} index={index} aria-invalid={Boolean(error)} className="size-11 text-lg" />
-            ))}
-          </InputOTPGroup>
-          <InputOTPSeparator className="text-muted-foreground/50" />
-          <InputOTPGroup>
-            {[3, 4, 5].map((index) => (
+            {Array.from({ length: OTP.LENGTH }, (_, index) => (
               <InputOTPSlot key={index} index={index} aria-invalid={Boolean(error)} className="size-11 text-lg" />
             ))}
           </InputOTPGroup>
