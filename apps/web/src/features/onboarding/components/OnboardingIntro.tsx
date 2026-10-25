@@ -16,10 +16,10 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
  * eye is led down the hierarchy rather than handed all of it at once. The
  * action arrives last, once there is something to act on.
  *
- * Top-aligned rather than centred: the text sits a fixed distance below the
- * header on every phone, instead of drifting with the screen's height, and
- * the owl follows it — part of the stage, not a clip on it (see
- * `StageArtwork`). The screen is `surface-stage` — black in the dark theme —
+ * Top-aligned rather than centred: the text sits directly below the header on
+ * every phone, with the same spacing as the questionnaire intro, and the owl
+ * is centred under it exactly where the other stage owls land — part of the
+ * stage, not a clip on it (see `StageArtwork`). The screen is `surface-stage` — black in the dark theme —
  * so the artwork is the only light on it.
  *
  * No header control: the only way on is the button, and stage 1 has its own
@@ -46,7 +46,7 @@ export function OnboardingIntro() {
     <Screen className="bg-surface-stage">
       <ScreenHeader />
 
-      <ScreenBody className="gap-8 pt-10 text-start">
+      <ScreenBody className="gap-5 text-start">
         <div className="flex flex-col gap-4">
           <ScreenTitle
             title={

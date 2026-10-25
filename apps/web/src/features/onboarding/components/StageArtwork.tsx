@@ -7,7 +7,7 @@ import type { CSSProperties } from 'react';
  * Every file is prepared the same way, so every screen that shows one places
  * it on the same line at the same scale: exported from
  * `assets/illustrations/<name>.webp` into `public/images/brand/` at 720×491,
- * framed so the subject keeps clear of the edges (at least 15% at the sides
+ * framed so the subject is centred and keeps clear of the edges (at least 15% at the sides
  * and 11% top and bottom, in every frame), with the artwork's grey backdrop
  * lifted to white and a `<name>-still.webp` first frame beside it. On the
  * screen there is no frame and no corners: the edges fade out over that

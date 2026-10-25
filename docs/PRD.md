@@ -165,7 +165,8 @@ stage 1 and stage 2. Code lives in `apps/web/src/features/onboarding`.
 **Intro — `/onboarding`.** «بیا دنیای تو رو بسازیم», what the stages are for,
 and one action, «شروع ساخت دنیای من», to stage 1. The screen is black
 (`--surface-stage`; the plain background in the light theme). The text is
-top-aligned a fixed distance under the header, start-aligned (right, in RTL),
+top-aligned under the header with the questionnaire intro's spacing,
+start-aligned (right, in RTL),
 and descends in weight: bold title, body, then a quieter
 line. It streams in in that order a word at a time — about two seconds in
 all — and the action appears last; with reduced motion it is all there at
@@ -257,7 +258,9 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
   Section 3 are stills; the intro (the owl in flight) and Sections 1–2 (the
   owl painting) are animated. The files live in
   `apps/web/public/images/brand/` (sources in `assets/illustrations/`) and
-  are all prepared the same way — 720×491, the subject kept clear of the
+  are all prepared the same way — 720×491, the subject centred in the
+  frame (a still's asymmetric margins would shift it off the column's
+  centre line) and kept clear of the
   edges in every frame, the artwork's grey backdrop and its vignette lifted
   to white (a master drawn on transparency stays transparent, so it sits on
   the stage in both themes), with a `-still.webp` first frame.
