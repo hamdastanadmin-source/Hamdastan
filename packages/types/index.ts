@@ -8,6 +8,7 @@ export {
   type OtpVerifyResponse,
   type SessionResponse,
   type UserRole,
+  type UsernameAvailability,
 } from './auth';
 export type {
   ApiErrorBody,

@@ -1,5 +1,6 @@
 import type { AccountSettings, AvatarConfig } from '@hamdastan/config';
 import type { Gender } from '@hamdastan/types';
+import { USERNAME_TAKEN_MESSAGE } from '@hamdastan/validation';
 
 import { query, queryOne, withTransaction } from '../../data';
 import { ConflictError } from '../../shared/errors';
@@ -35,6 +36,8 @@ export interface UsersRepository {
    */
   findByAccessToken(tokenHash: string, now: Date): Promise<UserRecord | null>;
   findByPhone(phone: string): Promise<UserRecord | null>;
+  /** Whether an account other than `exceptId` holds `username` (already normalised). */
+  isUsernameTaken(username: string, exceptId: string): Promise<boolean>;
   /**
    * The row a verified code creates. Returns the existing user when the
    * number already has one, so two codes verified at once cannot produce two
@@ -100,7 +103,7 @@ const UNIQUE_VIOLATION = '23505';
  */
 function usernameWriteError(error: unknown): unknown {
   return (error as { code?: string }).code === UNIQUE_VIOLATION
-    ? new ConflictError('این نام کاربری رو قبلاً کس دیگه‌ای انتخاب کرده')
+    ? new ConflictError(USERNAME_TAKEN_MESSAGE)
     : error;
 }
 
@@ -206,6 +209,14 @@ export const sqlUsersRepository: UsersRepository = {
       [phone]
     );
     return row ? toRecord(row) : null;
+  },
+
+  async isUsernameTaken(username, exceptId) {
+    const row = await queryOne<{ taken: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM v2_users WHERE username = $1 AND id <> $2) AS taken`,
+      [username, exceptId]
+    );
+    return row?.taken ?? false;
   },
 
   async createWithPhone(phone, username) {

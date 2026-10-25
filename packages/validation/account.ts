@@ -40,6 +40,9 @@ export const displayNameSchema = lettersSchema(
 /** The rule in a line, for the help text under a username field. */
 export const USERNAME_HINT = `حروف انگلیسی، عدد، نقطه و _ — بین ${toPersianDigits(ACCOUNT_LIMITS.USERNAME_MIN)} تا ${toPersianDigits(ACCOUNT_LIMITS.USERNAME_MAX)} کاراکتر.`;
 
+/** Under the field when the name is someone else's — the live check and a 409 say the same thing. */
+export const USERNAME_TAKEN_MESSAGE = 'این نام کاربری رو قبلاً کس دیگه‌ای انتخاب کرده';
+
 const USERNAME_MESSAGE =
   'فقط حروف انگلیسی، عدد، نقطه و _ — با یه حرف شروع بشه و بین ۳ تا ۲۰ کاراکتر باشه';
 

@@ -29,6 +29,11 @@ export const usersController = {
     return reply.send(ok(toSession(updated)));
   },
 
+  async usernameAvailability(request: FastifyRequest, reply: FastifyReply) {
+    const { username } = parseBody(usersSchemas.username.query, request.query);
+    return reply.send(ok(await usersService.usernameAvailability(currentUser(request), username)));
+  },
+
   async confirmUsername(request: FastifyRequest, reply: FastifyReply) {
     const { username } = parseBody(usersSchemas.username.body, request.body);
     const updated = await usersService.confirmUsername(currentUser(request), username);

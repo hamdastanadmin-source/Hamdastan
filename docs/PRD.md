@@ -110,8 +110,13 @@ password and no separate registration.
   `nextStep = username`). The screen explains that this is the name they are
   known by in the app and can change later from the profile; the field starts
   with the generated name, so «ادامه» works at once and keeping it is a valid
-  answer. `PUT /me/username` validates with the same `usernameSchema` as the
-  profile (a taken name is a 409 shown under the field) and sets
+  answer. While they type, a name that passes `usernameSchema` is checked
+  against everyone else's (`GET /me/username/availability`, 400 ms after the
+  last keystroke): «در حال بررسی…», then «این نام کاربری آزاده» in green or
+  the taken message under the field, which also disables «ادامه». Their own
+  name counts as free, and a failed check shows nothing. The check is only a
+  hint — `PUT /me/username` validates with the same `usernameSchema` as the
+  profile (a taken name is a 409 shown under the field, in the same words) and sets
   `v2_users.username_confirmed_at` — null is what keeps the account on this
   step. Accounts already past basic info when it shipped were backfilled as
   answered (`0022`). Like the basic-info screen, it has no back.
@@ -2121,6 +2126,7 @@ All under `/api/v1`. Every response is `ApiResponse<T>` from
 | POST | `/auth/logout` | refresh cookie | — | `{ loggedOut }`, cookies cleared |
 | GET | `/me` | access cookie | — | `{ user, nextStep }` |
 | PUT | `/me/basic-info` | access cookie | `{ firstName, lastName, birthDate, gender }` | `{ user, nextStep }` |
+| GET | `/me/username/availability?username=` | access cookie | — | `{ username, available }` — the name normalised; the caller's own name is `available`; 400 for an invalid name |
 | PUT | `/me/username` | access cookie | `{ username }` | `{ user, nextStep }`; 403 before basic info, 409 for a taken username |
 | POST | `/me/onboarding/complete` | access cookie | — | `{ user, nextStep }` |
 | GET | `/me/onboarding/interests` | access cookie | — | `{ onboardingStage, selectedCategories, selectedInterests }` |

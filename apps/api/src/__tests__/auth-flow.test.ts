@@ -240,6 +240,17 @@ describe.skipIf(!hasDatabase)('sign-in against a migrated database', () => {
       );
       expect((await put('/me/username', { username: 'SARA.AHMADI' }, other)).statusCode).toBe(409);
 
+      // The live check agrees, and counts a person's own name as free.
+      const availability = (username: string, as: Cookies) =>
+        get(`/me/username/availability?username=${encodeURIComponent(username)}`, as);
+      expect((await availability('@Sara.Ahmadi', other)).json().data).toEqual({
+        username: 'sara.ahmadi',
+        available: false,
+      });
+      expect((await availability('sara.ahmadi', cookies)).json().data.available).toBe(true);
+      expect((await availability('reza.noori', other)).json().data.available).toBe(true);
+      expect((await availability('1abc', other)).statusCode).toBe(400);
+
       const interests = await put(
         '/me/onboarding/interests',
         { interestIds: ['concert', 'gallery', 'workshop'] },

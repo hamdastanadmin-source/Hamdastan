@@ -1,7 +1,8 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -14,9 +15,11 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Spinner,
 } from '@hamdastan/ui';
 import {
   USERNAME_HINT,
+  USERNAME_TAKEN_MESSAGE,
   usernameChoiceSchema,
   type UsernameChoiceInput,
   type UsernameChoiceOutput,
@@ -26,6 +29,7 @@ import { Screen, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/c
 import { HttpError } from '@/services';
 
 import { useAuthActions } from '../hooks/use-auth-actions';
+import { useUsernameAvailability } from '../hooks/use-username-availability';
 import { authErrorMessage } from '../utils/errors';
 
 /**
@@ -35,6 +39,9 @@ import { authErrorMessage } from '../utils/errors';
  * «ادامه» works straight away — keeping it is a valid answer. Like the
  * basic-info form, there is no way back: the routing table holds them here
  * until they answer, and the profile can change the name later.
+ *
+ * Whether a typed name is free is checked as they type, so a taken one is
+ * flagged before «ادامه» rather than after it.
  */
 export function UsernameForm({ initialUsername }: { initialUsername: string }) {
   const { saveUsername } = useAuthActions();
@@ -44,6 +51,10 @@ export function UsernameForm({ initialUsername }: { initialUsername: string }) {
     mode: 'onTouched',
     defaultValues: { username: initialUsername },
   });
+  const availability = useUsernameAvailability(
+    useWatch({ control: form.control, name: 'username' })
+  );
+  const taken = availability === 'taken';
 
   const onSubmit = form.handleSubmit(async () => {
     try {
@@ -74,7 +85,7 @@ export function UsernameForm({ initialUsername }: { initialUsername: string }) {
             <FormField
               control={form.control}
               name="username"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>نام کاربری</FormLabel>
                   <FormControl>
@@ -85,11 +96,26 @@ export function UsernameForm({ initialUsername }: { initialUsername: string }) {
                       autoCapitalize="none"
                       autoComplete="username"
                       spellCheck={false}
+                      aria-invalid={taken || fieldState.invalid}
                       className="h-12"
                     />
                   </FormControl>
                   <FormDescription>{USERNAME_HINT}</FormDescription>
-                  <FormMessage />
+                  <div aria-live="polite">
+                    <FormMessage>{taken ? USERNAME_TAKEN_MESSAGE : null}</FormMessage>
+                    {!fieldState.error && availability === 'checking' && (
+                      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Spinner className="size-4" />
+                        در حال بررسی…
+                      </p>
+                    )}
+                    {!fieldState.error && availability === 'available' && (
+                      <p className="flex items-center gap-1.5 text-sm text-success">
+                        <Check className="size-4" aria-hidden />
+                        این نام کاربری آزاده
+                      </p>
+                    )}
+                  </div>
                 </FormItem>
               )}
             />
@@ -103,7 +129,7 @@ export function UsernameForm({ initialUsername }: { initialUsername: string }) {
           form="username-form"
           size="xl"
           className="w-full"
-          disabled={!form.formState.isValid}
+          disabled={!form.formState.isValid || taken}
           loading={form.formState.isSubmitting}
         >
           ادامه

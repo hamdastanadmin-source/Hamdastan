@@ -11,6 +11,7 @@ import type {
   NextStep,
   OnboardingInterests,
   SessionResponse,
+  UsernameAvailability,
 } from '@hamdastan/types';
 
 import { ForbiddenError, NotFoundError } from '../../shared/errors';
@@ -178,6 +179,15 @@ export const usersService = {
 
   async saveBasicInfo(user: UserRecord, info: BasicInfo): Promise<UserRecord> {
     return usersRepository().saveBasicInfo(user.id, info);
+  },
+
+  /**
+   * The live check under a username field. Advisory only: the unique index
+   * still decides when the name is written. Their own name counts as free.
+   */
+  async usernameAvailability(user: UserRecord, username: string): Promise<UsernameAvailability> {
+    const taken = await usersRepository().isUsernameTaken(username, user.id);
+    return { username, available: !taken };
   },
 
   /**

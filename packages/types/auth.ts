@@ -41,6 +41,12 @@ export type SessionResponse = {
   nextStep: NextStep;
 };
 
+/** `GET /me/username/availability`: the name as it would be stored, and whether it is free. */
+export type UsernameAvailability = {
+  username: string;
+  available: boolean;
+};
+
 export type OtpRequestResponse = {
   /** Seconds until "ارسال دوباره" becomes available. */
   resendIn: number;

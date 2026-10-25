@@ -4,6 +4,7 @@ import type {
   OtpRequestResponse,
   OtpVerifyResponse,
   SessionResponse,
+  UsernameAvailability,
 } from '@hamdastan/types';
 import type { BasicInfoInput } from '@hamdastan/validation';
 
@@ -43,6 +44,15 @@ export const authService = {
 
   updateBasicInfo(input: BasicInfoInput): Promise<SessionResponse> {
     return apiClient.put<SessionResponse>('/me/basic-info', input);
+  },
+
+  /** Whether a name is free. Advisory: `confirmUsername` is still the one that decides. */
+  checkUsername(username: string, signal?: AbortSignal): Promise<UsernameAvailability> {
+    return apiClient.get<UsernameAvailability>('/me/username/availability', {
+      query: { username },
+      signal,
+      cache: 'no-store',
+    });
   },
 
   /** The raw text: the API normalises with `usernameChoiceSchema`. */

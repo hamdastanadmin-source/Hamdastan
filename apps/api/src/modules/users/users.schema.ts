@@ -9,7 +9,7 @@ import { basicInfoSchema, interestsSchema, usernameChoiceSchema, z } from '@hamd
  */
 export const usersSchemas = {
   basicInfo: { body: basicInfoSchema },
-  username: { body: usernameChoiceSchema },
+  username: { body: usernameChoiceSchema, query: usernameChoiceSchema },
   interests: { body: interestsSchema },
 } satisfies Record<string, unknown>;
 
