@@ -1,11 +1,8 @@
-import { DEFAULT_AVATAR } from '@hamdastan/config';
 import type { AccountProfile, RoleAvatarId } from '@hamdastan/types';
 import { Card } from '@hamdastan/ui';
 import { cn } from '@hamdastan/shared/cn';
 
-import { RoleCharacter } from '@/components';
-
-import { AvatarFigure } from './AvatarFigure';
+import { PersonSilhouette, RoleCharacter } from '@/components';
 
 /**
  * The top of the hub, as one card: the avatar, large. The badges earned
@@ -15,7 +12,8 @@ import { AvatarFigure } from './AvatarFigure';
  *
  * Once the questionnaire has given the person a role character, that is the
  * avatar — full-body, with no frame, on a stage the same white as the art.
- * Before, the drawn avatar stands head to chest on a soft neutral disc.
+ * Before — or if it was skipped — a neutral silhouette fills a soft disc;
+ * nobody is given a made-up avatar.
  */
 export function IdentityBlock({
   profile,
@@ -59,12 +57,8 @@ export function IdentityBlock({
               className="aspect-[4/5] h-72 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none"
             />
           ) : (
-            <AvatarFigure
-              avatar={profile.avatar ?? DEFAULT_AVATAR}
-              frame="bust"
-              label=""
-              className="relative size-64 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none"
-            />
+            // Laid exactly over the disc (top-6, size-56).
+            <PersonSilhouette className="relative -mt-2 mb-8 size-56 animate-in fade-in zoom-in-95 duration-500 motion-reduce:animate-none" />
           )}
         </div>
       </Card>

@@ -18,5 +18,6 @@ export { ScreenBack } from './layout/ScreenBack';
 export { BottomNav, type BottomNavItem } from './layout/BottomNav';
 export { XpAmount } from './xp/XpAmount';
 export { RoleCharacter, type RoleCharacterFrame } from './artwork/RoleCharacter';
+export { PersonSilhouette } from './artwork/PersonSilhouette';
 export { OwlLoader } from './artwork/OwlLoader';
 export { MediaImage } from './media/MediaImage';

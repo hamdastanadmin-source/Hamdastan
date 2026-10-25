@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Compass, Lightbulb, Sparkles, UserRound, Users, Zap, type LucideIcon } from 'lucide-react';
+import { Compass, Lightbulb, Sparkles, Users, Zap, type LucideIcon } from 'lucide-react';
 
 import type { QuestionnaireResult } from '@hamdastan/types';
 import {
@@ -15,7 +15,7 @@ import {
 } from '@hamdastan/ui';
 import { cn } from '@hamdastan/shared/cn';
 
-import { RoleCharacter } from '@/components';
+import { PersonSilhouette, RoleCharacter } from '@/components';
 
 import { SocialDnaChart } from './SocialDnaChart';
 
@@ -23,7 +23,7 @@ import { SocialDnaChart } from './SocialDnaChart';
  * The social-profile report — meaning first, numbers last.
  *
  * 1. The hero: the character for the person's primary role and gender (or
- *    their avatar when there is none), whose profile this is, the title.
+ *    the neutral figure when there is none), whose profile this is, the title.
  * 2. The three plain-language insights, as rows of one card.
  * 3. «دنیای مورد علاقه تو»: stage 1's picks, a card per category.
  * 4. «DNA اجتماعی تو»: the seven axes as a radar with exact values.
@@ -57,13 +57,10 @@ function SectionHeading({ id, icon: Icon, children }: { id: string; icon: Lucide
 export function SocialProfileResult({
   result,
   eyebrow,
-  avatar,
 }: {
   result: QuestionnaireResult;
   /** Above the title — the line that says whose profile this is. */
   eyebrow: ReactNode;
-  /** Shown only when the result has no role character: the person's avatar, or a neutral figure. */
-  avatar?: ReactNode;
 }) {
   const { role } = result;
   return (
@@ -85,11 +82,9 @@ export function SocialProfileResult({
           </figure>
         ) : (
           <Avatar className="size-24 border bg-secondary">
-            {avatar ?? (
-              <AvatarFallback className="bg-secondary">
-                <UserRound aria-hidden="true" className="size-1/2" />
-              </AvatarFallback>
-            )}
+            <AvatarFallback className="bg-secondary">
+              <PersonSilhouette className="size-full" />
+            </AvatarFallback>
           </Avatar>
         )}
         <Badge variant="outline" className="font-medium text-muted-foreground">

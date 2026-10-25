@@ -340,8 +340,8 @@ question count — only «داریم بیشتر می‌شناسیمت» over a c
      «تحلیل‌گر», Ideator «ایده‌پرداز») and gender — full-body on a white
      4:5 tile (`--avatar-backdrop`, white in both themes because the art is
      drawn on white), captioned «نقشت توی جمع: …». Without a gender on file
-     there is no character and the person's avatar is shown in a shadcn
-     `Avatar` instead (a neutral figure before they have one). Then
+     there is no character and a shadcn `Avatar` holds the neutral
+     silhouette (`PersonSilhouette`) instead. Then
      «پروفایل اجتماعی تو» / «پروفایل اجتماعی من» (an
      outline badge, not the accent), the title and at most two sentences
      built from whichever of the person's dimensions are furthest from the
@@ -446,13 +446,13 @@ The header is their avatar (see «Where the avatar comes from», §4.4) and
 to the profile — no greeting line — and at the other end the bell to the
 Notification Center with the unread count (§4.11); the bottom nav holds خانه, رویدادها and پروفایل. Signing out is not on home.
 
-- **Questionnaire not done:** the first thing on the screen is a card —
+- First, always, «جهان‌های هم‌داستان» — it stays at the top whatever is added below it: one row (shadcn `Item`, outlined, never violet) — «دنیای داستانی‌ات رو انتخاب کن» under the title, the number of worlds and the forward chevron — that opens a bottom sheet of every published world, in the admin's order (§4.10), each a banner linking to `/worlds/:slug` — its cover, or for the four seeded worlds (Hogwarts, GTA, Game of Thrones, Liverpool) the artwork they shipped with, or a plain tile with its name — and «بستن». Absent when no world is published; home never fails because of it.
+- **Questionnaire not done:** right below the worlds row, a card —
   «یه قدم مونده تا بیشتر بشناسیمت», «آزمون کوتاهت رو کامل کن تا تجربه‌ها و
   آدم‌های مناسب‌تری برات پیدا کنیم.», «حدود ۵ دقیقه», «+50 XP» and
   «شروع آزمون», the screen's one primary action.
 - **Done:** the card is gone; nothing on home stands in for it — the
   result lives in the profile («دیدن نتیجه‌ی کامل» → `/profile/social`).
-- Then «جهان‌های هم‌داستان» — at the top once the questionnaire is done: one row (shadcn `Item`, outlined, never violet) — «دنیای داستانی‌ات رو انتخاب کن» under the title, the number of worlds and the forward chevron — that opens a bottom sheet of every published world, in the admin's order (§4.10), each a banner linking to `/worlds/:slug` — its cover, or for the four seeded worlds (Hogwarts, GTA, Game of Thrones, Liverpool) the artwork they shipped with, or a plain tile with its name — and «بستن». Absent when no world is published; home never fails because of it.
 - Then «رویدادهای پیش‌رو» (§4.9): up to three events the person can still
   attend — not ended, not cancelled, not sold out — side by side in a
   carousel of discovery's card (the next one peeking in), each a whole-card
@@ -477,8 +477,8 @@ bottom:
 
 1. **Identity.** The avatar, large, with a small amber spark: the role
    character full-body with no frame, on a stage the same white as the art
-   (`--avatar-backdrop`); or, before the questionnaire, the drawn avatar
-   head to chest on a soft neutral disc. Not a link — there is no avatar
+   (`--avatar-backdrop`); or, before the questionnaire (or once it is
+   skipped), a neutral grey silhouette filling a soft disc. Not a link — there is no avatar
    screen. The display name is the screen's `h1` for screen readers only;
    the name, username and edit buttons are not shown here.
 2. **«نشان‌های من».** A card of its own under the avatar: the count, and
@@ -548,14 +548,16 @@ the illustration for their primary role and gender (§4.2's result). One
 `portrait` (the head, cropped from the file, in the home header's 40px
 circle) and `full` (the whole figure: the result hero and the identity
 card). Always on `--avatar-backdrop`, because the art is drawn on white.
-Before the questionnaire, or without a gender on file, the drawn SVG
-avatar (`AvatarFigure`, from `avatar_config`, coloured only by the
-`--avatar-*` tokens) stands in.
+Before the questionnaire, after skipping it, or without a gender on file,
+nobody is given a made-up avatar: a neutral head-and-shoulders silhouette
+(`PersonSilhouette`, `apps/web/src/components/artwork`, muted grey on
+`secondary`) stands in, in all three places.
 
 There is no avatar screen. The character's clothes are part of the
 illustration, so the earlier dress-up studio (`/profile/avatar`) is gone,
-with its «ظاهر» row in edit profile. `PUT /me/avatar` and `avatar_config`
-remain in the API, unused by the app. XP and badges already earned stay;
+with its «ظاهر» row in edit profile, and the drawn SVG avatar
+(`AvatarFigure`) with it. `PUT /me/avatar` and `avatar_config` remain in
+the API, unused by the app. XP and badges already earned stay;
 missions are no longer listed on the profile.
 
 **Edit profile — `/profile/edit`.** Opened from «حساب» on the profile
