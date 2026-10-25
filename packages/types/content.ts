@@ -4,9 +4,10 @@
  * content index that lists articles, events and activities side by side.
  */
 
-import type { ArticleKindId, ArticleStoredStatusId } from '@hamdastan/config';
+import type { ArticleKindId, ArticleReactionId, ArticleStoredStatusId } from '@hamdastan/config';
 
 export type ArticleKind = ArticleKindId;
+export type ArticleReaction = ArticleReactionId;
 export type ArticleStoredStatus = ArticleStoredStatusId;
 /** `scheduled` is read off the clock: published, its publication date still ahead. */
 export type ArticleStatus = ArticleStoredStatus | 'scheduled';
@@ -26,13 +27,24 @@ export type ArticleCard = {
   publishedAt: string;
   /** Only the published ones. */
   worlds: { slug: string; name: string }[];
+  reactions: ArticleReactionCounts;
 };
+
+/** How many people liked and disliked an article. */
+export type ArticleReactionCounts = { likes: number; dislikes: number };
+
+/** The counts and the reader's own reaction — null when they have said nothing. */
+export type ArticleReactions = ArticleReactionCounts & { mine: ArticleReaction | null };
+
+/** `PUT /content/articles/:id/reaction`. Null takes the reader's reaction back. */
+export type ArticleReactionInput = { reaction: ArticleReaction | null };
 
 export type ArticleDetail = ArticleCard & {
   /** Plain text; a blank line starts a paragraph. */
   body: string;
   coverId: string | null;
   coverAlt: string;
+  reactions: ArticleReactions;
   /** Only on an admin's preview: how the article stands in the panel. */
   preview?: { status: ArticleStatus };
 };
@@ -66,6 +78,7 @@ export type AdminArticleDetail = AdminArticleSummary & {
   coverAlt: string;
   thumbnailId: string | null;
   worldIds: string[];
+  reactions: ArticleReactionCounts;
   createdAt: string;
 };
 

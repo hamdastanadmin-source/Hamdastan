@@ -3,7 +3,7 @@
  * `@hamdastan/types` (`content.ts`).
  */
 
-import type { ArticleKind, ArticleStoredStatus, ContentIndexItem } from '@hamdastan/types';
+import type { ArticleKind, ArticleReactionCounts, ArticleStoredStatus, ContentIndexItem } from '@hamdastan/types';
 import type { ArticleInputOutput } from '@hamdastan/validation';
 
 /** An article's editable fields, as parsed. An empty slug has been replaced by then. */
@@ -23,6 +23,7 @@ export type ArticleRecord = {
   status: ArticleStoredStatus;
   publishAt: Date | null;
   worlds: { id: string; slug: string; name: string; published: boolean }[];
+  reactions: ArticleReactionCounts;
   createdAt: Date;
   updatedAt: Date;
 };

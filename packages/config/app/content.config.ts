@@ -15,6 +15,10 @@ export const ARTICLE_KIND_LABELS: Record<ArticleKindId, string> = {
 export const ARTICLE_STATUSES = ['draft', 'published', 'unpublished', 'archived'] as const;
 export type ArticleStoredStatusId = (typeof ARTICLE_STATUSES)[number];
 
+/** What a person may say about an article: they liked it, or they did not. */
+export const ARTICLE_REACTIONS = ['like', 'dislike'] as const;
+export type ArticleReactionId = (typeof ARTICLE_REACTIONS)[number];
+
 export const ARTICLE_LIMITS = {
   TITLE_MAX: 120,
   SLUG_MAX: 80,

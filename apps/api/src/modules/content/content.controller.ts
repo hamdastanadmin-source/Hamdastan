@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { currentAdmin } from '../../middleware';
+import { currentAdmin, currentUser } from '../../middleware';
 import { ok } from '../../shared/response';
 import { parseBody } from '../../shared/validate';
 
@@ -18,7 +18,13 @@ export const contentController = {
 
   async get(request: FastifyRequest, reply: FastifyReply) {
     const { slug } = parseBody(schemas.bySlug.params, request.params);
-    return reply.send(ok(await service.get(slug)));
+    return reply.send(ok(await service.get(currentUser(request), slug)));
+  },
+
+  async react(request: FastifyRequest, reply: FastifyReply) {
+    const id = idOf(request);
+    const { reaction } = parseBody(schemas.reaction.body, request.body);
+    return reply.send(ok(await service.react(currentUser(request), id, reaction)));
   },
 
   // ─── Admin ─────────────────────────────────────────────────────────────

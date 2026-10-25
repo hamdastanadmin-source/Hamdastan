@@ -74,7 +74,8 @@ export const WORLD_HOME_WHEN_EMPTY_LABELS: Record<WorldHomeWhenEmptyId, string> 
 export const WORLD_DEFAULT_NAVIGATION: ReadonlyArray<{ section: WorldSectionId; label: string; enabled: boolean }> =
   WORLD_SECTIONS.map((section) => ({ section, label: WORLD_SECTION_LABELS[section], enabled: true }));
 
-export const WORLD_DEFAULT_HOME_ORDER: readonly WorldHomeKindId[] = ['events', 'news', 'activities', 'knowledge'];
+/** Knowledge sits above activities (missions and competitions). */
+export const WORLD_DEFAULT_HOME_ORDER: readonly WorldHomeKindId[] = WORLD_HOME_KINDS;
 
 export const WORLD_LIMITS = {
   NAME_MAX: 80,

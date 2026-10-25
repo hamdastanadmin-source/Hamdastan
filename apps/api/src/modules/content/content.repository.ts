@@ -1,4 +1,4 @@
-import type { ArticleKind, ArticleStoredStatus, ContentIndexQuery } from '@hamdastan/types';
+import type { ArticleKind, ArticleReaction, ArticleReactionCounts, ArticleStoredStatus, ContentIndexQuery } from '@hamdastan/types';
 import type { AdminArticleListQueryOutput } from '@hamdastan/validation';
 
 import { query, queryOne, withTransaction, type DbClient } from '../../data';
@@ -22,6 +22,10 @@ export interface ContentRepository {
   findLiveBySlug(slug: string): Promise<ArticleRecord | null>;
   /** A world's articles of one kind — for its home and the panel's picker. */
   forWorld(worldId: string, kind: ArticleKind, query: WorldArticleQuery): Promise<ArticleRecord[]>;
+  /** The person's own reaction to an article, if any. */
+  reactionOf(articleId: string, userId: string): Promise<ArticleReaction | null>;
+  /** Sets or (null) clears the person's reaction to a live article; null when it is not live. */
+  react(articleId: string, userId: string, reaction: ArticleReaction | null): Promise<ArticleReactionCounts | null>;
 
   // ─── Admin ─────────────────────────────────────────────────────
   adminList(query: AdminArticleListQueryOutput): Promise<{ items: ArticleRecord[]; total: number }>;
@@ -54,13 +58,19 @@ const escapeLike = (value: string) => value.replace(/[\\%_]/g, (char) => `\\${ch
 /** Published, and its publication date has come. */
 const LIVE = `a.status = 'published' AND a.publish_at <= now()`;
 
+/** How many readers liked and disliked `a`. */
+const REACTION_COUNTS = `
+  (SELECT count(*)::int FROM v2_article_reactions r WHERE r.article_id = a.id AND r.reaction = 'like') AS likes,
+  (SELECT count(*)::int FROM v2_article_reactions r WHERE r.article_id = a.id AND r.reaction = 'dislike') AS dislikes`;
+
 const COLUMNS = `
   a.id, a.kind, a.slug, a.title, a.summary, a.body, a.category, a.cover_media_id, a.cover_alt,
   a.thumbnail_media_id, a.status, a.publish_at, a.created_at, a.updated_at,
   (SELECT coalesce(json_agg(json_build_object('id', w.id, 'slug', w.slug, 'name', w.name,
             'published', w.status = 'published') ORDER BY w.position, w.name), '[]')
      FROM v2_article_world_links l JOIN v2_worlds w ON w.id = l.world_id
-    WHERE l.article_id = a.id) AS worlds`;
+    WHERE l.article_id = a.id) AS worlds,
+  ${REACTION_COUNTS}`;
 
 type Row = {
   id: string;
@@ -78,6 +88,8 @@ type Row = {
   created_at: Date;
   updated_at: Date;
   worlds: ArticleRecord['worlds'];
+  likes: number;
+  dislikes: number;
 };
 
 const toRecord = (row: Row): ArticleRecord => ({
@@ -94,6 +106,7 @@ const toRecord = (row: Row): ArticleRecord => ({
   status: row.status,
   publishAt: row.publish_at,
   worlds: row.worlds,
+  reactions: { likes: row.likes, dislikes: row.dislikes },
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -221,6 +234,32 @@ export const sqlContentRepository: ContentRepository = {
       values
     );
     return rows.map(toRecord);
+  },
+
+  async reactionOf(articleId, userId) {
+    const row = await queryOne<{ reaction: ArticleReaction }>(
+      `SELECT reaction FROM v2_article_reactions WHERE article_id = $1 AND user_id = $2`,
+      [articleId, userId]
+    );
+    return row?.reaction ?? null;
+  },
+
+  async react(articleId, userId, reaction) {
+    return withTransaction(async (client) => {
+      const { rowCount } = await client.query(`SELECT 1 FROM v2_articles a WHERE a.id = $1 AND ${LIVE}`, [articleId]);
+      if (rowCount === 0) return null;
+      if (reaction) {
+        await client.query(
+          `INSERT INTO v2_article_reactions (article_id, user_id, reaction) VALUES ($1, $2, $3)
+           ON CONFLICT (article_id, user_id) DO UPDATE SET reaction = EXCLUDED.reaction, updated_at = now()`,
+          [articleId, userId, reaction]
+        );
+      } else {
+        await client.query(`DELETE FROM v2_article_reactions WHERE article_id = $1 AND user_id = $2`, [articleId, userId]);
+      }
+      const { rows } = await client.query<ArticleReactionCounts>(`SELECT ${REACTION_COUNTS} FROM v2_articles a WHERE a.id = $1`, [articleId]);
+      return rows[0];
+    });
   },
 
   async adminList(filter) {

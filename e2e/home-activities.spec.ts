@@ -74,7 +74,8 @@ test('home shows up to three activities in a carousel', async ({ page }) => {
     await readyPerson(page, phone);
     await page.goto('/');
 
-    const carousel = page.getByRole('region', { name: 'فعالیت‌ها' });
+    // The section is a region by the same name; the carousel is the one inside it.
+    const carousel = page.locator('section[aria-labelledby="activities-heading"]').getByRole('region', { name: 'فعالیت‌ها' });
     await expect(carousel).toBeVisible();
     const slides = carousel.getByRole('group');
     await expect(slides).toHaveCount(3);

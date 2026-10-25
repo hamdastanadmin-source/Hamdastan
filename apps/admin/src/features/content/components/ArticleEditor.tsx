@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, ExternalLink } from 'lucide-react';
+import { ArrowRight, ExternalLink, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ARTICLE_KIND_LABELS, ARTICLE_KINDS, ARTICLE_LIMITS, IMAGE_FRAMES, WEB_BASE_URL } from '@hamdastan/config';
+import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { AdminArticleDetail, AdminArticleHistoryEntry, ArticleInput, ArticleKind, ArticleStatusAction, ArticleStatusInput } from '@hamdastan/types';
 import {
   Alert,
@@ -173,6 +174,18 @@ export function ArticleEditor({ initial, kind = 'news', worldId }: { initial?: A
           </h1>
           {status === 'scheduled' && <p className="text-sm text-muted-foreground">انتشار در {formatDateTime(editor.saved?.publishAt ?? null)}</p>}
           {status === 'archived' && <p className="text-sm text-muted-foreground">محتوای بایگانی‌شده قابل ویرایش نیست.</p>}
+          {editor.saved && (
+            <p className="flex items-center gap-3 text-sm text-muted-foreground" aria-label="واکنش کاربران">
+              <span className="flex items-center gap-1">
+                <ThumbsUp aria-hidden="true" className="size-4" />
+                {toPersianDigits(editor.saved.reactions.likes)} پسندیده
+              </span>
+              <span className="flex items-center gap-1">
+                <ThumbsDown aria-hidden="true" className="size-4" />
+                {toPersianDigits(editor.saved.reactions.dislikes)} نپسندیده
+              </span>
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {actions

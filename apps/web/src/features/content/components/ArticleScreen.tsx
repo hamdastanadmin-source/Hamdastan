@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@hamdastan/ui';
 import { MediaImage, Screen, ScreenBack, ScreenBody, ScreenHeader } from '@/components';
 
 import { paragraphsOf, publishedOn } from '../utils/format';
+import { ArticleReactions } from './ArticleReactions';
 
 const PREVIEW_STATUS: Record<string, string> = {
   draft: 'پیش‌نویس',
@@ -20,8 +21,9 @@ const PREVIEW_STATUS: Record<string, string> = {
 /**
  * `/articles/:slug`: one news item or knowledge article — cover, kind and
  * category, title, date, summary and the body, paragraph by paragraph —
- * and the worlds it belongs to. The API has already decided it is live; an
- * admin's preview carries a banner with where it stands.
+ * the reader's like or dislike, and the worlds it belongs to. The API has
+ * already decided it is live; an admin's preview carries a banner with where
+ * it stands, and no reactions — nobody reads it yet.
  */
 export function ArticleScreen({ article }: { article: ArticleDetail }) {
   const home = article.worlds[0];
@@ -65,6 +67,8 @@ export function ArticleScreen({ article }: { article: ArticleDetail }) {
             </p>
           ))}
         </div>
+
+        {!article.preview && <ArticleReactions articleId={article.id} initial={article.reactions} />}
 
         {article.worlds.length > 0 && (
           <p className="flex flex-wrap gap-x-2 border-t border-border pt-4 text-sm">

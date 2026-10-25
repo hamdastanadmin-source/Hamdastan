@@ -8,7 +8,8 @@ import { contentController as c } from './content.controller';
  * HTTP surface of the Content module — محتوای دنیاها.
  *
  *   `/content`        live articles for the product — `authenticate`; what
- *                     may be seen is the repository's `LIVE` rule
+ *                     may be seen is the repository's `LIVE` rule, and
+ *                     only a live article takes a like or dislike
  *   `/admin/content`  the central content index and the article editor —
  *                     `requireAdminPermission(…)`, per route
  */
@@ -18,6 +19,7 @@ export const contentRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/articles', user, c.list);
   app.get('/articles/:slug', user, c.get);
+  app.put('/articles/:id/reaction', user, c.react);
 };
 
 export const contentAdminRoutes: FastifyPluginAsync = async (app) => {

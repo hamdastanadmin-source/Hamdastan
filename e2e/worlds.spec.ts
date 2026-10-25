@@ -144,6 +144,22 @@ test('«همه» opens a page of its own, and an article leads back to it', asyn
   await expect(page.getByRole('heading', { level: 1, name: 'خبر نخست' })).toBeVisible();
   await expect(page.getByText('پاراگراف دوم.')).toBeVisible();
 
+  // One reaction at a time; choosing it again takes it back.
+  const like = page.getByRole('radio', { name: 'پسندیدم' });
+  const dislike = page.getByRole('radio', { name: 'نپسندیدم' });
+  await like.click();
+  await expect(like).toHaveAttribute('aria-checked', 'true');
+  await expect(like).toHaveText('۱');
+  await dislike.click();
+  await expect(like).toHaveAttribute('aria-checked', 'false');
+  await expect(dislike).toHaveText('۱');
+  // Enabled again once the API has answered.
+  await expect(dislike).toBeEnabled();
+  await page.reload();
+  await expect(dislike).toHaveAttribute('aria-checked', 'true');
+  await dislike.click();
+  await expect(dislike).toHaveText('۰');
+
   await page.getByRole('link', { name: world.name }).first().click();
   await expect(page).toHaveURL(new RegExp(`/worlds/${world.slug}/news$`));
 });

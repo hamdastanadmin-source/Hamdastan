@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import type { WorldHomeBlock } from '@hamdastan/types';
 
+import { CardCarousel } from '@/components';
 import { ActivityCard } from '@/features/activities';
 import { ArticleCard } from '@/features/content';
 import { EventsCarousel } from '@/features/events';
@@ -9,38 +10,28 @@ import { EventsCarousel } from '@/features/events';
 import { worldActivitiesHref, worldListHref } from '../utils/pages';
 import { WorldEmpty } from './WorldEmpty';
 
-/** A block's items: events side by side in a carousel, the rest one under another. */
+/** A block's items, side by side in a carousel — one card per kind. */
 function Items({ block }: { block: WorldHomeBlock }) {
   switch (block.kind) {
     case 'events':
       return <EventsCarousel events={block.items} label={block.title} />;
     case 'news':
     case 'knowledge':
-      return (
-        <ul className="flex flex-col gap-3">
-          {block.items.map((card) => (
-            <li key={card.id}>
-              <ArticleCard card={card} />
-            </li>
-          ))}
-        </ul>
-      );
+      return <CardCarousel items={block.items} label={block.title} renderCard={(card) => <ArticleCard card={card} className="h-full" />} />;
     case 'activities':
       return (
-        <ul className="flex flex-col gap-3">
-          {block.items.map((card) => (
-            <li key={card.id}>
-              <ActivityCard card={card} withWorld={false} />
-            </li>
-          ))}
-        </ul>
+        <CardCarousel
+          items={block.items}
+          label={block.title}
+          renderCard={(card) => <ActivityCard card={card} withWorld={false} className="h-full" />}
+        />
       );
   }
 }
 
 /**
- * A world's home: the sections the API sends, events first, each with the
- * items it found eligible — featured or newest. «همه» opens the section's
+ * A world's home: the sections the API sends, events first, each a
+ * carousel of the items it found eligible — featured or newest. «همه» opens the section's
  * own page; for activities that is the world's «فعالیت‌ها», when its menu
  * has it. A section the admin asked to keep when empty says «فعلاً چیزی
  * نیست»; one asked to hide never arrives. `linked` is off in a preview.

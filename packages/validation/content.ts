@@ -7,6 +7,7 @@
 import {
   ARTICLE_KINDS,
   ARTICLE_LIMITS as L,
+  ARTICLE_REACTIONS,
   ARTICLE_RESERVED_SLUGS,
   ARTICLE_STATUSES,
   ARTICLES_PAGE_SIZE,
@@ -44,6 +45,10 @@ export function articlePublishProblems(input: Pick<ArticleInput, 'title' | 'summ
 export const articleStatusSchema = z.object({
   action: z.enum(['publish', 'unpublish', 'archive']),
   publishAt: z.iso.datetime({ offset: true, error: 'تاریخ معتبر نیست' }).nullable().optional(),
+});
+
+export const articleReactionSchema = z.object({
+  reaction: z.enum(ARTICLE_REACTIONS).nullable(),
 });
 
 const search = z.string().max(60).transform((value) => cleanText(value, false)).optional();

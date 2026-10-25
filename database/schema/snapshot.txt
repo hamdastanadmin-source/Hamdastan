@@ -23,6 +23,11 @@ column v2_article_audit_log.article_id uuid nullable=NO default=
 column v2_article_audit_log.created_at timestamp with time zone nullable=NO default=now()
 column v2_article_audit_log.details jsonb nullable=NO default='{}'::jsonb
 column v2_article_audit_log.id bigint nullable=NO default=
+column v2_article_reactions.article_id uuid nullable=NO default=
+column v2_article_reactions.created_at timestamp with time zone nullable=NO default=now()
+column v2_article_reactions.reaction text nullable=NO default=
+column v2_article_reactions.updated_at timestamp with time zone nullable=NO default=now()
+column v2_article_reactions.user_id uuid nullable=NO default=
 column v2_article_world_links.article_id uuid nullable=NO default=
 column v2_article_world_links.world_id uuid nullable=NO default=
 column v2_articles.body text nullable=NO default=''::text
@@ -458,6 +463,10 @@ constraint v2_admin_users v2_admin_users_pkey PRIMARY KEY (id)
 constraint v2_article_audit_log v2_article_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_article_audit_log v2_article_audit_log_article_id_fkey FOREIGN KEY (article_id) REFERENCES v2_articles(id) ON DELETE CASCADE
 constraint v2_article_audit_log v2_article_audit_log_pkey PRIMARY KEY (id)
+constraint v2_article_reactions v2_article_reactions_article_id_fkey FOREIGN KEY (article_id) REFERENCES v2_articles(id) ON DELETE CASCADE
+constraint v2_article_reactions v2_article_reactions_pkey PRIMARY KEY (article_id, user_id)
+constraint v2_article_reactions v2_article_reactions_reaction_check CHECK ((reaction = ANY (ARRAY['like'::text, 'dislike'::text])))
+constraint v2_article_reactions v2_article_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_article_world_links v2_article_world_links_article_id_fkey FOREIGN KEY (article_id) REFERENCES v2_articles(id) ON DELETE CASCADE
 constraint v2_article_world_links v2_article_world_links_pkey PRIMARY KEY (article_id, world_id)
 constraint v2_article_world_links v2_article_world_links_world_id_fkey FOREIGN KEY (world_id) REFERENCES v2_worlds(id) ON DELETE RESTRICT
@@ -678,6 +687,8 @@ index v2_admin_users_phone_key CREATE UNIQUE INDEX v2_admin_users_phone_key ON p
 index v2_admin_users_pkey CREATE UNIQUE INDEX v2_admin_users_pkey ON public.v2_admin_users USING btree (id)
 index v2_article_audit_log_article CREATE INDEX v2_article_audit_log_article ON public.v2_article_audit_log USING btree (article_id, created_at DESC)
 index v2_article_audit_log_pkey CREATE UNIQUE INDEX v2_article_audit_log_pkey ON public.v2_article_audit_log USING btree (id)
+index v2_article_reactions_pkey CREATE UNIQUE INDEX v2_article_reactions_pkey ON public.v2_article_reactions USING btree (article_id, user_id)
+index v2_article_reactions_user_idx CREATE INDEX v2_article_reactions_user_idx ON public.v2_article_reactions USING btree (user_id)
 index v2_article_world_links_pkey CREATE UNIQUE INDEX v2_article_world_links_pkey ON public.v2_article_world_links USING btree (article_id, world_id)
 index v2_article_world_links_world CREATE INDEX v2_article_world_links_world ON public.v2_article_world_links USING btree (world_id)
 index v2_articles_live CREATE INDEX v2_articles_live ON public.v2_articles USING btree (kind, publish_at DESC) WHERE (status = 'published'::v2_article_status)

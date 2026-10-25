@@ -2,6 +2,7 @@ import {
   adminArticleListQuerySchema,
   articleInputSchema,
   articleListQuerySchema,
+  articleReactionSchema,
   articleStatusSchema,
   contentIndexQuerySchema,
   SLUG_PATTERN,
@@ -27,4 +28,5 @@ export const contentSchemas = {
   index: { query: contentIndexQuerySchema },
   write: { body: articleInputSchema },
   status: { body: articleStatusSchema },
+  reaction: { body: articleReactionSchema },
 } satisfies Record<string, unknown>;

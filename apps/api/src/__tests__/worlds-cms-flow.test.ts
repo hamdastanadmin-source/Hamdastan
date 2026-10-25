@@ -257,6 +257,30 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
     expect((await call('GET', `/content/articles/${live.slug}`, user)).statusCode).toBe(404);
   });
 
+  it('takes one like or dislike per person on a live article, and counts them for the panel', async () => {
+    const target = await publishedWorld();
+    const live = await publishedArticle([target.id]);
+    const other = await signIn('', nextPhone());
+    const react = (session: Cookies, reaction: string | null) => call('PUT', `/content/articles/${live.id}/reaction`, session, { reaction });
+
+    expect(await ok(await react(user, 'like'))).toEqual({ likes: 1, dislikes: 0, mine: 'like' });
+    expect(await ok(await react(other, 'like'))).toEqual({ likes: 2, dislikes: 0, mine: 'like' });
+    expect(await ok(await react(user, 'dislike'))).toEqual({ likes: 1, dislikes: 1, mine: 'dislike' });
+
+    const detail = await ok<{ reactions: unknown }>(await call('GET', `/content/articles/${live.slug}`, user));
+    expect(detail.reactions).toEqual({ likes: 1, dislikes: 1, mine: 'dislike' });
+    const cards = await ok<{ items: { reactions: unknown }[] }>(await call('GET', `/content/articles?world=${target.slug}`, user));
+    expect(cards.items[0].reactions).toEqual({ likes: 1, dislikes: 1 });
+    expect(await ok(await react(user, null))).toEqual({ likes: 1, dislikes: 0, mine: null });
+    expect((await react(user, 'love')).statusCode).toBe(400);
+
+    const panel = await ok<{ reactions: unknown }>(await call('GET', `/admin/content/articles/${live.id}`, admin));
+    expect(panel.reactions).toEqual({ likes: 1, dislikes: 0 });
+
+    await ok(await call('POST', `/admin/content/articles/${live.id}/status`, admin, { action: 'unpublish' }));
+    expect((await react(user, 'like')).statusCode).toBe(404);
+  });
+
   it('builds a world home from eligible items, latest or featured in order', async () => {
     const target = await publishedWorld();
     const other = await publishedWorld();

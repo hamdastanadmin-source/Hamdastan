@@ -333,6 +333,13 @@ A screen one level down has `ScreenBack` instead and no bottom nav.
 of XP — isolated as an LTR run so «+۵۰ XP» does not reorder inside Persian
 text. Shared here because both the questionnaire and the profile use it.
 
+**`CardCarousel`** (`components/carousel/`) is the app's one way to lay out
+a row of cards: shadcn's `Carousel`, the next card peeking in at 85%, a lone
+card at full width. A feature passes its own card through `renderCard` (with
+`h-full`, so the row keeps one height) — home's events and activities, a
+world's home sections, an event's related events. Do not write another
+`Carousel` + `CarouselItem` loop in a feature.
+
 `MobileShell` draws the column's one ambient gradient (`--gradient-shell-glow`,
 via the `shell-ambient` class, which carries its own position, height and
 z-index). It is decorative, `aria-hidden` and `pointer-events-none`; screens

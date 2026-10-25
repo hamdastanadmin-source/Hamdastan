@@ -8,6 +8,8 @@ import {
   type ArticleCard,
   type ArticleDetail,
   type ArticleKind,
+  type ArticleReaction,
+  type ArticleReactions,
   type ArticleStatus,
   type ArticleStatusAction,
   type ArticleStoredStatus,
@@ -25,6 +27,7 @@ import {
 
 import { AppError, NotFoundError } from '../../shared/errors';
 import type { AdminRecord } from '../admin';
+import type { UserRecord } from '../users';
 import { mediaService } from '../media';
 
 import { contentRepository } from './content.repository';
@@ -61,14 +64,16 @@ function toCard(record: ArticleRecord): ArticleCard {
     // A live article has a date — publishing sets one.
     publishedAt: iso(record.publishAt) ?? '',
     worlds: record.worlds.filter((world) => world.published).map(({ slug, name }) => ({ slug, name })),
+    reactions: record.reactions,
   };
 }
 
-const toDetail = (record: ArticleRecord): ArticleDetail => ({
+const toDetail = (record: ArticleRecord, mine: ArticleReaction | null): ArticleDetail => ({
   ...toCard(record),
   body: record.body,
   coverId: record.coverId,
   coverAlt: record.coverAlt,
+  reactions: { ...record.reactions, mine },
 });
 
 function toAdminSummary(record: ArticleRecord, now: Date): AdminArticleSummary {
@@ -94,6 +99,7 @@ function toAdminDetail(record: ArticleRecord, now: Date): AdminArticleDetail {
     coverAlt: record.coverAlt,
     thumbnailId: record.thumbnailId,
     worldIds: record.worlds.map((world) => world.id),
+    reactions: record.reactions,
     createdAt: record.createdAt.toISOString(),
   };
 }
@@ -134,10 +140,17 @@ export const contentService = {
   },
 
   /** One the product may not see is a 404 — never a hint that it exists. */
-  async get(slug: string): Promise<ArticleDetail> {
+  async get(user: UserRecord, slug: string): Promise<ArticleDetail> {
     const record = await contentRepository().findLiveBySlug(slug);
     if (!record) throw notFound();
-    return toDetail(record);
+    return toDetail(record, await contentRepository().reactionOf(record.id, user.id));
+  },
+
+  /** A like, a dislike, or (null) neither — one per person; only on a live article. */
+  async react(user: UserRecord, id: string, reaction: ArticleReaction | null): Promise<ArticleReactions> {
+    const counts = await contentRepository().react(id, user.id, reaction);
+    if (!counts) throw notFound();
+    return { ...counts, mine: reaction };
   },
 
   // ─── For a world's home ────────────────────────────────────────────────
@@ -213,7 +226,7 @@ export const contentService = {
   async preview(id: string): Promise<ArticleDetail> {
     const record = await contentRepository().findById(id);
     if (!record) throw notFound();
-    return { ...toDetail(record), preview: { status: effectiveStatus(record, new Date()) } };
+    return { ...toDetail(record, null), preview: { status: effectiveStatus(record, new Date()) } };
   },
 
   async history(id: string): Promise<AdminArticleHistoryEntry[]> {

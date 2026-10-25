@@ -1,7 +1,8 @@
 import Link from 'next/link';
 
 import type { ActivityCard as ActivityCardData } from '@hamdastan/types';
-import { Carousel, CarouselContent, CarouselItem } from '@hamdastan/ui';
+
+import { CardCarousel } from '@/components';
 
 import { sortForDisplay } from '../utils/activity';
 import { ActivityCard } from './ActivityCard';
@@ -31,15 +32,7 @@ export function ActivitiesSection({ cards }: { cards: ActivityCardData[] }) {
           همه
         </Link>
       </div>
-      <Carousel opts={{ align: 'start' }} aria-label="فعالیت‌ها">
-        <CarouselContent>
-          {shown.map((card) => (
-            <CarouselItem key={card.id} className={shown.length > 1 ? 'basis-[85%]' : undefined}>
-              <ActivityCard card={card} className="h-full" />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
+      <CardCarousel items={shown} label="فعالیت‌ها" renderCard={(card) => <ActivityCard card={card} className="h-full" />} />
     </section>
   );
 }

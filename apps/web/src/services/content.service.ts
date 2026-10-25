@@ -1,4 +1,4 @@
-import type { ArticleCard, ArticleDetail, ArticleListQuery, Paginated } from '@hamdastan/types';
+import type { ArticleCard, ArticleDetail, ArticleListQuery, ArticleReaction, ArticleReactions, Paginated } from '@hamdastan/types';
 
 import { apiClient } from './api-client';
 
@@ -14,6 +14,11 @@ export const contentService = {
 
   article(slug: string, options?: ServerCall): Promise<ArticleDetail> {
     return apiClient.get<ArticleDetail>(`/content/articles/${slug}`, { ...withCookie(options), cache: 'no-store' });
+  },
+
+  /** The reader's like or dislike; null takes it back. Answers the article's counts after it. */
+  react(id: string, reaction: ArticleReaction | null): Promise<ArticleReactions> {
+    return apiClient.put<ArticleReactions>(`/content/articles/${id}/reaction`, { reaction });
   },
 
   /** An admin's preview of an article in any status; the API checks the admin session it carries. */

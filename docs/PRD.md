@@ -1500,7 +1500,8 @@ events and activities under it, from one panel. Code in
 `apps/api/src/modules/worlds`, `apps/api/src/modules/content` and
 `apps/admin/src/features/worlds` and `apps/admin/src/features/content`.
 Product code in `apps/web/src/features/worlds` and `apps/web/src/features/content`.
-Schema: migrations `0018` (the list) and `0020` (the CMS). *Phases 1 (the
+Schema: migrations `0018` (the list), `0020` (the CMS) and `0024` (article
+reactions). *Phases 1 (the
 data model and the API), 2 (the admin screens) and 3 (the product's world
 and article pages) are built. Trivia explanations and competitions with a
 leaderboard (phase 4) and end-to-end tests (phase 5) follow.*
@@ -1535,7 +1536,9 @@ list.
   migration.
 - **Home** (`v2_world_home_sections`, one per kind — events, news,
   knowledge, activities). Events always come first, whatever position they
-  were saved at; the admin orders the rest. Each section: on or off, a
+  were saved at; the admin orders the rest. A new world's home is events,
+  news, knowledge, then activities — knowledge above the missions and
+  competitions (`WORLD_DEFAULT_HOME_ORDER`). Each section: on or off, a
   title (empty: the default), how many items (1–12), where the items come
   from — **latest** (the newest eligible ones) or **featured** (only the
   ones the admin chose, in their order, `v2_world_home_items`) — and what an
@@ -1556,7 +1559,12 @@ list.
 **Articles** (`v2_articles`): a news item (خبر) or a knowledge article
 (دانستنی) — title, slug, summary, body (plain text; a blank line starts a
 paragraph — never HTML), an optional free-text category, cover with alt
-text, thumbnail, and the worlds it is filed under (one or more).
+text, thumbnail, and the worlds it is filed under (one or more). A person
+may like or dislike a live article (`v2_article_reactions`, 0024): one
+reaction per person, changeable, and choosing it again takes it back; the
+counts are public on the article page, on every article card (after the date
+in its meta line, a zero left out — counts only, never a control; reacting
+is on the page) and shown to the panel.
 `draft` → publish (now, or at a date ahead: «scheduled», read off the clock)
 → `published` ⇄ `unpublished`; any → `archived` (no more edits). Publishing
 needs a title, summary, body and at least one world (`400
@@ -1616,6 +1624,8 @@ happens in each kind's own editor.
   `articleInputSchema`. «ذخیره» keeps a draft as it is; «انتشار» saves and
   publishes, now or at a date ahead (scheduled), behind the same «برای
   انتشار:» checklist the API applies; «لغو انتشار» and «بایگانی» ask first.
+  A saved article shows how many people liked («پسندیده») and disliked
+  («نپسندیده») it under its title.
   Tabs: محتوا, پیش‌نمایش (the article in the product's column, from what is
   on the screen) and تاریخچه.
 - **Filing events and activities.** The event editor's «دنیاها» is as
@@ -1631,9 +1641,9 @@ happens in each kind's own editor.
   tagline (the summary when there is no tagline), and — when there is a
   description — «درباره‌ی …» at the card's foot, an accordion closed by
   default that opens the description paragraph by paragraph. Then the
-  sections the API sent — رویدادها first as a carousel of the events card,
-  then news, knowledge and activities in the admin's order — each with
-  «همه» to its own page; a section kept when empty says «فعلاً چیزی نیست».
+  sections the API sent — رویدادها first, then news, knowledge and
+  activities in the admin's order — each a carousel of its own card (the
+  next one peeking in, a lone one at full width) with «همه» to its own page; a section kept when empty says «فعلاً چیزی نیست».
   The page ends in the world's menu.
 - **The world's menu** — the app's `BottomNav` with the world's items:
   خانه (`/worlds/:slug`) and فعالیت‌ها (`/worlds/:slug/activities`), in the
@@ -1654,8 +1664,12 @@ happens in each kind's own editor.
   the page that replaced it.
 - **`/articles/:slug`** — back to its first world's news or knowledge page, or
   home; cover, kind and category, the Jalali publication day, title,
-  summary, the body paragraph by paragraph, and «از دنیای …» linking to
-  each world. An article that is not live is the 404 page.
+  summary, the body paragraph by paragraph, «این مطلب رو دوست داشتی؟»
+  with «پسندیدم» / «نپسندیدم» and their counts (a `ToggleGroup`: chosen is a
+  foreground border and a filled icon, never violet; it shows at once and
+  steps back if the API refuses), and «از دنیای …» linking to each world.
+  An admin's preview has no reactions. An article that is not live is the
+  404 page.
 - A signed-out visitor who opens a world's or an article's link is brought
   back to it after signing in (`hd_return_to`, like events and journeys).
 - **Previews for the panel** — `/preview/worlds/:id` (the world's home, any
@@ -1667,7 +1681,8 @@ happens in each kind's own editor.
 **Product reads.** `GET /worlds` (published, in order), `GET /worlds/:slug`
 (identity and the menu items that are on), `GET /worlds/:slug/home`, `GET
 /worlds/:slug/activities`, `GET
-/content/articles?world=&kind=` and `GET /content/articles/:slug`. A
+/content/articles?world=&kind=` and `GET /content/articles/:slug`, and
+`PUT /content/articles/:id/reaction` the one write. A
 world's events page reads `GET /events?world=`, as before.
 
 **Not built:** community moderation (no community exists yet), world
@@ -1994,6 +2009,7 @@ The world CMS (0020):
 v2_worlds --1:N-- v2_world_home_sections --1:N-- v2_world_home_items
                                                   (exactly one of article_id / event_id / activity_id)
 v2_worlds --1:N-- v2_article_world_links --N:1-- v2_articles --1:N-- v2_article_audit_log
+v2_users  --1:N-- v2_article_reactions   --N:1-- v2_articles            (0024)
 v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
 ```
 
@@ -2155,6 +2171,9 @@ v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
   publication date and is required once published (a check constraint).
   Linked to worlds many-to-many; a world in use cannot be deleted (`ON
   DELETE RESTRICT`).
+- **`v2_article_reactions` (0024)** — one like or dislike per (article,
+  person), the primary key; taking it back deletes the row, so the counts
+  are row counts. Cascades from both the article and the account.
 - **`v2_engagement_activity_worlds` (0020)** — activity ↔ world, outside the
   versioned definition.
 - **`v2_notifications` (0019)** — one row per recipient: category, type,
@@ -2316,7 +2335,7 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/admin/content` | `?q=&type=news\|knowledge\|event\|activity&status=&world=&page=&pageSize=` | `Paginated<ContentIndexItem>` — `content.read` |
 | GET | `/admin/content/articles` | `?q=&kind=&status=&world=&page=&pageSize=` | `Paginated<AdminArticleSummary>` — `content.read` |
 | POST | `/admin/content/articles` | `ArticleInput` | `AdminArticleDetail` (201); 409 `ARTICLE_SLUG_TAKEN` — `content.write` |
-| GET | `/admin/content/articles/:id` | — | `AdminArticleDetail` — `content.read` |
+| GET | `/admin/content/articles/:id` | — | `AdminArticleDetail` (with `reactions`: likes and dislikes) — `content.read` |
 | PUT | `/admin/content/articles/:id` | `ArticleInput` | `AdminArticleDetail`; 400 `ARTICLE_INCOMPLETE` while published; 409 `ARTICLE_ARCHIVED` — `content.write` |
 | POST | `/admin/content/articles/:id/status` | `{ action: publish \| unpublish \| archive, publishAt? }` | `AdminArticleDetail`; 400 `ARTICLE_INCOMPLETE`; 409 `ARTICLE_INVALID_TRANSITION` — `content.publish` |
 | GET | `/admin/content/articles/:id/preview` | — | `ArticleDetail` with `preview.status` — `content.read` |
@@ -2351,8 +2370,9 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/worlds/:slug` | — | `WorldDetail`; 404 unless published |
 | GET | `/worlds/:slug/home` | — | `WorldHome`: the sections that are on, each with the items that may appear now |
 | GET | `/worlds/:slug/activities` | — | `ActivityCard[]` — open activities filed under the world, for this person; 404 when the world's فعالیت‌ها menu is off |
-| GET | `/content/articles` | `?world=&kind=news\|knowledge&page=&pageSize=` | `Paginated<ArticleCard>` — live only |
-| GET | `/content/articles/:slug` | — | `ArticleDetail`; 404 unless live |
+| GET | `/content/articles` | `?world=&kind=news\|knowledge&page=&pageSize=` | `Paginated<ArticleCard>` (each with `reactions`: likes and dislikes) — live only |
+| GET | `/content/articles/:slug` | — | `ArticleDetail` with `reactions` (`likes`, `dislikes`, the reader's `mine`); 404 unless live |
+| PUT | `/content/articles/:id/reaction` | `{ reaction: like \| dislike \| null }` | `ArticleReactions`; null takes it back; 404 unless live |
 | GET | `/events` | `?q=&category=a,b&type=&world=&from=&to=&city=&price=free\|paid&available=&interested=&sort=&page=&pageSize=` | `Paginated<EventCard>` |
 | GET | `/events/calendar` | the same filters; `from` and `to` required (≤ 62 days) | `EventCalendarDay[]` |
 | GET | `/events/categories` | — | `EventCategory[]` (active) |
