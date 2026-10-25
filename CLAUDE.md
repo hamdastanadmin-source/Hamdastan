@@ -49,9 +49,9 @@ the rule to that document before writing the code.
   selected states, icons, progress/XP bars or glows; those are neutral
   (selection = foreground border + check). Success is green. Exceptions:
   a `Switch`'s "on" track is the stock `primary`, and — by product
-  decision — the selections in onboarding stage 1 and in events discovery
-  (category chips, the day strip, an active filter button: violet stroke
-  and text on `bg-primary/10`).
+  decision — the selections in onboarding stage 1, in events discovery
+  (category chips, the day strip, an active filter button) and basic
+  info's gender segments: violet stroke and text on `bg-primary/10`.
 - **Never hard-code a design value.** In a `className`, use the Tailwind
   utility. Where a real CSS string is needed, import from
   `@hamdastan/ui/tokens` — those files reference the custom properties rather

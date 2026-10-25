@@ -2378,15 +2378,15 @@ not used for surfaces, cards, headers, borders, focus rings, tabs, chips,
 selected states, icons, progress or XP bars, badges or glows. Everything
 around it is neutral: charcoal surfaces, white text, grey secondary text,
 hairline borders; a selected item is a foreground border, a lifted surface
-and a check. Success is green, destructive red, warning amber. (Three exceptions:
+and a check. Success is green, destructive red, warning amber. (Four exceptions:
 onboarding stage 1 — its checkboxes, selected chips and selected cards are
 violet by product decision — the questionnaire's selected answers, which
 predate this rule and still use a brand tint, and events discovery
 (2026-10-17, product decision): its selected category chips, day in the
 strip and an active filters button take a
-violet stroke and text on a faint violet fill, `bg-primary/10`.) Basic info's gender
-segments follow the rule: the chosen one takes a foreground border and a
-check. Secondary links and buttons («ویرایش شماره», «ارسال دوباره‌ی کد») are
+violet stroke and text on a faint violet fill, `bg-primary/10`; and basic
+info's gender segments (2026-10-25, product decision), selected the same way,
+with no check.) Secondary links and buttons («ویرایش شماره», «ارسال دوباره‌ی کد») are
 foreground, not violet.
 
 ### 9.2 Rules for a screen

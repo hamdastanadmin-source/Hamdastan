@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { PROFILE } from '@hamdastan/config';
@@ -155,7 +154,11 @@ export function BasicInfoForm() {
               description="فعلاً فقط چندتا چیز ساده ازت می‌خوایم، بقیه‌ش رو هر وقت حوصله داشتی کامل می‌کنی. این اطلاعات پیش خودمون می‌مونه."
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* `items-start`: a grid cell stretches to the taller one, and
+                FormItem's own grid would spread that extra height between
+                label and input — so a message wrapping to two lines under one
+                field pushed the other field's label out of line. */}
+            <div className="grid grid-cols-2 items-start gap-3">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -285,18 +288,12 @@ export function BasicInfoForm() {
                         <ToggleGroupItem
                           key={value}
                           value={value}
-                          // shadcn's `on` state is `bg-accent`, which on this
-                          // dark surface is a shade away from the unselected
-                          // one. A segmented control has to answer "which did
-                          // I pick?" at a glance — so the chosen segment gets
-                          // the product's selection: a foreground border and
-                          // a check. Violet stays on «ادامه».
-                          className="group/gender h-12 text-base data-[state=on]:border-foreground data-[state=on]:text-foreground"
+                          // shadcn's `on` state is `bg-accent`, a shade away
+                          // from the unselected one. By product decision the
+                          // chosen segment takes the same violet selection as
+                          // onboarding stage 1 and events discovery.
+                          className="h-12 text-base data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
                         >
-                          <Check
-                            aria-hidden="true"
-                            className="hidden group-data-[state=on]/gender:block"
-                          />
                           {label}
                         </ToggleGroupItem>
                       ))}
