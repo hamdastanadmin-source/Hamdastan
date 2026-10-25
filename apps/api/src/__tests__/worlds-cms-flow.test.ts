@@ -6,7 +6,7 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { API_PREFIX, WORLD_DEFAULT_NAVIGATION, WORLD_HOME_KINDS } from '@hamdastan/config';
-import type { ActivityInput, AdminWorldHome, ArticleInput, WorldHome, WorldHomeInput, WorldInput } from '@hamdastan/types';
+import type { ActivityCard, ActivityInput, AdminWorldHome, ArticleInput, WorldHome, WorldHomeInput, WorldInput } from '@hamdastan/types';
 import { worldHomeInputSchema, worldInputSchema } from '@hamdastan/validation';
 
 import { buildApp } from '../app';
@@ -314,6 +314,9 @@ describe.skipIf(!hasDatabase)('the world CMS against a migrated database', () =>
 
     const tab = await ok<{ title: string }[]>(await call('GET', `/worlds/${target.slug}/activities`, user));
     expect(tab.map((item) => item.title)).toEqual(['نظرسنجی دنیا']);
+    // The card names the worlds it is filed under, wherever it is listed.
+    const mine = await ok<ActivityCard[]>(await call('GET', '/me/activities', user));
+    expect(mine.find((card) => card.id === activity.id)?.worlds.map((item) => item.id)).toEqual([target.id]);
 
     const navigation = WORLD_DEFAULT_NAVIGATION.map((item) => ({ ...item, enabled: item.section !== 'activities' }));
     await ok(await call('PUT', `/admin/worlds/${target.id}`, admin, world({ slug: target.slug, navigation })));

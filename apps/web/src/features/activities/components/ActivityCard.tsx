@@ -8,14 +8,27 @@ import { Badge } from '@hamdastan/ui';
 
 import { RewardChip } from '@/features/profile';
 
-import { minutesLabel, STATUS_LABELS } from '../utils/activity';
+import { minutesLabel, STATUS_LABELS, worldLabel } from '../utils/activity';
 
 /**
- * An activity as a row-card: type, status, title, short description, time
- * and — when the admin chose to show it — the reward. The whole card is the
- * link; no button inside it, so a screen keeps its one primary action.
+ * An activity as a row-card: type, the world it belongs to, status, title,
+ * short description, time and — when the admin chose to show it — the
+ * reward. Inside a world's own pages the world badge is left out
+ * (`withWorld={false}`); it would only repeat the screen's title. The whole
+ * card is the link; no button inside it, so a screen keeps its one primary
+ * action.
  */
-export function ActivityCard({ card, className }: { card: ActivityCardData; className?: string }) {
+export function ActivityCard({
+  card,
+  withWorld = true,
+  className,
+}: {
+  card: ActivityCardData;
+  withWorld?: boolean;
+  className?: string;
+}) {
+  const world = withWorld ? worldLabel(card.worlds) : null;
+
   return (
     <Link
       href={`/activities/${card.id}`}
@@ -26,6 +39,11 @@ export function ActivityCard({ card, className }: { card: ActivityCardData; clas
     >
       <span className="flex items-center gap-2">
         <Badge variant="outline">{ACTIVITY_TYPE_LABELS[card.type]}</Badge>
+        {world && (
+          <Badge variant="outline" className="min-w-0 font-medium text-muted-foreground">
+            <span className="truncate">{world}</span>
+          </Badge>
+        )}
         {card.status !== 'not_started' && (
           <Badge variant={card.status === 'completed' ? 'success' : card.status === 'pending_review' ? 'warning' : 'secondary'}>
             {STATUS_LABELS[card.status]}

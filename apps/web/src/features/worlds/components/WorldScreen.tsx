@@ -78,7 +78,7 @@ export function WorldActivitiesScreen({ page: { world, cards } }: { page: WorldA
           <ul className="flex flex-col gap-3">
             {cards.map((card) => (
               <li key={card.id}>
-                <ActivityCard card={card} />
+                <ActivityCard card={card} withWorld={false} />
               </li>
             ))}
           </ul>

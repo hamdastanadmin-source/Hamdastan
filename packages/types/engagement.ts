@@ -504,6 +504,8 @@ export type ActivityCard = {
   endsAt: string | null;
   /** Open, and the person may start, continue or submit again. */
   canSubmit: boolean;
+  /** The worlds it is filed under, in the worlds' order; empty when none. */
+  worlds: { id: string; name: string }[];
 };
 
 /** A question as the product receives it: no answer key, no scoring. */

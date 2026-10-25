@@ -13,6 +13,13 @@ export const STATUS_LABELS: Record<ParticipationStatus, string> = {
 
 export const minutesLabel = (minutes: number) => `حدود ${toPersianDigits(minutes)} دقیقه`;
 
+/** The world badge: the first world, and how many more — null when it is filed under none. */
+export function worldLabel(worlds: ActivityCard['worlds']): string | null {
+  const [first, ...rest] = worlds;
+  if (!first) return null;
+  return rest.length > 0 ? `${first.name} +${toPersianDigits(rest.length)}` : first.name;
+}
+
 /** The card's action: start, continue, or again — and none when it cannot be submitted. */
 export function ctaLabel(card: ActivityCard): string | null {
   if (!card.canSubmit) return null;

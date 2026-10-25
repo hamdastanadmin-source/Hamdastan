@@ -30,7 +30,7 @@ function Items({ block }: { block: WorldHomeBlock }) {
         <ul className="flex flex-col gap-3">
           {block.items.map((card) => (
             <li key={card.id}>
-              <ActivityCard card={card} />
+              <ActivityCard card={card} withWorld={false} />
             </li>
           ))}
         </ul>

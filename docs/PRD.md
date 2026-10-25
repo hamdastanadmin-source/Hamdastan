@@ -459,8 +459,10 @@ Notification Center with the unread count (§4.11); the bottom nav holds خان�
   link, and «همه» → `/events`. Absent when there are none; home never fails
   because of it.
 - Then «فعالیت‌ها» (§4.7): up to three activities the person can do now or is
-  waiting on, open ones first, each a whole-card link (no button inside, so the
-  screen keeps one primary action), and «همه» → `/activities`. The section is
+  waiting on, open ones first, side by side in a carousel like the events
+  above (the next one peeking in, a lone one full width), each a whole-card
+  link (no button inside, so the screen keeps one primary action), and «همه»
+  → `/activities`. The section is
   absent when there is nothing to do, and home never fails because of it — if
   the activities cannot be read, there are none.
 
@@ -946,9 +948,11 @@ duplicate (a new draft, «(کپی)», no dates), and the status moves.
 people in its audience while it is published and inside its window, and
 stays visible (read-only once closed) to anyone who took part. Anyone else
 gets a 404 — an activity meant for somebody else is not admitted to exist.
-The card: type, status (جدید, نیمه‌کاره, در انتظار تأیید, انجام شده, نیاز به
-انجام دوباره), title, short description, «حدود n دقیقه», and «+n XP» when the
-admin chose to show it.
+The card: type, the world it is filed under (an outlined badge the size of
+the type's, in muted text — the first world, «+n» for the rest; none when it is under no world, and left
+out on a world's own pages, where it would repeat the title), status (جدید,
+نیمه‌کاره, در انتظار تأیید, انجام شده, نیاز به انجام دوباره), title, short
+description, «حدود n دقیقه», and «+n XP» when the admin chose to show it.
 
 - **Intro.** Title, description, time, reward, question count, instructions;
   «پاسخ‌هات ناشناس ثبت می‌شه…» for an anonymous survey; for a reviewed
@@ -2367,7 +2371,7 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | PUT | `/notifications/preferences` | `{ categories: [{ category, inApp, push }] }` | `NotificationPreferences` |
 | POST | `/notifications/push/subscriptions` | the browser's `PushSubscription` JSON | `{ subscribed: true }` (201); 503 `PUSH_UNAVAILABLE` |
 | POST | `/notifications/push/unsubscribe` | `{ endpoint }` | `{ subscribed: false }` |
-| GET | `/me/activities` | — | `ActivityCard[]` |
+| GET | `/me/activities` | — | `ActivityCard[]` — each with the worlds it is filed under (`worlds: { id, name }[]`) |
 | GET | `/me/activities/:id` | — | `PlayerActivity` (no answer key); 404 outside the audience |
 | PUT | `/me/activities/:id/draft` | `{ answers }` | `{ saved: true }`; 409 `ACTIVITY_CLOSED` |
 | POST | `/me/activities/:id/start` | — | `{ started: true }` — records when the person started (first time only); 409 `ACTIVITY_CLOSED` |

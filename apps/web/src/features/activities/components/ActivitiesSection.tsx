@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import type { ActivityCard as ActivityCardData } from '@hamdastan/types';
+import { Carousel, CarouselContent, CarouselItem } from '@hamdastan/ui';
 
 import { sortForDisplay } from '../utils/activity';
 import { ActivityCard } from './ActivityCard';
@@ -10,11 +11,15 @@ const HOME_LIMIT = 3;
 
 /**
  * Home's «فعالیت‌ها»: the open ones first, then the ones waiting for
- * review. Nothing at all when there is nothing to do.
+ * review, side by side in a carousel like home's events — the next card
+ * peeks in, a lone one takes the full width. Nothing at all when there is
+ * nothing to do.
  */
 export function ActivitiesSection({ cards }: { cards: ActivityCardData[] }) {
-  const relevant = sortForDisplay(cards).filter((card) => card.canSubmit || card.status === 'pending_review');
-  if (relevant.length === 0) return null;
+  const shown = sortForDisplay(cards)
+    .filter((card) => card.canSubmit || card.status === 'pending_review')
+    .slice(0, HOME_LIMIT);
+  if (shown.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="activities-heading">
@@ -26,13 +31,15 @@ export function ActivitiesSection({ cards }: { cards: ActivityCardData[] }) {
           همه
         </Link>
       </div>
-      <ul className="flex flex-col gap-3">
-        {relevant.slice(0, HOME_LIMIT).map((card) => (
-          <li key={card.id}>
-            <ActivityCard card={card} />
-          </li>
-        ))}
-      </ul>
+      <Carousel opts={{ align: 'start' }} aria-label="فعالیت‌ها">
+        <CarouselContent>
+          {shown.map((card) => (
+            <CarouselItem key={card.id} className={shown.length > 1 ? 'basis-[85%]' : undefined}>
+              <ActivityCard card={card} className="h-full" />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </section>
   );
 }

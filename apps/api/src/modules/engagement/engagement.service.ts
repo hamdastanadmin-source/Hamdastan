@@ -204,6 +204,7 @@ function toCard(entry: UserActivityRecord, now: Date): ActivityCard {
     status: participationStatus(entry),
     endsAt: iso(activity.endsAt),
     canSubmit: canSubmit(entry, now),
+    worlds: activity.worlds,
   };
 }
 
