@@ -27,7 +27,6 @@ import {
 
 import {
   Screen,
-  ScreenBack,
   ScreenBody,
   ScreenFooter,
   ScreenHeader,
@@ -71,9 +70,7 @@ export function PhoneForm() {
 
   return (
     <Screen>
-      <ScreenHeader>
-        <ScreenBack href="/welcome" />
-      </ScreenHeader>
+      <ScreenHeader />
 
       <ScreenBody center>
         <Form {...form}>

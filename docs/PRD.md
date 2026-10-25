@@ -142,6 +142,8 @@ password and no separate registration.
   answers `503 SMS_UNAVAILABLE` before anything is stored. No code is ever
   returned or logged in production. Connecting Kaveh-Negar is
   `SMS_PROVIDER=kavenegar`; no code changes with it.
+- The phone screen has no back control: it is the start of sign-in, and the
+  device's own back is enough to leave it.
 - The basic-info screen has no back and no sign-out control: the account
   already exists, and the routing table returns an unfinished one to this
   screen, so there is nothing to leave to before the profile is complete.
