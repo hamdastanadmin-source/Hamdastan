@@ -140,6 +140,7 @@ user object, because then the browser would be deciding.
 features/
 ├── auth/  onboarding/  home/  worlds/  content/  play/  community/
 └── profile/  activities/  events/  commerce/  notifications/  search/  places/
+    pwa-install/
 ```
 
 `activities` is Engagement Studio's product side: the cards on home and
@@ -170,6 +171,11 @@ surfaces. `content` is the article card and page (`/articles/:slug`). Which
 world is published and which item may appear is the API's answer; neither
 feature filters. A library file is drawn by `MediaImage` (`src/components`),
 which falls back to a quiet tile rather than a broken image.
+
+`pwa-install` is the offer to put the app on the home screen: the
+script the root layout puts in `<head>`, which keeps the browser's install event,
+and `InstallAppSheet`, which a screen renders where the offer belongs. It
+reads the device only — no network.
 
 `places` is a world's map and the places on it. `PlaceMap` draws a place's
 image with the places inside it pinned on it — each pin a link, placed by

@@ -855,8 +855,12 @@ dimension a choice touches, the picked options' points are put on 0–1
 relative to that question's lowest and highest for it. Every dimension's
 items are averaged (0–100). The dimension on top is the outcome (ties to the
 first listed); the person sees its image (if any), title and description and
-every dimension's share, if «نمایش نتیجه» is on. Text and matching questions
-measure no dimension. A version saved when a choice question measured one
+every dimension's share, if «نمایش نتیجه» is on. With the result shown, the
+done screen's footer holds two equal buttons side by side: «اشتراک‌گذاری»,
+the primary — the system's share sheet (or the link copied) with «توی
+«‹activity›» شدم «‹outcome›»! تو کدومی؟» and the activity's link — and
+«بازگشت به خانه» in outline; a moment later it offers to install the app (§9.3). Text and matching
+questions measure no dimension. A version saved when a choice question measured one
 dimension (a `dimensionId` on the question, a `score` per option, `reverse`)
 is read in the per-option shape (`withDimensionScores`: reverse-keyed points
 are negated), with the same result; the builder opens and saves it so.
@@ -2678,6 +2682,17 @@ foreground, not violet.
 `display: standalone`, `theme_color` matching the background, icons at 192 and
 512 plus a maskable 512, `viewport-fit=cover` with `env(safe-area-inset-*)`
 padding.
+
+**Install offer** (`apps/web` `features/pwa-install`). The browser's
+`beforeinstallprompt` is caught app-wide — by `INSTALL_CAPTURE_SCRIPT` in the
+root layout's `<head>`, since the event often fires before React loads — and
+kept until a screen offers it; today that is the personality
+result (§4.7). `InstallAppSheet` rises from the bottom 2.5 s after the screen
+opens: «نصب» opens the browser's own dialog where it has one; on iPhone,
+which has none, it shows Safari's two steps (اشتراک‌گذاری → Add to Home
+Screen) and «فهمیدم». It never appears when the app already runs standalone
+or the device cannot install, and «بعداً» (or closing it, or declining the
+browser's dialog) keeps it away for 14 days on that device (`localStorage`).
 
 The brand mark is the owl in `assets/brand/hamdastan-logo.svg` (green
 `#004431`). `public/images/brand/logo.svg` in each app, `apps/web`'s

@@ -3,7 +3,7 @@
 import { useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CircleCheck, Clock, Hourglass, Lock, Timer } from 'lucide-react';
+import { CircleCheck, Clock, Hourglass, Lock, Share2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ACTIVITY_TYPE_LABELS } from '@hamdastan/config';
@@ -13,11 +13,14 @@ import { Badge, Button, IconBadge, Progress } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle, XpAmount } from '@/components';
 import { RewardChip } from '@/features/profile';
+import { InstallAppSheet } from '@/features/pwa-install';
+import { shareInvite } from '@/lib';
 import { HttpError } from '@/services';
 
 import type { ActivityExit } from '../utils/exit';
 import { useActivityPlayer } from '../hooks/use-activity-player';
 import { minutesLabel, STATUS_LABELS } from '../utils/activity';
+import { inviteUrl } from '../utils/journey';
 import { formatWhen } from '../utils/quiz';
 import { QuestionField } from './QuestionField';
 import { QuestionImage } from './QuestionImage';
@@ -69,6 +72,18 @@ export function ActivityPlayer({
   if (player.phase === 'done' && player.outcome) {
     const { outcome } = player;
     const waiting = outcome.status === 'pending_review';
+    // A personality result is worth showing friends: sharing becomes the primary action.
+    const personality = outcome.result?.mode === 'personality' ? outcome.result.outcome : null;
+    const share = async () => {
+      if (!personality) return;
+      const shared = await shareInvite({
+        title: activity.title,
+        text: `توی «${activity.title}» شدم «${personality.title}»! تو کدومی؟`,
+        url: inviteUrl(activity.id, window.location.origin),
+      });
+      if (shared === 'copied') toast.success('لینک کپی شد');
+      if (shared === 'failed') toast.error('اشتراک‌گذاری انجام نشد؛ دوباره امتحان کن');
+    };
     return (
       <Screen>
         <ScreenHeader />
@@ -117,11 +132,18 @@ export function ActivityPlayer({
           )}
           {outcome.answerReview && <AnswerReviewList activity={activity} review={outcome.answerReview} />}
         </ScreenBody>
-        <ScreenFooter>
-          <Button asChild size="xl" className="w-full">
+        <ScreenFooter className="grid auto-cols-fr grid-flow-col gap-2">
+          {personality && (
+            <Button size="xl" className="min-w-0" onClick={share} aria-label="اشتراک‌گذاری نتیجه">
+              <Share2 aria-hidden="true" />
+              اشتراک‌گذاری
+            </Button>
+          )}
+          <Button asChild size="xl" variant={personality ? 'outline' : 'default'} className="min-w-0">
             <Link href={exit?.href ?? '/'}>{exit?.label ?? 'بازگشت به خانه'}</Link>
           </Button>
         </ScreenFooter>
+        {personality && <InstallAppSheet />}
       </Screen>
     );
   }

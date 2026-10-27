@@ -9,6 +9,7 @@ import { THEME_COLOR, THEME_INIT_SCRIPT } from "@hamdastan/ui/tokens";
 import { MobileShell } from "@/components";
 import { AuthProvider } from "@/features/auth";
 import { getSession } from "@/features/auth/server";
+import { INSTALL_CAPTURE_SCRIPT } from "@/features/pwa-install";
 
 import "@/styles/globals.css";
 
@@ -73,6 +74,7 @@ export default async function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body
         className={`${yekanBakh.className} font-sans antialiased bg-surface-0 text-foreground`}
