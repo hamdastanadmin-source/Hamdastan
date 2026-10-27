@@ -843,13 +843,23 @@ right when the picks are exactly its correct options, a matching question when
 every prompt has its own match (all or nothing — it counts as one question);
 the score is the share right, 0–100; passed when ≥ the pass mark. Text,
 rating and scale questions are asked but leave the score — and a
-competition's leaderboard — alone. *Personality:* each answered item
-is put on 0–1 — a rating or scale by its position on its range, a choice by
-its option's points relative to the question's lowest and highest — turned
-round when the item is reverse-keyed, and averaged per dimension (0–100). The
-dimension on top is the outcome (ties to the first listed); the person sees
-its title and description and every dimension's share, if «نمایش نتیجه» is on.
-Text and matching questions measure no dimension.
+competition's leaderboard — alone. *Personality:* each dimension has a
+title, a description and an optional library image. A rating or scale
+measures one dimension, chosen on the question, by its position on its range,
+turned round when the item is reverse-keyed. A choice question measures as
+many dimensions as its options score: in the question's matrix
+(«امتیاز گزینه‌ها برای ابعاد», options down, dimensions across) each option
+has points toward each dimension (a whole number −10…10, empty for zero), so
+one option can score several dimensions at once, and differently. For each
+dimension a choice touches, the picked options' points are put on 0–1
+relative to that question's lowest and highest for it. Every dimension's
+items are averaged (0–100). The dimension on top is the outcome (ties to the
+first listed); the person sees its image (if any), title and description and
+every dimension's share, if «نمایش نتیجه» is on. Text and matching questions
+measure no dimension. A version saved when a choice question measured one
+dimension (a `dimensionId` on the question, a `score` per option, `reverse`)
+is read in the per-option shape (`withDimensionScores`: reverse-keyed points
+are negated), with the same result; the builder opens and saves it so.
 *Profile (پروفایل‌سنجی وزن‌دار):* the admin defines 2–20 result profiles
 (title, description, titles distinct). Each choice question has a weight
 («ضریب سؤال», a whole number 0–10, 1 by default; 0 makes it count for
@@ -916,7 +926,8 @@ duplicate (a new draft, «(کپی)», no dates), and the status moves.
   (separated by `|`; matching: `مورد = جفت | …`)، حداکثر انتخاب، پاسخ درست (knowledge: an option's text
   or number)، امتیاز گزینه‌ها (personality, `|`-separated)، بازه (rating 5 or
   10; scale `1-5`)، برچسب ابتدا/انتها، بُعد (personality: matched by title,
-  or created)، معکوس، مرحله (mission: matched by title, or created). Every
+  or created; a choice row's scores go to that one dimension — further
+  dimensions are added in the builder's matrix)، معکوس، مرحله (mission: matched by title, or created). Every
   row is checked with the same rules as the builder and listed — its
   question, or its errors by row number; only valid rows are added, after
   the questions already there (a new activity's untouched starter question
@@ -2539,7 +2550,7 @@ against the same objects, including the Persian messages.
 | Bio | Optional, at most 160 characters; empty clears it | «حداکثر ۱۶۰ کاراکتر» |
 | Avatar | Every slot an id from that slot's catalog | «یکی از گزینه‌ها رو انتخاب کن» |
 | Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
-| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options (each with text, or — image options — each with a library image); scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension and every non-text, non-matching question tied to one; profile: 2–20 profiles with distinct titles, question weight 0–10, option weights −100…100 toward existing profiles only, ≥ 1 choice question, priority questions distinct and among the choice questions, a default profile; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
+| Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options (each with text, or — image options — each with a library image); scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension, every rating and scale tied to one, every choice question with points (−10…10) toward at least one existing dimension (points toward a removed dimension are dropped on save), dimension images from the library; profile: 2–20 profiles with distinct titles, question weight 0–10, option weights −100…100 toward existing profiles only, ≥ 1 choice question, priority questions distinct and among the choice questions, a default profile; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
 | Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
 | Media file | an image ≤ 512 KB, a motion ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم تصویر باید حداکثر ۵۱۲ کیلوبایت باشد» (موشن ۲۵۰) / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
 | Onboarding import row | Interests: «علاقه‌مندی» header; both cells, ≤ 80 characters, not already in that category nor repeated in the file. Questions: «متن سؤال» header; a section 1–4 or its name, a known kind, an integer cap, then `questionInputSchema` (`packages/validation/onboarding-import.ts`) | «این علاقه‌مندی از قبل در همین دسته هست» / «بخش «…» شناخته نشد» / «دست‌کم دو گزینه لازم است» |

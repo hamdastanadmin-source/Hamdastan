@@ -98,7 +98,7 @@ export function ActivityPlayer({
               </p>
             )}
           </div>
-          {outcome.result && <ResultCard result={outcome.result} />}
+          {outcome.result && <ResultCard result={outcome.result} media={activity.media} />}
           {outcome.rank && (
             <p className="text-center text-sm" role="status">
               فعلاً رتبه‌ی <span className="font-bold tabular-nums">{toPersianDigits(outcome.rank.rank)}</span> رو داری.{' '}
@@ -232,7 +232,7 @@ export function ActivityPlayer({
         {activity.review === 'manual' && (
           <p className="text-sm text-muted-foreground">بعد از ثبت، کارت رو بررسی می‌کنیم و XP بعد از تأیید به حسابت میاد.</p>
         )}
-        {activity.lastResult && <ResultCard result={activity.lastResult} />}
+        {activity.lastResult && <ResultCard result={activity.lastResult} media={activity.media} />}
         {leaderboard && <LeaderboardCard board={leaderboard} />}
         {activity.answerReview && <AnswerReviewList activity={activity} review={activity.answerReview} />}
       </ScreenBody>

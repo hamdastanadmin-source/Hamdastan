@@ -1,18 +1,21 @@
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { AssessmentResult } from '@hamdastan/types';
+import type { AssessmentResult, PlayerMedia } from '@hamdastan/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Progress } from '@hamdastan/ui';
+
+import { QuestionImage } from './QuestionImage';
 
 /** A neutral bar: figures are not the primary action. */
 const BAR = 'bg-muted [&>[data-slot=progress-indicator]]:bg-foreground/70';
 
 /**
  * An assessment's result as the person sees it, when the admin allowed it:
- * a knowledge score with its pass mark, the personality outcome with
- * every dimension's share, or the profile the person came out as. A
+ * a knowledge score with its pass mark, the personality outcome — with its
+ * dimension's image, if it has one — and every dimension's share, or the
+ * profile the person came out as. A
  * profile's weighted totals stay with the admin: they can be negative and
  * mean nothing on their own.
  */
-export function ResultCard({ result }: { result: AssessmentResult }) {
+export function ResultCard({ result, media }: { result: AssessmentResult; media: Record<string, PlayerMedia> }) {
   if (result.mode === 'profile') {
     return (
       <Card className="gap-3">
@@ -46,9 +49,11 @@ export function ResultCard({ result }: { result: AssessmentResult }) {
     );
   }
 
+  const image = result.outcome?.imageId ? media[result.outcome.imageId] : undefined;
   return (
     <Card className="gap-3">
       <CardHeader>
+        {image && <QuestionImage media={image} />}
         <CardDescription>نتیجه‌ی تو</CardDescription>
         <CardTitle className="text-xl">{result.outcome?.title ?? '—'}</CardTitle>
         {result.outcome?.description && (

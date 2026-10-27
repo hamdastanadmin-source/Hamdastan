@@ -30,7 +30,16 @@ export type ChoiceOption = {
   imageId?: string;
   /** Knowledge assessment: an answer key. Never sent to the product. */
   correct?: boolean;
-  /** Personality assessment: points toward the question's dimension. Never sent to the product. */
+  /**
+   * Personality assessment: this option's points toward each dimension, by
+   * dimension id — positive, negative, or absent for zero. One option may
+   * score several dimensions. Never sent to the product.
+   */
+  dimensionScores?: Record<string, number>;
+  /**
+   * Legacy personality scoring: points toward the question's `dimensionId`.
+   * Only in versions stored before `dimensionScores`; `withDimensionScores` reads it.
+   */
   score?: number;
   /** Journey: points this option gives each trait, by trait id. Never sent to the product. */
   traits?: Record<string, number>;
@@ -51,9 +60,13 @@ type QuestionBase = {
   title: string;
   description?: string;
   required: boolean;
-  /** Personality assessment: the dimension this question measures. */
+  /**
+   * Personality assessment: the dimension a rating or scale measures. A
+   * choice question scores dimensions through its options' `dimensionScores`
+   * (it carries one only in a version stored before them).
+   */
   dimensionId?: string;
-  /** Personality assessment: a reverse-keyed item — its value counts from the other end. */
+  /** Personality assessment: a reverse-keyed rating or scale — its value counts from the other end. */
   reverse?: boolean;
   /** Profile assessment: what this question's option weights are multiplied by. Absent means 1. Never sent to the product. */
   weight?: number;
@@ -145,7 +158,13 @@ export type ActivityStep = {
 
 export type AssessmentMode = 'personality' | 'knowledge' | 'profile';
 
-export type AssessmentDimension = { id: string; title: string; description: string };
+export type AssessmentDimension = {
+  id: string;
+  title: string;
+  description: string;
+  /** An image from the media library, shown with the result when this dimension comes out on top. */
+  imageId?: string;
+};
 
 /** Profile assessment: a result a person can come out as. */
 export type AssessmentProfile = { id: string; title: string; description: string };
@@ -540,8 +559,8 @@ export type AssessmentResult = {
   passed: boolean | null;
   /** Personality: each dimension, 0–100. */
   dimensions: { id: string; title: string; value: number }[];
-  /** Personality: the dimension on top. Profile: the profile that won. */
-  outcome: { title: string; description: string } | null;
+  /** Personality: the dimension on top, with its image if it has one. Profile: the profile that won. */
+  outcome: { title: string; description: string; imageId?: string } | null;
   /** Profile: every profile's weighted total, in the admin's order. */
   profiles?: { id: string; title: string; score: number }[];
   /** Profile: what settled a tie on the top score, or null when there was none. */

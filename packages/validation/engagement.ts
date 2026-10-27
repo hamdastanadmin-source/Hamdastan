@@ -28,6 +28,7 @@ import type {
   ActivityAnswers,
   ActivityAnswerValue,
   ActivityDefinition,
+  ActivityQuestion,
   ActivityStep,
   ActivityType,
   PlayerQuestion,
@@ -53,7 +54,17 @@ const optionSchema = z.object({
   label: line(L.OPTION_LABEL_MAX, null),
   imageId: mediaIdSchema.optional(),
   correct: z.boolean().optional(),
-  score: z.number().int().min(-10).max(10).optional(),
+  score: z.number().int().min(-L.DIMENSION_SCORE_MAX).max(L.DIMENSION_SCORE_MAX).optional(),
+  dimensionScores: z
+    .record(
+      keySchema,
+      z
+        .number({ error: 'امتیاز باید عدد باشد' })
+        .int({ error: 'امتیاز باید عدد صحیح باشد' })
+        .min(-L.DIMENSION_SCORE_MAX, { error: `امتیاز بین ${fa(-L.DIMENSION_SCORE_MAX)} و ${fa(L.DIMENSION_SCORE_MAX)} است` })
+        .max(L.DIMENSION_SCORE_MAX, { error: `امتیاز بین ${fa(-L.DIMENSION_SCORE_MAX)} و ${fa(L.DIMENSION_SCORE_MAX)} است` })
+    )
+    .optional(),
   traits: z.record(keySchema, z.number().int().min(-J.TRAIT_POINTS_MAX).max(J.TRAIT_POINTS_MAX)).optional(),
   weights: z
     .record(
@@ -174,6 +185,7 @@ const assessmentSchema = z.object({
         id: keySchema,
         title: line(L.TITLE_MAX, 'عنوان بُعد را وارد کنید'),
         description: paragraph(L.DESCRIPTION_MAX).default(''),
+        imageId: mediaIdSchema.optional(),
       })
     )
     .max(L.DIMENSIONS_MAX),
@@ -283,6 +295,32 @@ const definitionSchema = z.object({
 });
 
 /**
+ * Personality: a choice question once measured a single dimension
+ * (`dimensionId`), each option scoring toward it (`score`), turned round
+ * when reverse-keyed. Now each option scores any dimensions on its own
+ * (`dimensionScores`). A question in the old shape comes out in the new
+ * one with the same result; anything else is returned as it is. Stored
+ * versions are read through this, so nothing after it knows the old shape.
+ */
+export function withDimensionScores(question: ActivityQuestion): ActivityQuestion {
+  if ((question.kind !== 'single' && question.kind !== 'multiple') || !question.dimensionId) return question;
+  const { dimensionId, reverse, ...rest } = question;
+  return {
+    ...rest,
+    options: question.options.map(({ score, ...option }) => {
+      const points = (reverse ? -1 : 1) * (score ?? 0);
+      return points ? { ...option, dimensionScores: { ...option.dimensionScores, [dimensionId]: points } } : option;
+    }),
+  };
+}
+
+/** `withDimensionScores` over every question of a definition. */
+export const definitionWithDimensionScores = (definition: ActivityDefinition): ActivityDefinition => ({
+  ...definition,
+  steps: definition.steps.map((step) => ({ ...step, questions: step.questions.map(withDimensionScores) })),
+});
+
+/**
  * Clears what does not belong to the type, so a builder that switched type
  * half-way cannot leave a survey with a reviewer or a mission anonymous.
  */
@@ -294,6 +332,7 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     : type === 'assessment' ? definition.assessment : null;
   const knowledgePassMark = isQuizType(type) && assessment?.mode === 'knowledge' && assessment.passingScore !== null;
   const profile = assessment?.mode === 'profile';
+  const dimensionIds = assessment?.mode === 'personality' ? new Set(assessment.dimensions.map((d) => d.id)) : new Set<string>();
 
   const journey = type === 'journey';
   // A journey is taken once, answer by answer; a competition once, against the clock.
@@ -305,6 +344,7 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     steps: (type === 'mission' || journey ? definition.steps : definition.steps.slice(0, 1))
       .map(withOptionStyle)
       .map((step) => (profile ? step : withoutProfileWeights(step)))
+      .map((step) => withDimensionsOf(step, dimensionIds))
       .map((step) =>
       journey
         ? step
@@ -365,6 +405,27 @@ function withoutProfileWeights(step: ActivityStep): ActivityStep {
       'options' in question
         ? { ...question, weight: undefined, options: question.options.map((option) => ({ ...option, weights: undefined })) }
         : { ...question, weight: undefined }
+    ),
+  };
+}
+
+/**
+ * Options keep points only toward dimensions that exist: none outside a
+ * personality assessment, and none toward a dimension since removed.
+ */
+function withDimensionsOf(step: ActivityStep, dimensionIds: Set<string>): ActivityStep {
+  return {
+    ...step,
+    questions: step.questions.map((question) =>
+      'options' in question
+        ? {
+            ...question,
+            options: question.options.map((option) => {
+              const kept = Object.entries(option.dimensionScores ?? {}).filter(([id]) => dimensionIds.has(id));
+              return { ...option, dimensionScores: kept.length ? Object.fromEntries(kept) : undefined };
+            }),
+          }
+        : question
     ),
   };
 }
@@ -441,6 +502,13 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
     definition.steps.forEach((step, s) =>
       step.questions.forEach((question, q) => {
         if (UNDIMENSIONED_KINDS.includes(question.kind)) return;
+        if (question.kind === 'single' || question.kind === 'multiple') {
+          const scored = question.options.some((option) =>
+            Object.entries(option.dimensionScores ?? {}).some(([id, points]) => points !== 0 && dimensionIds.has(id))
+          );
+          if (!scored) issue(['steps', s, 'questions', q, 'dimensionScores'], 'امتیاز گزینه‌ها را دست‌کم برای یک بُعد وارد کنید');
+          return;
+        }
         if (!question.dimensionId || !dimensionIds.has(question.dimensionId)) {
           issue(['steps', s, 'questions', q, 'dimensionId'], 'بُعدی را که این سؤال می‌سنجد انتخاب کنید');
         }
@@ -607,7 +675,8 @@ export const activityInputSchema = z
     title: line(L.TITLE_MAX, 'عنوان را وارد کنید'),
     summary: line(L.SUMMARY_MAX, null),
     instructions: paragraph(L.DESCRIPTION_MAX),
-    definition: definitionSchema,
+    // A choice question stored in the old single-dimension shape is checked and saved in the new one.
+    definition: definitionSchema.transform(definitionWithDimensionScores),
     audience: activityAudienceSchema,
     startsAt: dateTimeSchema,
     endsAt: dateTimeSchema,

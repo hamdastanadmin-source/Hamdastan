@@ -1,6 +1,7 @@
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityDefinition, ActivityQuestion, ActivityType } from '@hamdastan/types';
 import type { ImportedQuestionRow } from '@hamdastan/validation';
+import { withDimensionScores } from '@hamdastan/validation';
 
 import { isBlankQuestion, limitsFor, newKey } from './draft';
 
@@ -39,7 +40,8 @@ export function mergeImported(
         dimension = { id: newKey(), title: dimensionTitle, description: '' };
         dimensions.push(dimension);
       }
-      placed = { ...question, dimensionId: dimension.id };
+      // The sheet's single dimension and option scores, in the per-option shape the editor holds.
+      placed = withDimensionScores({ ...question, dimensionId: dimension.id });
     }
 
     let step =

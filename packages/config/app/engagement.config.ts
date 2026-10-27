@@ -70,6 +70,8 @@ export const ENGAGEMENT_LIMITS = {
   /** A text answer, and a reviewer's note. */
   TEXT_ANSWER_MAX: 2000,
   DIMENSIONS_MAX: 10,
+  /** Personality assessment: one option's points toward one dimension, either way. */
+  DIMENSION_SCORE_MAX: 10,
   /** Profile assessment: its result profiles, a question's multiplier, and one option's weight toward one profile, either way. */
   PROFILES_MAX: 20,
   QUESTION_WEIGHT_MAX: 10,

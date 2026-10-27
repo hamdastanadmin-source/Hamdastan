@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SCORED_KINDS } from '@hamdastan/config';
 import type { ActivityDefinition } from '@hamdastan/types';
-import { activityInputSchema, validateAnswers } from '@hamdastan/validation';
+import { activityInputSchema, validateAnswers, withDimensionScores } from '@hamdastan/validation';
 
 import { earnsXp, scoreAssessment } from '../modules/engagement';
 
@@ -83,6 +83,73 @@ describe('scoreAssessment', () => {
     const result = scoreAssessment(personality, { a: 1, b: 5, c: 'hi' })!;
     expect(result.dimensions.find((d) => d.id === 'y')?.value).toBe(100);
     expect(result.outcome?.title).toBe('Y');
+  });
+
+  it('lets one option score several dimensions, each placed on that dimension’s own range', () => {
+    const multi: ActivityDefinition = {
+      ...personality,
+      steps: [
+        {
+          id: 's',
+          title: '',
+          description: '',
+          questions: [
+            {
+              id: 'm',
+              kind: 'single',
+              title: 'm',
+              required: true,
+              options: [
+                { id: 'one', label: 'one', dimensionScores: { x: 4, y: -2 } },
+                { id: 'two', label: 'two', dimensionScores: { y: 2 } },
+              ],
+            },
+          ],
+        },
+      ],
+      assessment: {
+        ...personality.assessment!,
+        dimensions: [
+          { id: 'x', title: 'X', description: 'dx' },
+          { id: 'y', title: 'Y', description: 'dy', imageId: 'img-y' },
+        ],
+      },
+    };
+    expect(scoreAssessment(multi, { m: 'one' })!.dimensions).toEqual([
+      { id: 'x', title: 'X', value: 100 },
+      { id: 'y', title: 'Y', value: 0 },
+    ]);
+    const two = scoreAssessment(multi, { m: 'two' })!;
+    expect(two.dimensions).toEqual([
+      { id: 'x', title: 'X', value: 0 },
+      { id: 'y', title: 'Y', value: 100 },
+    ]);
+    expect(two.outcome).toEqual({ title: 'Y', description: 'dy', imageId: 'img-y' });
+  });
+
+  it('reads a choice stored with one dimension, reverse-keyed, as the same per-option points', () => {
+    const legacy = withDimensionScores({
+      id: 'c',
+      kind: 'single',
+      title: 'c',
+      required: true,
+      dimensionId: 'y',
+      reverse: true,
+      options: [
+        { id: 'lo', label: 'lo', score: 0 },
+        { id: 'hi', label: 'hi', score: 4 },
+      ],
+    });
+    expect(legacy).toEqual({
+      id: 'c',
+      kind: 'single',
+      title: 'c',
+      required: true,
+      options: [
+        { id: 'lo', label: 'lo' },
+        { id: 'hi', label: 'hi', dimensionScores: { y: -4 } },
+      ],
+    });
   });
 
   it('marks a multiple-choice knowledge question right only for exactly its correct options', () => {
@@ -261,7 +328,14 @@ describe('profile assessment', () => {
       ...input({ ...settings(), mode: 'personality', dimensions: [{ id: 'd', title: 'D', description: '' }] }),
       definition: {
         ...profile(),
-        steps: [{ ...profile().steps[0], questions: profile().steps[0].questions.map((q) => ({ ...q, dimensionId: 'd' })) }],
+        steps: [
+          {
+            ...profile().steps[0],
+            questions: profile().steps[0].questions.map((q) =>
+              'options' in q ? { ...q, options: q.options.map((o, i) => ({ ...o, dimensionScores: { d: i + 1 } })) } : q
+            ),
+          },
+        ],
         assessment: { ...settings(), mode: 'personality', dimensions: [{ id: 'd', title: 'D', description: '' }] },
       },
     });

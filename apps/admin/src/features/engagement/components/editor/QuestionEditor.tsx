@@ -9,7 +9,6 @@ import {
   QUESTION_KIND_LABELS,
   QUESTION_KINDS,
   SCORED_KINDS,
-  UNDIMENSIONED_KINDS,
   UNSCORED_LABEL,
 } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
@@ -40,7 +39,7 @@ import { MediaField, MotionSettingField } from '@/features/media';
 import { emptyPair, emptyQuestion, newKey } from '../../utils/draft';
 import { QUESTION_KIND_UI } from '../../utils/question-kinds';
 import { Field, invalid, motionErrors, NEUTRAL_CHECKBOX, SwitchRow } from './Field';
-import { OptionProfileWeights } from './OptionProfileWeights';
+import { OptionScoreMatrix } from './OptionScoreMatrix';
 import { OptionTraitPoints } from './OptionTraitPoints';
 
 /** The chosen position is told by a foreground border — never the brand colour. */
@@ -73,8 +72,9 @@ type QuestionEditorProps = {
  * two columns of tiles to pair.
  *
  * In a knowledge assessment each option can be marked correct; in a
- * personality assessment each question is tied to a dimension, can be
- * reverse-keyed, and each option carries points.
+ * personality assessment each option carries points toward any of the
+ * dimensions, and a rating or scale is tied to one dimension and can be
+ * reverse-keyed.
  */
 export function QuestionEditor({
   question,
@@ -301,23 +301,6 @@ export function QuestionEditor({
                       }
                       {...invalid(error(`options.${index}.label`))}
                     />
-                    {personality && (
-                      <Input
-                        type="number"
-                        min={-10}
-                        max={10}
-                        className="w-20 tabular-nums"
-                        value={option.score ?? 0}
-                        aria-label={`امتیاز گزینه‌ی ${toPersianDigits(index + 1)}`}
-                        onChange={(event) =>
-                          setOptions(
-                            question.options.map((o) =>
-                              o.id === option.id ? { ...o, score: Math.trunc(Number(event.target.value) || 0) } : o
-                            )
-                          )
-                        }
-                      />
-                    )}
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -377,9 +360,6 @@ export function QuestionEditor({
               {knowledge && (
                 <p className="text-xs text-muted-foreground">گزینه‌ی درست را با تیک مشخص کنید.</p>
               )}
-              {personality && (
-                <p className="text-xs text-muted-foreground">عدد کنار هر گزینه، امتیاز آن گزینه برای بُعد این سؤال است.</p>
-              )}
             </div>
             {profile && (
               <div className="flex flex-col gap-3 rounded-lg border p-3">
@@ -412,11 +392,32 @@ export function QuestionEditor({
                   </Field>
                 </div>
                 <p className="text-sm font-medium">ماتریس امتیازدهی</p>
-                <OptionProfileWeights
+                <OptionScoreMatrix
                   options={question.options}
-                  profiles={assessment.profiles ?? []}
-                  errors={errors}
-                  path={path}
+                  field="weights"
+                  columns={assessment.profiles ?? []}
+                  columnName="پروفایل"
+                  max={ENGAGEMENT_LIMITS.PROFILE_WEIGHT_MAX}
+                  hint="با انتخاب هر گزینه، وزن آن ضرب در ضریب سؤال به امتیاز هر پروفایل افزوده می‌شود."
+                  error={question.options.map((_, o) => error(`options.${o}.weights`)).find(Boolean)}
+                  onChange={setOptions}
+                />
+              </div>
+            )}
+            {personality && (
+              <div className="flex flex-col gap-3 rounded-lg border p-3">
+                <p className="text-sm font-medium">امتیاز گزینه‌ها برای ابعاد</p>
+                <OptionScoreMatrix
+                  options={question.options}
+                  field="dimensionScores"
+                  columns={assessment.dimensions}
+                  columnName="بُعد"
+                  max={ENGAGEMENT_LIMITS.DIMENSION_SCORE_MAX}
+                  hint="هر گزینه می‌تواند به چند بُعد امتیاز بدهد. این سؤال هر بُعدی را که دست‌کم یک گزینه برایش امتیاز دارد می‌سنجد."
+                  error={
+                    error('dimensionScores') ??
+                    question.options.map((_, o) => error(`options.${o}.dimensionScores`)).find(Boolean)
+                  }
                   onChange={setOptions}
                 />
               </div>
@@ -584,7 +585,7 @@ export function QuestionEditor({
           </div>
         )}
 
-        {personality && !UNDIMENSIONED_KINDS.includes(question.kind) && (
+        {personality && (question.kind === 'rating' || question.kind === 'scale') && (
           <div className="flex flex-wrap items-end gap-4">
             <Field label="بُعد مورد سنجش" htmlFor={`${id}-dimension`} error={error('dimensionId')}>
               <Select

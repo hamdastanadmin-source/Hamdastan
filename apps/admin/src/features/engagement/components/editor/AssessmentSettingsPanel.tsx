@@ -4,8 +4,10 @@ import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 
 import { ENGAGEMENT_LIMITS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityQuestion, AssessmentProfile, AssessmentSettings, ProfileTieBreak } from '@hamdastan/types';
+import type { ActivityQuestion, AssessmentDimension, AssessmentProfile, AssessmentSettings, ProfileTieBreak } from '@hamdastan/types';
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from '@hamdastan/ui';
+
+import { MediaField } from '@/features/media';
 
 import { newKey } from '../../utils/draft';
 import { Field, invalid, SwitchRow } from './Field';
@@ -27,6 +29,8 @@ export function AssessmentSettingsPanel({
   onChange: (settings: AssessmentSettings) => void;
 }) {
   const dimensionsError = errors['definition.assessment.dimensions'];
+  const setDimension = (id: string, patch: Partial<AssessmentDimension>) =>
+    onChange({ ...settings, dimensions: settings.dimensions.map((d) => (d.id === id ? { ...d, ...patch } : d)) });
 
   return (
     <div className="flex flex-col gap-5">
@@ -35,7 +39,7 @@ export function AssessmentSettingsPanel({
         <p className="text-sm leading-relaxed text-muted-foreground">
           {competition
             ? 'هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. رتبه با نمره و سپس با زمان از «شروع» تا ثبت تعیین می‌شود.'
-            : 'دانشی: هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. شخصیت‌شناسی: هر سؤال یک بُعد را می‌سنجد و بُعدی که بیشترین امتیاز را بگیرد، نتیجه است. پروفایل‌سنجی: هر گزینه برای هر پروفایل وزنی دارد و پروفایلی که بیشترین امتیاز وزن‌دار را بگیرد، نتیجه است.'}
+            : 'دانشی: هر سؤال گزینه‌ای یک پاسخ درست دارد و نمره، درصد پاسخ‌های درست است. شخصیت‌شناسی: هر گزینه می‌تواند به یک یا چند بُعد امتیاز بدهد و بُعدی که بیشترین امتیاز را بگیرد، نتیجه است. پروفایل‌سنجی: هر گزینه برای هر پروفایل وزنی دارد و پروفایلی که بیشترین امتیاز وزن‌دار را بگیرد، نتیجه است.'}
         </p>
       </div>
       <div className="flex flex-col gap-4">
@@ -99,7 +103,11 @@ export function AssessmentSettingsPanel({
             onChange={(profiles, tieBreak) => onChange({ ...settings, profiles, tieBreak })}
           />
         ) : (
-          <Field label="ابعاد ارزیابی" error={dimensionsError}>
+          <Field
+            label="ابعاد ارزیابی"
+            error={dimensionsError}
+            hint="تصویر هر بُعد (اختیاری) همراه نتیجه به کاربری نمایش داده می‌شود که در آن بُعد قرار می‌گیرد. امتیاز هر گزینه برای هر بُعد در ویرایش همان سؤال تعیین می‌شود."
+          >
             <ul className="flex flex-col gap-3">
               {settings.dimensions.map((dimension, index) => (
                 <li key={dimension.id} className="flex flex-col gap-2 rounded-lg border p-3">
@@ -108,12 +116,7 @@ export function AssessmentSettingsPanel({
                       value={dimension.title}
                       placeholder={`عنوان بُعد ${toPersianDigits(index + 1)} — مثلاً «اجتماعی»`}
                       aria-label={`عنوان بُعد ${toPersianDigits(index + 1)}`}
-                      onChange={(event) =>
-                        onChange({
-                          ...settings,
-                          dimensions: settings.dimensions.map((d) => (d.id === dimension.id ? { ...d, title: event.target.value } : d)),
-                        })
-                      }
+                      onChange={(event) => setDimension(dimension.id, { title: event.target.value })}
                       {...invalid(errors[`definition.assessment.dimensions.${index}.title`])}
                     />
                     <Button
@@ -130,14 +133,15 @@ export function AssessmentSettingsPanel({
                     value={dimension.description}
                     placeholder="متنی که کاربر در صورت قرار گرفتن در این بُعد می‌بیند"
                     aria-label={`توضیح بُعد ${toPersianDigits(index + 1)}`}
-                    onChange={(event) =>
-                      onChange({
-                        ...settings,
-                        dimensions: settings.dimensions.map((d) =>
-                          d.id === dimension.id ? { ...d, description: event.target.value } : d
-                        ),
-                      })
-                    }
+                    onChange={(event) => setDimension(dimension.id, { description: event.target.value })}
+                  />
+                  <MediaField
+                    value={dimension.imageId}
+                    onChange={(imageId) => setDimension(dimension.id, { imageId: imageId ?? undefined })}
+                    kind="image"
+                    category="result"
+                    pickerTitle={`تصویر ${dimension.title || `بُعد ${toPersianDigits(index + 1)}`}`}
+                    invalid={Boolean(errors[`definition.assessment.dimensions.${index}.imageId`])}
                   />
                 </li>
               ))}

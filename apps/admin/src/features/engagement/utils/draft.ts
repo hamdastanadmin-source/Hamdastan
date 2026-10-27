@@ -10,7 +10,7 @@ import type {
   DailyCover,
   MatchingPair,
 } from '@hamdastan/types';
-import { journeyDayEndDefaults, journeyResultDefaults, motionOff } from '@hamdastan/validation';
+import { definitionWithDimensionScores, journeyDayEndDefaults, journeyResultDefaults, motionOff } from '@hamdastan/validation';
 
 /**
  * The builder's working copy and the blank pieces it starts from.
@@ -195,7 +195,8 @@ export function fromDetail(detail: AdminActivityDetail): EditorState {
     title: detail.title,
     summary: detail.summary,
     instructions: detail.instructions,
-    definition: detail.definition,
+    // A version saved when a choice question measured one dimension opens in today's shape.
+    definition: definitionWithDimensionScores(detail.definition),
     audience: detail.audience,
     worldIds: detail.worlds.map((world) => world.id),
     startsAt: toLocalInput(detail.startsAt),

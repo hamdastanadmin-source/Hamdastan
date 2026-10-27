@@ -9,7 +9,8 @@ import { MediaView } from './journey/MediaView';
 /**
  * A question's image, above its text or between the text and the answers,
  * as the admin chose: whole, within a fixed height, never stretched. If it
- * fails to load it is simply not there — the question still is.
+ * fails to load it is simply not there — the question still is. A
+ * personality result's dimension image is drawn the same way.
  */
 export function QuestionImage({ media }: { media: PlayerMedia }) {
   const [failed, setFailed] = useState(false);

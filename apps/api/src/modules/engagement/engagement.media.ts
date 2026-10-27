@@ -6,7 +6,7 @@ import { motionAssetIds } from '@hamdastan/validation';
  * must be. Pure: the service checks the list against the library on save,
  * and describes it to the player on read.
  *
- * A question's image, an option's and a cover's background must be images; a motion —
+ * A question's image, an option's, a dimension's and a cover's background must be images; a motion —
  * a mascot, an answer's, a day's end — may be an image or a motion.
  */
 
@@ -54,6 +54,14 @@ export function mediaRefs(
   motionAssetIds(definition.journey?.dayEnd?.mascot).forEach((id) =>
     refs.push({ path: 'definition.journey.dayEnd.mascot', id, needs: null })
   );
+  // A personality result shows its dimension's image; the player has them all up front, as it does a question's.
+  if (definition.assessment?.mode === 'personality') {
+    definition.assessment.dimensions.forEach((dimension, d) => {
+      if (dimension.imageId) {
+        refs.push({ path: `definition.assessment.dimensions.${d}.imageId`, id: dimension.imageId, needs: 'image' });
+      }
+    });
+  }
   const result = definition.journey?.result;
   if (withResults && result) {
     result.characters.forEach((character, c) => {

@@ -8,6 +8,7 @@ import type {
   ChoiceQuestion,
   MatchingQuestion,
 } from '@hamdastan/types';
+import { definitionWithDimensionScores } from '@hamdastan/validation';
 
 /**
  * The assessment engine and the XP rule: pure functions of a definition and
@@ -18,11 +19,14 @@ import type {
  * correct options, a matching question when every prompt has its own match;
  * the score is the share right, 0–100. A matching question scores as one.
  *
- * Personality: every answered item is put on 0–1 (a rating or scale by its
- * position on the range, a choice by its option's points relative to the
- * question's lowest and highest), turned round when the item is
- * reverse-keyed, and averaged per dimension; the dimension on top is the
- * outcome. Ties go to the dimension listed first.
+ * Personality: every answered item is put on 0–1 for each dimension it
+ * measures and averaged per dimension; the dimension on top is the outcome.
+ * Ties go to the dimension listed first. A rating or scale measures its one
+ * dimension, by its position on the range, turned round when reverse-keyed.
+ * A choice measures every dimension one of its options has points toward,
+ * by the picked options' points relative to the question's lowest and
+ * highest for that dimension. A version stored when a choice measured one
+ * dimension is read in the new shape first (`definitionWithDimensionScores`).
  *
  * Profile: every chosen option adds its weight toward each profile,
  * multiplied by its question's weight; the profile with the highest total
@@ -57,24 +61,29 @@ function isCorrect(question: ChoiceQuestion | MatchingQuestion, value: ActivityA
     : correct.every((id) => picked.includes(id));
 }
 
-/** One answered item on 0–1, before reverse-keying; null when it does not score. */
-function itemValue(question: ActivityQuestion, value: ActivityAnswers[string] | undefined): number | null {
+/** One answered item on 0–1 for one dimension; null when it does not measure it or was not answered. */
+function itemValue(question: ActivityQuestion, value: ActivityAnswers[string] | undefined, dimensionId: string): number | null {
   if (value === undefined) return null;
   switch (question.kind) {
     case 'rating':
-      return typeof value === 'number' ? (value - 1) / (question.max - 1) : null;
-    case 'scale':
-      return typeof value === 'number' ? (value - question.min) / (question.max - question.min) : null;
+    case 'scale': {
+      if (question.dimensionId !== dimensionId || typeof value !== 'number') return null;
+      const min = question.kind === 'rating' ? 1 : question.min;
+      const position = (value - min) / (question.max - min);
+      return question.reverse ? 1 - position : position;
+    }
     case 'single':
     case 'multiple': {
-      const scores = question.options.map((option) => option.score ?? 0);
+      const points = (option: ChoiceQuestion['options'][number]) => option.dimensionScores?.[dimensionId] ?? 0;
+      const scores = question.options.map(points);
+      if (scores.every((score) => score === 0)) return null;
       const low = Math.min(...scores);
       const range = Math.max(...scores) - low;
       const picked = (Array.isArray(value) ? value : [value])
         .map((id) => question.options.find((option) => option.id === id))
         .filter((option) => option !== undefined);
       if (picked.length === 0) return null;
-      const mean = picked.reduce((sum, option) => sum + (option.score ?? 0), 0) / picked.length;
+      const mean = picked.reduce((sum, option) => sum + points(option), 0) / picked.length;
       return range === 0 ? 0.5 : (mean - low) / range;
     }
     case 'text':
@@ -103,13 +112,10 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
 
   if (settings.mode === 'profile') return scoreProfiles(definition, answers);
 
+  const items = allQuestions(definitionWithDimensionScores(definition));
   const dimensions = settings.dimensions.map((dimension) => {
-    const values = questions
-      .filter((question) => question.dimensionId === dimension.id)
-      .map((question) => {
-        const value = itemValue(question, answers[question.id]);
-        return value === null ? null : question.reverse ? 1 - value : value;
-      })
+    const values = items
+      .map((question) => itemValue(question, answers[question.id], dimension.id))
       .filter((value) => value !== null);
     const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     return { dimension, value: mean === null ? null : Math.round(mean * 100) };
@@ -126,7 +132,9 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
     score: null,
     passed: null,
     dimensions: measured.map(({ dimension, value }) => ({ id: dimension.id, title: dimension.title, value: value! })),
-    outcome: top ? { title: top.dimension.title, description: top.dimension.description } : null,
+    outcome: top
+      ? { title: top.dimension.title, description: top.dimension.description, imageId: top.dimension.imageId }
+      : null,
   };
 }
 
