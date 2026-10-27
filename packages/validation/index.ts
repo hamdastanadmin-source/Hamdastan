@@ -20,3 +20,4 @@ export * from './events';
 export * from './notifications';
 export * from './worlds';
 export * from './content';
+export * from './places';

@@ -15,6 +15,7 @@ import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle
 import { RewardChip } from '@/features/profile';
 import { HttpError } from '@/services';
 
+import type { ActivityExit } from '../utils/exit';
 import { useActivityPlayer } from '../hooks/use-activity-player';
 import { minutesLabel, STATUS_LABELS } from '../utils/activity';
 import { formatWhen } from '../utils/quiz';
@@ -37,7 +38,16 @@ const PROGRESS = 'h-0.5 bg-foreground/10 [&>[data-slot=progress-indicator]]:bg-f
  * person's place and its leaderboard; a quiz whose answers may be revealed
  * lists them, with each one's explanation.
  */
-export function ActivityPlayer({ activity, leaderboard = null }: { activity: PlayerActivity; leaderboard?: Leaderboard | null }) {
+export function ActivityPlayer({
+  activity,
+  leaderboard = null,
+  exit,
+}: {
+  activity: PlayerActivity;
+  leaderboard?: Leaderboard | null;
+  /** Where «بازگشت» leads, when the activity was opened from somewhere to return to — a place. */
+  exit?: ActivityExit;
+}) {
   const router = useRouter();
   const player = useActivityPlayer(activity);
   const titleId = useId();
@@ -109,7 +119,7 @@ export function ActivityPlayer({ activity, leaderboard = null }: { activity: Pla
         </ScreenBody>
         <ScreenFooter>
           <Button asChild size="xl" className="w-full">
-            <Link href="/">بازگشت به خانه</Link>
+            <Link href={exit?.href ?? '/'}>{exit?.label ?? 'بازگشت به خانه'}</Link>
           </Button>
         </ScreenFooter>
       </Screen>
@@ -186,7 +196,7 @@ export function ActivityPlayer({ activity, leaderboard = null }: { activity: Pla
   return (
     <Screen>
       <ScreenHeader>
-        <ScreenBack href="/activities" />
+        <ScreenBack href={exit?.href ?? '/activities'} label={exit?.label} />
       </ScreenHeader>
       <ScreenBody className="gap-6 pt-2">
         <div className="flex flex-wrap items-center gap-2">

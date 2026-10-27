@@ -18,12 +18,16 @@ import { z } from 'zod';
 
 const fa = (n: number) => toPersianDigits(n);
 
-/** Base64 of at most MAX_BYTES once decoded: four characters carry three bytes. */
+/**
+ * Base64 of at most an image's limit once decoded: four characters carry three
+ * bytes. A motion's smaller limit depends on what the file is, which only the
+ * API knows from its bytes.
+ */
 const base64File = z
   .string({ error: 'فایل را انتخاب کنید' })
   .min(1, { error: 'فایل را انتخاب کنید' })
-  .max(Math.ceil(MEDIA_LIMITS.MAX_BYTES / 3) * 4 + 4, {
-    error: `حجم فایل باید حداکثر ${fa(MEDIA_LIMITS.MAX_BYTES / 1024)} کیلوبایت باشد`,
+  .max(Math.ceil(MEDIA_LIMITS.IMAGE_MAX_BYTES / 3) * 4 + 4, {
+    error: `حجم فایل باید حداکثر ${fa(MEDIA_LIMITS.IMAGE_MAX_BYTES / 1024)} کیلوبایت باشد`,
   })
   .regex(/^[A-Za-z0-9+/]+={0,2}$/, { error: 'فایل معتبر نیست' });
 

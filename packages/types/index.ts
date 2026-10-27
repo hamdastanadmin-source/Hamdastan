@@ -262,3 +262,16 @@ export {
   type ContentStatus,
   type ContentType,
 } from './content';
+export {
+  PLACE_ERROR_CODES,
+  type AdminPlaceDetail,
+  type AdminPlaceSummary,
+  type PlaceCreateInput,
+  type PlaceCrumb,
+  type PlaceInput,
+  type PlaceMapPin,
+  type PlacePin,
+  type PlaceStatus,
+  type PlaceStatusAction,
+  type PlaceView,
+} from './places';

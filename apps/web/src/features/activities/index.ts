@@ -15,3 +15,4 @@ export { ActivityCard } from './components/ActivityCard';
 export { ActivityPlayer } from './components/ActivityPlayer';
 export { JourneyPlayer } from './components/journey/JourneyPlayer';
 export { JourneyPreview } from './components/journey/JourneyPreview';
+export type { ActivityExit } from './utils/exit';

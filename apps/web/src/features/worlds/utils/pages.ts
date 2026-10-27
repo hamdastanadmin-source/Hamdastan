@@ -1,4 +1,4 @@
-import type { ActivityCard, ArticleCard, EventCard, Paginated, WorldDetail, WorldHomeBlock } from '@hamdastan/types';
+import type { ActivityCard, ArticleCard, EventCard, Paginated, PlaceView, WorldDetail, WorldHomeBlock } from '@hamdastan/types';
 
 /**
  * A world's pages. Its menu has two — home and «فعالیت‌ها» — and each home
@@ -10,7 +10,8 @@ import type { ActivityCard, ArticleCard, EventCard, Paginated, WorldDetail, Worl
 export const WORLD_LIST_KINDS = ['events', 'news', 'knowledge'] as const;
 export type WorldListKind = (typeof WORLD_LIST_KINDS)[number];
 
-export type WorldHomePage = { world: WorldDetail; sections: WorldHomeBlock[] | null };
+/** `map`: the world's map with its pins, or null when it has none to show (or it could not be read). */
+export type WorldHomePage = { world: WorldDetail; sections: WorldHomeBlock[] | null; map: PlaceView | null };
 export type WorldActivitiesPage = { world: WorldDetail; cards: ActivityCard[] | null };
 export type WorldListPage =
   | { world: WorldDetail; kind: 'news' | 'knowledge'; page: Paginated<ArticleCard> | null }

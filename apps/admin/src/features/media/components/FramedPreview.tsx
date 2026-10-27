@@ -31,7 +31,7 @@ export function FramedPreview({ asset, frame }: { asset: { id: string; version?:
   return (
     <div className="flex flex-col gap-2">
       <div className="w-full max-w-sm overflow-hidden rounded-lg border bg-muted/50" style={{ aspectRatio: `${frame.width} / ${frame.height}` }}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- served by our API, already at most 250 KB. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- served by our API, already at most 512 KB. */}
         <img
           src={adminMediaService.fileUrl(asset)}
           alt=""

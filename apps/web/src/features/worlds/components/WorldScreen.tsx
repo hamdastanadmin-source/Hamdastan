@@ -9,6 +9,7 @@ import { Screen, ScreenBack, ScreenBody, ScreenHeader } from '@/components';
 import { ActivityCard } from '@/features/activities';
 import { ArticleCard } from '@/features/content';
 import { EventCard } from '@/features/events';
+import { PlaceMap } from '@/features/places';
 
 import {
   hasActivities,
@@ -35,11 +36,12 @@ const EMPTY: Record<WorldListPage['kind'] | 'activities', string> = {
 const FAILED = 'بارگذاری نشد؛ اتصال رو بررسی کن و دوباره امتحان کن.';
 /**
  * `/worlds/:slug`: a world's home — its card (cover, name in its theme and,
- * folded, what the world is about), then the sections the admin arranged
- * with events leading — over the world's menu. The API has already decided the world is
+ * folded, what the world is about), its map with the places pinned on it
+ * when it has one, then the sections the admin arranged with events
+ * leading — over the world's menu. The API has already decided the world is
  * published and what each section may hold.
  */
-export function WorldHomeScreen({ page: { world, sections } }: { page: WorldHomePage }) {
+export function WorldHomeScreen({ page: { world, sections, map } }: { page: WorldHomePage }) {
   return (
     <Screen>
       <ScreenHeader>
@@ -47,6 +49,15 @@ export function WorldHomeScreen({ page: { world, sections } }: { page: WorldHome
       </ScreenHeader>
       <ScreenBody className="gap-6 pt-1">
         <WorldHero world={world} />
+        {map && (
+          <section className="flex flex-col gap-3" aria-labelledby="world-map">
+            <h2 id="world-map" className="text-lg font-bold leading-tight">
+              {map.name}
+            </h2>
+            {map.summary && <p className="text-sm text-muted-foreground">{map.summary}</p>}
+            <PlaceMap place={map} />
+          </section>
+        )}
         {sections ? (
           <WorldHomeSections slug={world.slug} sections={sections} activities={hasActivities(world)} />
         ) : (

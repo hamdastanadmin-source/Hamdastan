@@ -20,6 +20,7 @@ export const SECTIONS = [
   { href: '/engagement', label: 'استودیو', permission: 'activities.read' },
   { href: '/events', label: 'رویدادها', permission: 'events.read' },
   { href: '/worlds', label: 'دنیاها', permission: 'worlds.read' },
+  { href: '/places', label: 'مکان‌ها', permission: 'worlds.read' },
   { href: '/content', label: 'محتوا', permission: 'content.read' },
   { href: '/notifications', label: 'اعلان‌ها', permission: 'notifications.read' },
   { href: '/onboarding', label: 'آنبوردینگ', permission: 'onboarding.write' },

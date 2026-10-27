@@ -141,6 +141,9 @@ export function WorldScreen({ initial, initialTab = 'identity' }: { initial: Adm
           {world.status === 'archived' && <p className="text-sm text-muted-foreground">دنیای بایگانی‌شده تا بازگردانی قابل ویرایش نیست.</p>}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/places">مکان‌ها</Link>
+          </Button>
           {actions
             .filter((action) => action !== 'publish')
             .map((action) => (

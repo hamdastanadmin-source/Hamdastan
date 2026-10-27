@@ -82,7 +82,7 @@ export function MediaPreview({ asset, className }: { asset: Previewable; classNa
           aria-label={asset.name}
         />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element -- served by our API, already at most 250 KB.
+        // eslint-disable-next-line @next/next/no-img-element -- served by our API, already at most 512 KB.
         <img src={src} alt={asset.name ?? ''} className="size-full object-contain" loading="lazy" onError={() => setBroken(true)} />
       )}
     </div>

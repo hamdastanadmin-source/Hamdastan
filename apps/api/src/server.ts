@@ -35,6 +35,7 @@ import {
   sqlNotificationsRepository,
 } from './modules/notifications';
 import { setOnboardingRepository, sqlOnboardingRepository } from './modules/onboarding';
+import { setPlacesRepository, sqlPlacesRepository } from './modules/places';
 import { setProgressRepository, sqlProgressRepository } from './modules/progress';
 import { setUsersRepository, sqlUsersRepository } from './modules/users';
 import { setWorldsRepository, sqlWorldsRepository } from './modules/worlds';
@@ -89,6 +90,7 @@ async function openDataLayer(log: (message: string) => void): Promise<void> {
   setMediaRepository(sqlMediaRepository);
   setEventsRepository(sqlEventsRepository);
   setWorldsRepository(sqlWorldsRepository);
+  setPlacesRepository(sqlPlacesRepository);
   setContentRepository(sqlContentRepository);
   setNotificationsRepository(sqlNotificationsRepository);
   setMaintenanceRepository(sqlMaintenanceRepository);

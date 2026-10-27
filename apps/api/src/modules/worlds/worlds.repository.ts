@@ -11,8 +11,8 @@ import type { HomeSectionRecord, WorldFields, WorldRecord } from './worlds.types
  * Data access port for the Worlds module, and the PostgreSQL adapter that
  * satisfies it: the worlds (`v2_worlds`), their home sections and featured
  * items (`v2_world_home_*`). What is filed under a world — events, articles,
- * activities — is read here only to count it, to refuse deleting a world in
- * use, and to check that a featured item belongs to the world.
+ * activities, places — is read here only to count it, to refuse deleting a
+ * world in use, and to check that a featured item belongs to the world.
  */
 export interface WorldsRepository {
   /** In display order. `publishedOnly` is the product's list. */
@@ -229,7 +229,8 @@ export const sqlWorldsRepository: WorldsRepository = {
       `WITH target AS (
          SELECT w.id, (EXISTS (SELECT 1 FROM v2_event_world_links l WHERE l.world_id = w.id)
                     OR EXISTS (SELECT 1 FROM v2_article_world_links l WHERE l.world_id = w.id)
-                    OR EXISTS (SELECT 1 FROM v2_engagement_activity_worlds l WHERE l.world_id = w.id)) AS in_use
+                    OR EXISTS (SELECT 1 FROM v2_engagement_activity_worlds l WHERE l.world_id = w.id)
+                    OR EXISTS (SELECT 1 FROM v2_places p WHERE p.world_id = w.id)) AS in_use
            FROM v2_worlds w WHERE w.id = $1),
        gone AS (DELETE FROM v2_worlds d USING target t WHERE d.id = t.id AND NOT t.in_use RETURNING d.id)
        SELECT t.id, t.in_use, EXISTS (SELECT 1 FROM gone) AS deleted FROM target t`,

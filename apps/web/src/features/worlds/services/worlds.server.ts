@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 
 import type { World, WorldHome } from '@hamdastan/types';
 
-import { contentService, eventsService, HttpError, worldsService } from '@/services';
+import { contentService, eventsService, HttpError, placesService, worldsService } from '@/services';
 
 import { hasActivities, WORLD_LIST_KINDS, type WorldActivitiesPage, type WorldHomePage, type WorldListPage } from '../utils/pages';
 
@@ -21,11 +21,15 @@ function missing(error: unknown): never {
   throw error;
 }
 
-/** A world's home: the world, then its sections. */
+/** A world's home: the world, its map, then its sections. A map that cannot be read is left out. */
 export async function getWorldHome(slug: string): Promise<WorldHomePage> {
   const options = { cookie: await cookie() };
   const world = await worldsService.get(slug, options).catch(missing);
-  return { world, sections: await worldsService.home(slug, options).then((home) => home.sections, () => null) };
+  const [sections, map] = await Promise.all([
+    worldsService.home(slug, options).then((home) => home.sections, () => null),
+    placesService.map(slug, options).catch(() => null),
+  ]);
+  return { world, sections, map };
 }
 
 /** A world's «فعالیت‌ها» menu; the 404 page when the world has it off. */

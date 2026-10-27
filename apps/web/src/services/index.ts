@@ -14,5 +14,6 @@ export { contentService } from './content.service';
 export { eventsService } from './events.service';
 export { notificationsService } from './notifications.service';
 export { onboardingService } from './onboarding.service';
+export { placesService } from './places.service';
 export { worldsService } from './worlds.service';
 export { HttpError } from '@hamdastan/shared';

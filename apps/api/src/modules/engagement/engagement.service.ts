@@ -85,6 +85,7 @@ import type {
 
 const notFound = () => new NotFoundError('فعالیت پیدا نشد');
 
+
 const iso = (date: Date | null) => date?.toISOString() ?? null;
 
 /** `scheduled` and a published activity past its end are read off the clock. */
@@ -731,6 +732,19 @@ export const engagementService = {
       const status = effectiveStatus(record, now);
       // In the content index's words: a closed activity has ended.
       return { id: record.id, title: record.title, status: status === 'closed' ? 'ended' : status, live: status === 'published' };
+    });
+  },
+
+  // ─── For a place ───────────────────────────────────────────────────────
+
+  /** A place's tasks as this person sees them: the ones they may see, in the order of `ids`. */
+  async cardsFor(userId: string, ids: string[]): Promise<ActivityCard[]> {
+    const now = new Date();
+    const entries = await engagementRepository().findManyForUser(ids, userId);
+    const byId = new Map(entries.map((entry) => [entry.activity.id, entry]));
+    return ids.flatMap((id) => {
+      const entry = byId.get(id) ?? null;
+      return visibleTo(entry, now) ? [toCard(entry, now)] : [];
     });
   },
 

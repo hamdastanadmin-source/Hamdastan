@@ -139,7 +139,7 @@ user object, because then the browser would be deciding.
 ```
 features/
 ├── auth/  onboarding/  home/  worlds/  content/  play/  community/
-└── profile/  activities/  events/  commerce/  notifications/  search/
+└── profile/  activities/  events/  commerce/  notifications/  search/  places/
 ```
 
 `activities` is Engagement Studio's product side: the cards on home and
@@ -170,6 +170,16 @@ surfaces. `content` is the article card and page (`/articles/:slug`). Which
 world is published and which item may appear is the API's answer; neither
 feature filters. A library file is drawn by `MediaImage` (`src/components`),
 which falls back to a quiet tile rather than a broken image.
+
+`places` is a world's map and the places on it. `PlaceMap` draws a place's
+image with the places inside it pinned on it — each pin a link, placed by
+percent of the image — and is borrowed by `worlds` for the top of a world's
+home; `PlaceScreen` is one place (`/worlds/:slug/places/:id`): the trail,
+its `PlaceMap` and its tasks. Both are server-rendered from plain reads. A
+task opens through `ActivityCard`'s `href` with `?place=&world=`, and the
+activity page turns that into the player's `exit` — «بازگشت» back to the
+place. Place addresses are named once, in `src/lib/place-path.ts`, because
+`activities`, `worlds` and `places` all link to them.
 
 `notifications` is the Notification Center (`/notifications`), the opener
 every row and every tapped push lead through (`/notifications/:id` — it asks
@@ -225,11 +235,16 @@ count, preview and send confirmation, the report and history), `engagement`
 (Engagement Studio — the builder, the list and the results dashboard),
 `media` (the media & motion library, and the fields the builder picks files
 with — `MediaField`, `MotionSettingField`, imported by `engagement` through
-`@/features/media`), `onboarding` (the interest catalog and the
+`@/features/media`), `places` (every world's map at `/places`, and a place's page at
+`/places/:id` — its details, its image with the places inside pinned on it
+(`PinBoard`: drag, click to place, or the arrow keys; the places inside are
+managed only here) and its tasks; `PlaceRowActions` is the one set of icon
+actions both lists use),
+`onboarding` (the interest catalog and the
 questionnaire's questions, two tabs at `/onboarding`) and `sessions` (a
 product account's live sessions, ended one or all at once). Pieces more than one feature needs live outside them:
 `WorldsField` (the world checkboxes every editor that files content under a
-world uses) and `NEUTRAL_TOGGLE` / `NEUTRAL_TAB` in `src/components`,
+world uses) and `NEUTRAL_TOGGLE` / `NEUTRAL_TAB` / `NEUTRAL_SLIDER` in `src/components`,
 `useWorldOptions` and `useInterestCategories` (the audience pickers in
 `engagement` and `notifications`) in `src/hooks`, and `worldIdParam` (the `?world=` a «new»
 page is opened with from a world's page) in `src/lib`. Lottie motions are drawn with `lottie-web`'s *light*
@@ -407,7 +422,7 @@ src/
 
 `auth`, `users`, `onboarding`, `account`, `worlds`, `content`, `missions`,
 `trivia`, `community`, `progress`, `events`, `commerce`, `notifications`,
-`search`, `admin`, `engagement`, `media` — each with the same seven files — and
+`search`, `admin`, `engagement`, `media`, `places` — each with the same seven files — and
 `maintenance`, which has no HTTP surface (below):
 
 ```
@@ -476,6 +491,11 @@ notification dispatcher's timer (`startDispatch`, every
 queued pushes — with no lock, because every claim inside is
 `FOR UPDATE SKIP LOCKED`. The cleanup also purges old notifications and
 finished push records.
+
+**`places`** is a world's map, the places pinned on it and the places inside
+those. It depends on `worlds` (a published world), `engagement` (a place's
+tasks as cards, and which activities are filed under the world) and `media`
+(the image is an image) — one way each.
 
 **`engagement`** is Engagement Studio: one engine for surveys, missions and
 assessments. It mounts two route plugins — `/admin/engagement` behind
@@ -705,8 +725,9 @@ volume, `api-media`, mounted at `/app/storage/media` (`MEDIA_DIR`); the image
 creates that directory for the API's user, so a new volume is writable. A
 rebuild or a redeploy keeps it, `scripts/deploy.sh` never syncs a local
 `storage/`, and a `pg_dump` does not include it — the runbook backs it up
-beside the database. Files are at most 250 KB, so the nginx and API body
-limits (1 MB, the file travelling base64 in JSON) already cover an upload.
+beside the database. Files are at most 512 KB (an image; a motion 250 KB),
+so the nginx and API body limits (1 MB, the file travelling base64 in JSON —
+about 700 KB for the largest) already cover an upload.
 
 `NEXT_PUBLIC_` variables are substituted into the browser bundle at **build**
 time, which is why the public URL is a Docker build argument and not only a

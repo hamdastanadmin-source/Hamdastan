@@ -10,3 +10,4 @@ export { adminWorldsService } from './admin-worlds.service';
 export { adminNotificationsService } from './admin-notifications.service';
 export { adminContentService } from './admin-content.service';
 export { adminOnboardingService } from './admin-onboarding.service';
+export { adminPlacesService } from './admin-places.service';

@@ -113,9 +113,9 @@ test('home leads to the world, which opens on the home its admin arranged', asyn
 
   await expect(page.getByRole('heading', { level: 1, name: world.name })).toBeVisible();
   await expect(page.getByText('برای آزمودن صفحه‌ی دنیا')).toBeVisible();
-  // The menu is the bottom bar: home and activities.
+  // The menu is the bottom bar: home and activities — «مکان‌ها» starts off.
   const menu = page.getByRole('navigation', { name: `منوی ${world.name}` }).getByRole('link');
-  await expect(menu).toHaveText(WORLD_DEFAULT_NAVIGATION.map((item) => item.label));
+  await expect(menu).toHaveText(WORLD_DEFAULT_NAVIGATION.filter((item) => item.enabled).map((item) => item.label));
   await expect(menu.first()).toHaveAttribute('aria-current', 'page');
 
   // Events lead the home, here kept with their empty state.
@@ -145,7 +145,7 @@ test('«همه» opens a page of its own, and an article leads back to it', asyn
   await expect(page.getByText('پاراگراف دوم.')).toBeVisible();
 
   // One reaction at a time; choosing it again takes it back.
-  const like = page.getByRole('radio', { name: 'پسندیدم' });
+  const like = page.getByRole('radio', { name: 'پسندیدم', exact: true });
   const dislike = page.getByRole('radio', { name: 'نپسندیدم' });
   await like.click();
   await expect(like).toHaveAttribute('aria-checked', 'true');

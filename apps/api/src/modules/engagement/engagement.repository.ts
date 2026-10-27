@@ -101,6 +101,8 @@ export interface EngagementRepository {
   /** A world's activities in any status, for the panel's picker. */
   listForWorld(worldId: string, query: { ids?: string[]; q?: string; limit: number }): Promise<ActivityRecord[]>;
   findForUser(activityId: string, userId: string): Promise<UserActivityRecord | null>;
+  /** The same, for each of `ids` that exists — a place's tasks. */
+  findManyForUser(activityIds: string[], userId: string): Promise<UserActivityRecord[]>;
   saveDraft(activityId: string, userId: string, answers: ActivityAnswers): Promise<void>;
   /** Records when the person started: the first time only, so starting again does not reset the clock. */
   markStarted(activityId: string, userId: string): Promise<void>;
@@ -876,6 +878,12 @@ export const sqlEngagementRepository: EngagementRepository = {
   async findForUser(activityId, userId) {
     const row = await queryOne<UserActivityRow>(`${USER_ACTIVITY_SELECT} WHERE a.id = $2`, [userId, activityId]);
     return row ? toUserActivity(row) : null;
+  },
+
+  async findManyForUser(activityIds, userId) {
+    if (activityIds.length === 0) return [];
+    const rows = await query<UserActivityRow>(`${USER_ACTIVITY_SELECT} WHERE a.id = ANY($2::uuid[])`, [userId, activityIds]);
+    return rows.map(toUserActivity);
   },
 
   async markStarted(activityId, userId) {

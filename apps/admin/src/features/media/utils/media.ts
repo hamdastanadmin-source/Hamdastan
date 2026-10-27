@@ -10,11 +10,11 @@ export function formatSize(bytes: number): string {
 export const nameFromFile = (file: File) => file.name.replace(/\.[^.]+$/, '').slice(0, MEDIA_LIMITS.NAME_MAX);
 
 /**
- * What can be said about a chosen file before it is sent: only its size.
- * Its type is decided by the API from its bytes, whatever the browser says.
+ * What can be said about a chosen file before it is sent: only its size —
+ * 512 KB for what the browser calls an image, 250 KB for anything else. Its
+ * type is decided by the API from its bytes, whatever the browser says.
  */
 export function tooLarge(file: File): string | null {
-  return file.size > MEDIA_LIMITS.MAX_BYTES
-    ? `حجم این فایل ${formatSize(file.size)} است؛ حداکثر ${formatSize(MEDIA_LIMITS.MAX_BYTES)} مجاز است`
-    : null;
+  const limit = file.type.startsWith('image/') ? MEDIA_LIMITS.IMAGE_MAX_BYTES : MEDIA_LIMITS.MAX_BYTES;
+  return file.size > limit ? `حجم این فایل ${formatSize(file.size)} است؛ حداکثر ${formatSize(limit)} مجاز است` : null;
 }

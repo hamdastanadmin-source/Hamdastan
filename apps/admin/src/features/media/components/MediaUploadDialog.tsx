@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { MEDIA_ACCEPT, MEDIA_CATEGORIES, MEDIA_CATEGORY_LABELS, MEDIA_LIMITS } from '@hamdastan/config';
-import type { MediaAsset, MediaCategory } from '@hamdastan/types';
+import { MEDIA_ACCEPT, MEDIA_ACCEPT_BY_KIND, MEDIA_CATEGORIES, MEDIA_CATEGORY_LABELS, MEDIA_LIMITS } from '@hamdastan/config';
+import type { MediaAsset, MediaCategory, MediaKind } from '@hamdastan/types';
 import { mediaUploadSchema } from '@hamdastan/validation';
 import {
   Button,
@@ -29,6 +29,12 @@ import { adminMediaService } from '@/services';
 import { rememberAsset } from '../hooks/use-media-asset';
 import { formatSize, nameFromFile, tooLarge } from '../utils/media';
 
+const KIND_HINTS: Record<MediaKind | 'all', string> = {
+  image: `تصویر PNG، JPEG یا WebP — حداکثر ${formatSize(MEDIA_LIMITS.IMAGE_MAX_BYTES)}.`,
+  motion: `موشن Lottie (JSON)، WebM یا MP4 — حداکثر ${formatSize(MEDIA_LIMITS.MAX_BYTES)}.`,
+  all: `تصویر PNG، JPEG یا WebP تا ${formatSize(MEDIA_LIMITS.IMAGE_MAX_BYTES)}، یا موشن Lottie (JSON)، WebM یا MP4 تا ${formatSize(MEDIA_LIMITS.MAX_BYTES)}.`,
+};
+
 /**
  * «بارگذاری فایل»: choose a file, name it and shelve it — or, given
  * `replacing`, a new file for an asset already in use, which keeps its id and
@@ -39,12 +45,15 @@ export function MediaUploadDialog({
   open,
   onOpenChange,
   defaultCategory = 'other',
+  kind,
   replacing,
   onDone,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultCategory?: MediaCategory;
+  /** The one kind the field it was opened from takes: the file chooser offers only that. */
+  kind?: MediaKind;
   replacing?: MediaAsset | null;
   onDone: (asset: MediaAsset) => void;
 }) {
@@ -112,7 +121,7 @@ export function MediaUploadDialog({
         <DialogHeader>
           <DialogTitle>{replacing ? `جایگزینی «${replacing.name}»` : 'بارگذاری فایل'}</DialogTitle>
           <DialogDescription>
-            تصویر PNG، JPEG یا WebP، یا موشن Lottie (JSON)، WebM یا MP4 — حداکثر {formatSize(MEDIA_LIMITS.MAX_BYTES)}.
+            {KIND_HINTS[replacing?.kind ?? kind ?? 'all']}
             {replacing && ' در همه‌ی بخش‌هایی که این فایل استفاده شده، فایل جدید نمایش داده می‌شود.'}
           </DialogDescription>
         </DialogHeader>
@@ -123,7 +132,7 @@ export function MediaUploadDialog({
             <Input
               id="media-file"
               type="file"
-              accept={MEDIA_ACCEPT}
+              accept={(replacing?.kind ?? kind) ? MEDIA_ACCEPT_BY_KIND[(replacing?.kind ?? kind)!] : MEDIA_ACCEPT}
               onChange={(event) => choose(event.target.files?.[0])}
               aria-invalid={error ? true : undefined}
             />

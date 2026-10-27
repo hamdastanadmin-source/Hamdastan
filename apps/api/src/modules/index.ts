@@ -12,6 +12,7 @@ import { mediaAdminRoutes, mediaRoutes } from './media';
 import { missionsRoutes } from './missions';
 import { notificationsAdminRoutes, notificationsRoutes } from './notifications';
 import { onboardingAdminRoutes, onboardingRoutes } from './onboarding';
+import { placesAdminRoutes, placesRoutes } from './places';
 import { progressRoutes } from './progress';
 import { searchRoutes } from './search';
 import { triviaRoutes } from './trivia';
@@ -40,6 +41,8 @@ export const moduleRoutes: ReadonlyArray<{
   // «رویدادهای من» — interest and bookings, beside the activities.
   { prefix: '/me/events', routes: myEventsRoutes },
   { prefix: '/worlds', routes: worldsRoutes },
+  // A world's map and the places pinned on it.
+  { prefix: '/worlds/:slug/places', routes: placesRoutes },
   { prefix: '/content', routes: contentRoutes },
   { prefix: '/missions', routes: missionsRoutes },
   { prefix: '/trivia', routes: triviaRoutes },
@@ -58,6 +61,8 @@ export const moduleRoutes: ReadonlyArray<{
   // Events, their categories and bookings; the world list they are filed under.
   { prefix: '/admin/events', routes: eventsAdminRoutes },
   { prefix: '/admin/worlds', routes: worldsAdminRoutes },
+  // Places: a world's map, the places on it, their images, pins and tasks.
+  { prefix: '/admin/places', routes: placesAdminRoutes },
   // News and knowledge articles, and the index of everything filed under worlds.
   { prefix: '/admin/content', routes: contentAdminRoutes },
   // Notification campaigns: compose, target, schedule, report.

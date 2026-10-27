@@ -694,7 +694,7 @@ hidden in the panel.
 **Layout.** A dashboard: the menu is a sidebar on the right (the reading
 start), with the panel's name at the top, the sections the admin's role opens
 — مدیریت کاربران, استودیو (Engagement Studio, §4.7), رویدادها (§4.9),
-دنیاها and محتوا (§4.10), اعلان‌ها (§4.11), آنبوردینگ, کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
+دنیاها and محتوا (§4.10), مکان‌ها (§4.12), اعلان‌ها (§4.11), آنبوردینگ, کتابخانه‌ی رسانه (§4.8) and نشست‌های کاربران — and
 the signed-in admin with their role, the theme switch and «خروج» at its foot. A top bar carries the menu button and the current
 section's name; the button (or Ctrl/⌘+B) folds the sidebar away on a laptop
 and opens it as a sheet from the right on a phone. The current section is a
@@ -1205,7 +1205,8 @@ none is ever in the product's code. Code in `apps/admin/src/features/media`,
 Schema: migration `0016`.
 
 - **Files.** Images: PNG, JPEG, WebP. Motions: Lottie (JSON), WebM, MP4.
-  Every file is at most **250 KB** (`MEDIA_LIMITS`). What a file is, is read
+  An image is at most **512 KB**, a motion **250 KB** (`MEDIA_LIMITS`,
+  migration 0027). What a file is, is read
   from its bytes by the API (`media.sniff.ts`) — a renamed SVG, GIF or HTML
   file is refused (`415 MEDIA_UNSUPPORTED`), as is anything bigger (`413
   MEDIA_TOO_LARGE`). A Lottie file must parse as an animation.
@@ -1641,6 +1642,7 @@ happens in each kind's own editor.
   tagline (the summary when there is no tagline), and — when there is a
   description — «درباره‌ی …» at the card's foot, an accordion closed by
   default that opens the description paragraph by paragraph. Then the
+  world's map with its places pinned on it, when it has one (§4.12). Then the
   sections the API sent — رویدادها first, then news, knowledge and
   activities in the admin's order — each a carousel of its own card (the
   next one peeking in, a lone one at full width) with «همه» to its own page; a section kept when empty says «فعلاً چیزی نیست».
@@ -1835,6 +1837,63 @@ notifying automatically when an activity or an event is published.
 
 ---
 
+### 4.12 Places — مکان‌ها
+
+**Purpose:** let each world have a map, with places pinned on it and places
+inside those, and tasks at each — a city, a house on it, the rooms of the
+house. Nothing about a place is in the product's code: places are added,
+moved and removed from the panel, in any world. Code in
+`apps/api/src/modules/places`, `apps/admin/src/features/places` and
+`apps/web/src/features/places`. Schema: migrations `0025`, `0026` (the first,
+3D version) and `0027` (this one).
+
+- **The tree.** A world has **one map**. Places are pinned on it, and a
+  place may hold places of its own — **at most two layers below the map**
+  (`PLACE_MAX_DEPTH`): map → house → room. Refused three times over: the
+  panel offers no «مکان جدید» at the second layer, the API answers
+  `400 PLACE_TOO_DEEP`, and the schema itself — a child names its parent's
+  id, world and depth in one foreign key and must be one deeper. A second
+  map is `409 PLACE_MAP_EXISTS`.
+- **A place** is a name, an optional short line, **one image** (PNG, JPEG or
+  WebP from the library, up to 512 KB), its tasks, and where it is pinned on
+  its parent's image — `x` and `y` in percent of the image, so a pin holds
+  at any width. A new place is pinned in the middle until it is moved.
+  Draft or published; publishing needs a name and an image
+  (`placePublishProblems`). The product shows a place only while it, its
+  parents and its world are published. A published place, or one with places
+  inside it, is not deleted.
+- **Tasks** are Engagement Studio activities filed under the same world, in
+  order. What they pay, and that they pay once, is the activity's own (§4.7).
+  The example: a house with five tasks — three in its room, two in its hall —
+  is a house whose room has three and hall two; the house's pin on the map
+  says how many published tasks are in it and the places inside it.
+- **The panel — «مکان‌ها», `/places`** (`worlds.read`; changes need
+  `worlds.manage`; also «مکان‌ها» on a world's page). **Every world's map**,
+  one row each: image, name, world, status, how many places are inside, and
+  three icon actions with a tooltip — edit, publish or unpublish, delete (a
+  disabled icon says why: no image yet; published; has places inside).
+  «نقشه‌ی جدید» is one form: a name and the world, from the worlds that have
+  no map yet. **A place's page** `/places/:id` is one form in three cards:
+  «مشخصات» (name, short line, image); «مکان‌های داخل …» — the image with
+  the places inside pinned on it (a pin is dragged, or a place chosen in the
+  list and the image clicked, or moved with the arrow keys, Shift for five
+  steps) and **the places inside, managed here and nowhere else**: each with
+  its status and the same three icons; «مکان جدید داخل این‌جا» asks for a
+  name and keeps you on this page, its pin in the middle; and «تسک‌های این
+  مکان» — add, order, remove, and a link to make a new activity in the
+  studio. «برای انتشار:» says what is missing; «انتشار» saves first.
+- **The product.** The map is at the top of the **world's home**, under its
+  card: its name and line, its image, and a pin for each published place on
+  it — the name and, when it has any, «n تسک». A pin opens
+  `/worlds/:slug/places/:id`: the way down as a breadcrumb (the map's crumb is
+  the world's home), the name and line, the image with its own pins, and
+  «تسک‌های این‌جا» — each opens the activity with `?place=&world=`, so the
+  player's «بازگشت» comes back to the place. Back leads to the place it is
+  pinned on, or to the world's home from a place on the map.
+
+**Not built:** moving a place to another parent, a map per something other
+than a world, pins for tasks themselves (a task is listed under its place).
+
 ## 5. User Flows
 
 ### 5.1 The routing table
@@ -2011,6 +2070,11 @@ v2_worlds --1:N-- v2_world_home_sections --1:N-- v2_world_home_items
 v2_worlds --1:N-- v2_article_world_links --N:1-- v2_articles --1:N-- v2_article_audit_log
 v2_users  --1:N-- v2_article_reactions   --N:1-- v2_articles            (0024)
 v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
+
+Places (0026, 0027):
+
+v2_worlds --1:N-- v2_places (parent_id → v2_places, depth 0–2, pin_x/pin_y; image → v2_media_assets)
+                    └--1:N-- v2_place_activities --N:1-- v2_engagement_activities
 ```
 
 ### 6.2 Key relationships and why they are shaped that way
@@ -2140,7 +2204,7 @@ v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
 
 - **`v2_media_assets` (0016)** — one row per library file: `kind`
   (image/motion), `format` (read from the bytes), `category`, `name`,
-  `size_bytes` (≤ 250 KB), `sha256`, `version` (up by one on each
+  `size_bytes` (≤ 512 KB for an image, 250 KB for a motion), `sha256`, `version` (up by one on each
   replacement). The bytes are on the `api-media` volume. Activities refer to
   a file by id inside their definition; usage is read from there.
 
@@ -2176,6 +2240,13 @@ v2_worlds --1:N-- v2_engagement_activity_worlds --N:1-- v2_engagement_activities
   are row counts. Cascades from both the article and the account.
 - **`v2_engagement_activity_worlds` (0020)** — activity ↔ world, outside the
   versioned definition.
+- **`v2_places` (0026, 0027)** — a place under a world. The two-layer rule
+  is the schema's: `(parent_id, world_id, parent_depth)` references the
+  parent's `(id, world_id, depth)` and `depth = parent_depth + 1`,
+  `depth ≤ 2`. `pin_x`/`pin_y` are percent of the parent's image. A world
+  with places is not deleted. 0027 dropped the 3D columns and tables of
+  0026 (hotspots, visits, discoveries, trails).
+- **`v2_place_activities` (0026)** — a place's tasks, in order.
 - **`v2_notifications` (0019)** — one row per recipient: category, type,
   title, body, image, destination (jsonb), campaign, `dedupe_key` (unique
   with the user — «only once» is the database's job), expiry, and
@@ -2207,8 +2278,8 @@ The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 `0006_account_and_xp.sql` (which also backfills the questionnaire reward for
 everyone who finished it before XP existed), `0009_admin_users.sql`,
 `0010_engagement_studio.sql`, `0015_engagement_journeys.sql`,
-`0018_events.sql`, `0019_notifications.sql` and
-`0023_onboarding_catalog.sql`.
+`0018_events.sql`, `0019_notifications.sql`,
+`0023_onboarding_catalog.sql` and the places migrations `0025`–`0027`.
 
 ---
 
@@ -2332,6 +2403,12 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | PUT | `/admin/worlds/:id/home` | `WorldHomeInput` | `AdminWorldHome`; 400 `WORLD_HOME_ITEM_INVALID` — `worlds.manage` |
 | GET | `/admin/worlds/:id/home/candidates` | `?kind=&q=` | `WorldHomeCandidate[]` — items of that kind filed under the world — `worlds.read` |
 | GET | `/admin/worlds/:id/preview` | — | `WorldHome` with `preview.status` — `worlds.read` |
+| GET | `/admin/places` | — | `AdminPlaceSummary[]` — every world's map, in the worlds' order; what is inside comes with each map's detail — `worlds.read` |
+| POST | `/admin/places` | `PlaceCreateInput` | `AdminPlaceDetail` (201), a draft; 400 `PLACE_TOO_DEEP`; 409 `PLACE_MAP_EXISTS` — `worlds.manage` |
+| GET | `/admin/places/:id` | — | `AdminPlaceDetail` with its `children` — `worlds.read` |
+| PUT | `/admin/places/:id` | `PlaceInput` (name, summary, image, tasks, its children's pins) | `AdminPlaceDetail`; 400 per field — `worlds.manage` |
+| POST | `/admin/places/:id/status` | `{ action: publish \| unpublish }` | `AdminPlaceDetail`; 400 `PLACE_INCOMPLETE` — `worlds.manage` |
+| DELETE | `/admin/places/:id` | — | `{ deleted: true }`; 409 `PLACE_IN_USE` (published, or has places inside) — `worlds.manage` |
 | GET | `/admin/content` | `?q=&type=news\|knowledge\|event\|activity&status=&world=&page=&pageSize=` | `Paginated<ContentIndexItem>` — `content.read` |
 | GET | `/admin/content/articles` | `?q=&kind=&status=&world=&page=&pageSize=` | `Paginated<AdminArticleSummary>` — `content.read` |
 | POST | `/admin/content/articles` | `ArticleInput` | `AdminArticleDetail` (201); 409 `ARTICLE_SLUG_TAKEN` — `content.write` |
@@ -2370,6 +2447,8 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | GET | `/worlds/:slug` | — | `WorldDetail`; 404 unless published |
 | GET | `/worlds/:slug/home` | — | `WorldHome`: the sections that are on, each with the items that may appear now |
 | GET | `/worlds/:slug/activities` | — | `ActivityCard[]` — open activities filed under the world, for this person; 404 when the world's فعالیت‌ها menu is off |
+| GET | `/worlds/:slug/places/map` | — | `PlaceView \| null` — the world's map with its pins and tasks, null when it has none to show |
+| GET | `/worlds/:slug/places/:id` | — | `PlaceView`: the trail, image, pins (with `taskCount`) and tasks; 404 when not shown |
 | GET | `/content/articles` | `?world=&kind=news\|knowledge&page=&pageSize=` | `Paginated<ArticleCard>` (each with `reactions`: likes and dislikes) — live only |
 | GET | `/content/articles/:slug` | — | `ArticleDetail` with `reactions` (`likes`, `dislikes`, the reader's `mine`); 404 unless live |
 | PUT | `/content/articles/:id/reaction` | `{ reaction: like \| dislike \| null }` | `ArticleReactions`; null takes it back; 404 unless live |
@@ -2452,7 +2531,7 @@ against the same objects, including the Persian messages.
 | Admin user | First name, last name and mobile as above; status `active` / `inactive`, active by default (`packages/validation/admin.ts`) | «وضعیت رو انتخاب کن» |
 | Activity | Title 1–120; short description ≤ 200; instructions ≤ 2000; 1–10 steps (one for a survey or assessment), ≥ 1 question each, ≤ 50 in all; 2–12 options (each with text, or — image options — each with a library image); scale bounds 0–10 with min < max; XP a whole number 0–10 000; submissions and rewarded submissions 1–100 (rewarded ≤ allowed); end after start; knowledge: every choice question has its correct option(s) (exactly one for single choice); matching: 4–8 pairs, no two prompts or matches alike; personality: ≥ 1 dimension and every non-text, non-matching question tied to one; profile: 2–20 profiles with distinct titles, question weight 0–10, option weights −100…100 toward existing profiles only, ≥ 1 choice question, priority questions distinct and among the choice questions, a default profile; audience: ≥ 1 valid mobile number or ≥ 1 category (`packages/validation/engagement.ts`) | «عنوان رو بنویس» / «یک گزینه‌ی درست مشخص کن» / … |
 | Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
-| Media file | ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم فایل باید حداکثر ۲۵۰ کیلوبایت باشه» / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
+| Media file | an image ≤ 512 KB, a motion ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم تصویر باید حداکثر ۵۱۲ کیلوبایت باشد» (موشن ۲۵۰) / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
 | Onboarding import row | Interests: «علاقه‌مندی» header; both cells, ≤ 80 characters, not already in that category nor repeated in the file. Questions: «متن سؤال» header; a section 1–4 or its name, a known kind, an integer cap, then `questionInputSchema` (`packages/validation/onboarding-import.ts`) | «این علاقه‌مندی از قبل در همین دسته هست» / «بخش «…» شناخته نشد» / «دست‌کم دو گزینه لازم است» |
 | Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
 | Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; matching: one distinct match per prompt, in the prompts' order; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
@@ -2600,7 +2679,7 @@ app background; re-export them all when the master changes.
   pass.
 - **Uploads:** a library file is taken only when its own bytes are one of
   the six formats (an SVG, GIF or HTML file renamed is refused), and only up
-  to 250 KB; it is stored under a name the API makes, never one a client
+  to 512 KB (an image) or 250 KB (a motion); it is stored under a name the API makes, never one a client
   sent, and served with `nosniff` and a sandboxing CSP, so it is only ever
   an image, a video or animation data. Lottie is drawn without its
   expression engine — an uploaded animation never runs code.
@@ -2684,6 +2763,7 @@ app background; re-export them all when the master changes.
 | World CMS — e2e tests (phase 5) | Done | `worlds.spec` (home banner → world, featured order, empty section, tabs, article and back, unpublishing), `competition.spec` (one try, place, board, answers after the end), `admin-worlds.spec` (draft → published world, menu, article from the world's tab, featured, preview, content filter) — at 390×844 and 1440×900 |
 | World CMS — product screens (phase 3) | Done | `/worlds/:slug` with theme, tabs and home; `/articles/:slug`; home banners linking to published worlds; previews for the panel; return after sign-in — §4.3, §4.10 |
 | Trivia explanations, competitions and leaderboard (phase 4) | Done — apply `0021` | Explanations and answer reveal for knowledge quizzes; «مسابقه» — one try in a window, ranked by score then time, leaderboard in the product and the panel — §4.7 |
+| Places — a world's map, places pinned on it (two layers), tasks at each | Done — apply `0025`, `0026`, then `0027` | Images and pins, no 3D; map at the top of the world's home — §4.12. Images in the library may be 512 KB |
 | Community and its moderation | Medium | No community exists in the product; moderation comes with it |
 | Play, commerce | Medium | Module skeletons exist on both sides |
 | Admin sign-in and user management | Done | OTP sign-in limited to active admins; create, edit, (de)activate and delete at `/users` in `apps/admin` — see §4.6 |

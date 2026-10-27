@@ -21,17 +21,20 @@ import { minutesLabel, STATUS_LABELS, worldLabel } from '../utils/activity';
 export function ActivityCard({
   card,
   withWorld = true,
+  href = `/activities/${card.id}`,
   className,
 }: {
   card: ActivityCardData;
   withWorld?: boolean;
+  /** Where it opens: the player, by default; from a place, the player with the way back to it. */
+  href?: string;
   className?: string;
 }) {
   const world = withWorld ? worldLabel(card.worlds) : null;
 
   return (
     <Link
-      href={`/activities/${card.id}`}
+      href={href}
       className={cn(
         'flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 outline-none transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring',
         className

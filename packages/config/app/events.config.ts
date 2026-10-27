@@ -132,7 +132,7 @@ export const EVENTS_PAGE_SIZE = 20;
  * The shape the product draws each event and world image at — the product's
  * boxes are these ratios, filled and cropped to them. The panel says the
  * size when a file is chosen, previews the crop, and warns when a file's
- * proportions or width do not fit. All are within the library's 250 KB.
+ * proportions or width do not fit. All are within the library's 512 KB for an image.
  */
 export const IMAGE_FRAMES = {
   /** An event's cover and gallery: the card and the top of its page, 16:9. */

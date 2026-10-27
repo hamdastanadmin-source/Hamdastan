@@ -171,8 +171,8 @@ describe.skipIf(!hasDatabase)('the media library against a migrated database', (
     }
   });
 
-  it('takes a file of exactly 250 KB and refuses one byte more', async () => {
-    const atLimit = Buffer.concat([PNG, Buffer.alloc(MEDIA_LIMITS.MAX_BYTES - PNG.length)]);
+  it('takes an image of exactly 512 KB and refuses one byte more', async () => {
+    const atLimit = Buffer.concat([PNG, Buffer.alloc(MEDIA_LIMITS.IMAGE_MAX_BYTES - PNG.length)]);
     expect((await upload(atLimit)).statusCode).toBe(201);
     const over = await upload(Buffer.concat([atLimit, Buffer.alloc(1)]));
     expect([400, 413]).toContain(over.statusCode);

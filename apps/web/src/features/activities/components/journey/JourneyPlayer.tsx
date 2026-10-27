@@ -18,6 +18,7 @@ import { QuestionImage } from '../QuestionImage';
 import { DayCover } from './DayCover';
 import { DayEndScreen } from './DayEndScreen';
 import { DayReview } from './DayReview';
+import type { ActivityExit } from '../../utils/exit';
 import { JourneyOverview } from './JourneyOverview';
 import { MotionOverlay } from './MotionOverlay';
 import { ResultScreen } from './ResultScreen';
@@ -39,7 +40,7 @@ const STALE = new Set<string>([
  * invitation. What is open, what was paid and when the next day opens are
  * the API's answers, never this screen's guesses.
  */
-export function JourneyPlayer({ activity, preview }: { activity: PlayerActivity; preview?: JourneyPlayerOptions }) {
+export function JourneyPlayer({ activity, preview, exit }: { activity: PlayerActivity; preview?: JourneyPlayerOptions; exit?: ActivityExit }) {
   const router = useRouter();
   const player = useJourneyPlayer(activity, preview);
   const name = useAuthOptional()?.firstName ?? null;
@@ -188,6 +189,7 @@ export function JourneyPlayer({ activity, preview }: { activity: PlayerActivity;
       readable={readable}
       onOpenDay={player.openDay}
       onOpenResult={player.journey.result ? player.openResult : null}
+      exit={exit}
     />
   );
 }

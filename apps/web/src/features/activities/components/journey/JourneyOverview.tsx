@@ -11,6 +11,7 @@ import { Badge, Button, Progress } from '@hamdastan/ui';
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle, XpAmount } from '@/components';
 import { RewardChip } from '@/features/profile';
 
+import type { ActivityExit } from '../../utils/exit';
 import { useClock } from '../../hooks/use-clock';
 import { countdownLabel, opensLabel } from '../../utils/journey';
 
@@ -45,6 +46,7 @@ export function JourneyOverview({
   readable,
   onOpenDay,
   onOpenResult,
+  exit,
 }: {
   activity: PlayerActivity;
   journey: PlayerJourney;
@@ -53,6 +55,7 @@ export function JourneyOverview({
   onOpenDay: (id: string) => void;
   /** A finished journey's character card, when it has one. */
   onOpenResult: (() => void) | null;
+  exit?: ActivityExit;
 }) {
   const router = useRouter();
   const now = useClock(journey.nextUnlockAt, () => router.refresh());
@@ -64,7 +67,7 @@ export function JourneyOverview({
   return (
     <Screen>
       <ScreenHeader>
-        <ScreenBack href="/activities" />
+        <ScreenBack href={exit?.href ?? '/activities'} label={exit?.label} />
       </ScreenHeader>
       <ScreenBody className="gap-6 pt-2">
         <div className="flex flex-wrap items-center gap-2">

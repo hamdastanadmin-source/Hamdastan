@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
+import { MEDIA_KIND_LABELS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { MediaAsset, MediaCategory, MediaKind } from '@hamdastan/types';
 import {
@@ -67,7 +69,9 @@ export function MediaPicker({
 
   const added = (asset: MediaAsset) => {
     library.reload();
-    if (!kind || asset.kind === kind) toggle(asset.id);
+    if (!kind || asset.kind === kind) return toggle(asset.id);
+    // Kept in the library, but it cannot go here — say so rather than leave the upload looking lost.
+    toast.error(`این فایل ${MEDIA_KIND_LABELS[asset.kind]} است و این بخش فقط ${MEDIA_KIND_LABELS[kind]} می‌پذیرد؛ فایل در کتابخانه ذخیره شد.`);
   };
 
   return (
@@ -142,7 +146,7 @@ export function MediaPicker({
         </DialogContent>
       </Dialog>
 
-      <MediaUploadDialog open={uploading} onOpenChange={setUploading} defaultCategory={category} onDone={added} />
+      <MediaUploadDialog open={uploading} onOpenChange={setUploading} defaultCategory={category} kind={kind} onDone={added} />
     </>
   );
 }

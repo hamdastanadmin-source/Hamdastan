@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { MEDIA_FORMATS, MEDIA_LIMITS } from '@hamdastan/config';
+import { MEDIA_FORMATS, MEDIA_KIND_LABELS as KIND_LABELS, MEDIA_LIMITS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import {
   MEDIA_ERROR_CODES as CODES,
@@ -22,8 +22,9 @@ import { storageKey, type MediaFile, type MediaListQuery, type MediaListRecord, 
 /**
  * Business logic for the media & motion library.
  *
- * Every file is checked here before a byte is kept: at most 250 KB, and one
- * of the six formats — decided from its bytes. Its row and its file are kept
+ * Every file is checked here before a byte is kept: one of the library's
+ * formats — decided from its bytes — and within its kind's size: 512 KB for
+ * an image, 250 KB for a motion. Its row and its file are kept
  * apart (the row in the database, the bytes in `MediaStorage`), so each
  * write orders them to leave nothing behind on failure: the file is written
  * first under a key nobody refers to yet, and removed again if the row is
@@ -44,17 +45,20 @@ function store(): MediaStorage {
 
 const notFound = () => new NotFoundError('فایل پیدا نشد');
 
+const maxBytes = (kind: MediaKind) => (kind === 'image' ? MEDIA_LIMITS.IMAGE_MAX_BYTES : MEDIA_LIMITS.MAX_BYTES);
+
+const tooLarge = (kind: MediaKind) =>
+  new AppError(
+    413,
+    CODES.MEDIA_TOO_LARGE,
+    `حجم ${KIND_LABELS[kind]} باید حداکثر ${toPersianDigits(maxBytes(kind) / 1024)} کیلوبایت باشد`
+  );
+
 /** The file's facts, or why it is not taken. */
 function readFile(base64: string): { file: MediaFile; bytes: Buffer } {
   const bytes = Buffer.from(base64, 'base64');
   if (bytes.length === 0) throw new AppError(400, CODES.MEDIA_UNSUPPORTED, 'فایل خالی است');
-  if (bytes.length > MEDIA_LIMITS.MAX_BYTES) {
-    throw new AppError(
-      413,
-      CODES.MEDIA_TOO_LARGE,
-      `حجم فایل باید حداکثر ${toPersianDigits(MEDIA_LIMITS.MAX_BYTES / 1024)} کیلوبایت باشد`
-    );
-  }
+  if (bytes.length > MEDIA_LIMITS.IMAGE_MAX_BYTES) throw tooLarge('image');
   const format = sniffMedia(bytes);
   if (!format) {
     throw new AppError(
@@ -63,8 +67,10 @@ function readFile(base64: string): { file: MediaFile; bytes: Buffer } {
       'فقط تصویر PNG، JPEG و WebP یا موشن Lottie (JSON)، WebM و MP4 پذیرفته می‌شود'
     );
   }
+  const kind = MEDIA_FORMATS[format].kind;
+  if (bytes.length > maxBytes(kind)) throw tooLarge(kind);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  return { bytes, file: { kind: MEDIA_FORMATS[format].kind, format, sizeBytes: bytes.length, sha256 } };
+  return { bytes, file: { kind, format, sizeBytes: bytes.length, sha256 } };
 }
 
 function toAsset(record: MediaListRecord): MediaAsset {
@@ -123,7 +129,7 @@ export const mediaService = {
       throw new AppError(
         409,
         CODES.MEDIA_KIND_CHANGED,
-        current.kind === 'image' ? 'تصویر فقط با تصویر جایگزین می‌شود' : 'موشن فقط با موشن جایگزین می‌شود'
+        `${KIND_LABELS[current.kind]} فقط با ${KIND_LABELS[current.kind]} جایگزین می‌شود`
       );
     }
 

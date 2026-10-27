@@ -34,7 +34,8 @@ export const WORLD_THEME_LABELS: Record<WorldThemeId, string> = {
 /**
  * A world's menu — the bar at the bottom of its pages. `home` is always first
  * and always on; `activities` is the admin's to label or switch off. News,
- * knowledge and events are not menus: they are sections of the home.
+ * knowledge and events are not menus: they are sections of the home, and so
+ * is the world's map (its places).
  */
 export const WORLD_SECTIONS = ['home', 'activities'] as const;
 export type WorldSectionId = (typeof WORLD_SECTIONS)[number];

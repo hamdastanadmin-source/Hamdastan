@@ -154,12 +154,13 @@ export const RESULT_CARD = { WIDTH: 1080, HEIGHT: 1920, BRAND: 'هم‌داست�
 export const JOURNEY_TIMEZONES = ['Asia/Tehran', 'UTC', 'Asia/Dubai', 'Europe/Istanbul', 'Europe/London'] as const;
 
 /**
- * The media & motion library: journey covers, question images, mascots and
- * motions. Every file — image or motion — is at most 250 KB, and its type is
- * read from its bytes, never from its name.
+ * The media & motion library: journey covers, question images, mascots,
+ * motions and places' maps. An image is at most 512 KB, a motion at most
+ * 250 KB; a file's type is read from its bytes, never from its name.
  */
 export const MEDIA_LIMITS = {
   MAX_BYTES: 250 * 1024,
+  IMAGE_MAX_BYTES: 512 * 1024,
   NAME_MAX: 120,
   PAGE_SIZE: 60,
 } as const;
@@ -176,10 +177,19 @@ export const MEDIA_FORMATS = {
 export type MediaFormatId = keyof typeof MEDIA_FORMATS;
 
 /** What a file input offers; the API still reads the bytes. */
-export const MEDIA_ACCEPT = 'image/png,image/jpeg,image/webp,application/json,.json,video/webm,video/mp4';
+export const MEDIA_ACCEPT_BY_KIND = {
+  image: 'image/png,image/jpeg,image/webp',
+  motion: 'application/json,.json,video/webm,video/mp4',
+} as const;
+
+/** Every kind at once — the library's own upload, where any file may go. */
+export const MEDIA_ACCEPT = Object.values(MEDIA_ACCEPT_BY_KIND).join(',');
+
+/** What each kind is called, wherever a file of the wrong kind needs a word. */
+export const MEDIA_KIND_LABELS = { image: 'تصویر', motion: 'موشن' } as const;
 
 /** The library's shelves — an admin's choice, for finding a file again. */
-export const MEDIA_CATEGORIES = ['mascot', 'cover', 'question', 'answer_motion', 'celebration', 'result', 'other'] as const;
+export const MEDIA_CATEGORIES = ['mascot', 'cover', 'question', 'answer_motion', 'celebration', 'result', 'place', 'other'] as const;
 export type MediaCategoryId = (typeof MEDIA_CATEGORIES)[number];
 
 export const MEDIA_CATEGORY_LABELS: Record<MediaCategoryId, string> = {
@@ -189,6 +199,7 @@ export const MEDIA_CATEGORY_LABELS: Record<MediaCategoryId, string> = {
   answer_motion: 'موشن پاسخ',
   celebration: 'جشن و پایان',
   result: 'کارت نتیجه',
+  place: 'مکان‌ها',
   other: 'سایر',
 };
 

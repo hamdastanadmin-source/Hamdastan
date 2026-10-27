@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CalendarDays, FileText, Globe, Images, ListChecks, LogOut, MonitorSmartphone, Sparkles, Users, type LucideIcon } from 'lucide-react';
+import { Bell, CalendarDays, FileText, Globe, Images, ListChecks, LogOut, MapPinned, MonitorSmartphone, Sparkles, Users, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { AdminUser } from '@hamdastan/types';
@@ -36,6 +36,7 @@ const ICONS: Record<(typeof SECTIONS)[number]['href'], LucideIcon> = {
   '/engagement': Sparkles,
   '/events': CalendarDays,
   '/worlds': Globe,
+  '/places': MapPinned,
   '/content': FileText,
   '/notifications': Bell,
   '/onboarding': ListChecks,

@@ -305,6 +305,26 @@ column v2_otp_sends.id bigint nullable=NO default=nextval('v2_otp_sends_id_seq':
 column v2_otp_sends.ip inet nullable=YES default=
 column v2_otp_sends.phone character varying nullable=NO default=
 column v2_otp_sends.sent_at timestamp with time zone nullable=NO default=now()
+column v2_place_activities.activity_id uuid nullable=NO default=
+column v2_place_activities.place_id uuid nullable=NO default=
+column v2_place_activities.position integer nullable=NO default=0
+column v2_places.created_at timestamp with time zone nullable=NO default=now()
+column v2_places.created_by uuid nullable=YES default=
+column v2_places.depth smallint nullable=NO default=
+column v2_places.id uuid nullable=NO default=gen_random_uuid()
+column v2_places.image_media_id uuid nullable=YES default=
+column v2_places.name character varying nullable=NO default=
+column v2_places.parent_depth smallint nullable=YES default=
+column v2_places.parent_id uuid nullable=YES default=
+column v2_places.pin_x numeric nullable=NO default=50
+column v2_places.pin_y numeric nullable=NO default=50
+column v2_places.position integer nullable=NO default=0
+column v2_places.published_at timestamp with time zone nullable=YES default=
+column v2_places.status character varying nullable=NO default='draft'::character varying
+column v2_places.summary character varying nullable=NO default=''::character varying
+column v2_places.updated_at timestamp with time zone nullable=NO default=now()
+column v2_places.updated_by uuid nullable=YES default=
+column v2_places.world_id uuid nullable=NO default=
 column v2_push_subscriptions.auth character varying nullable=NO default=
 column v2_push_subscriptions.created_at timestamp with time zone nullable=NO default=now()
 column v2_push_subscriptions.endpoint character varying nullable=NO default=
@@ -559,12 +579,12 @@ constraint v2_journey_day_completions v2_journey_day_completions_pkey PRIMARY KE
 constraint v2_journey_results v2_journey_results_participation FOREIGN KEY (activity_id, user_id) REFERENCES v2_engagement_participations(activity_id, user_id) ON DELETE CASCADE
 constraint v2_journey_results v2_journey_results_pkey PRIMARY KEY (activity_id, user_id)
 constraint v2_journey_results v2_journey_results_version_id_fkey FOREIGN KEY (version_id) REFERENCES v2_engagement_versions(id) ON DELETE CASCADE
-constraint v2_media_assets v2_media_assets_category CHECK (((category)::text = ANY ((ARRAY['mascot'::character varying, 'cover'::character varying, 'question'::character varying, 'answer_motion'::character varying, 'celebration'::character varying, 'result'::character varying, 'other'::character varying])::text[])))
+constraint v2_media_assets v2_media_assets_category CHECK (((category)::text = ANY ((ARRAY['mascot'::character varying, 'cover'::character varying, 'question'::character varying, 'answer_motion'::character varying, 'celebration'::character varying, 'result'::character varying, 'place'::character varying, 'other'::character varying])::text[])))
 constraint v2_media_assets v2_media_assets_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_media_assets v2_media_assets_format CHECK (((format)::text = ANY ((ARRAY['png'::character varying, 'jpeg'::character varying, 'webp'::character varying, 'lottie'::character varying, 'webm'::character varying, 'mp4'::character varying])::text[])))
 constraint v2_media_assets v2_media_assets_kind_format CHECK ((((kind = 'image'::v2_media_kind) AND ((format)::text = ANY ((ARRAY['png'::character varying, 'jpeg'::character varying, 'webp'::character varying])::text[]))) OR ((kind = 'motion'::v2_media_kind) AND ((format)::text = ANY ((ARRAY['lottie'::character varying, 'webm'::character varying, 'mp4'::character varying])::text[])))))
 constraint v2_media_assets v2_media_assets_pkey PRIMARY KEY (id)
-constraint v2_media_assets v2_media_assets_size CHECK (((size_bytes > 0) AND (size_bytes <= 256000)))
+constraint v2_media_assets v2_media_assets_size CHECK (((size_bytes > 0) AND ((size_bytes <= 256000) OR ((kind = 'image'::v2_media_kind) AND (size_bytes <= 524288)))))
 constraint v2_media_assets v2_media_assets_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
 constraint v2_media_assets v2_media_assets_version CHECK ((version > 0))
 constraint v2_notification_audit_log v2_notification_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES v2_admin_users(id) ON DELETE SET NULL
@@ -595,6 +615,21 @@ constraint v2_otp_challenges v2_otp_challenges_pkey PRIMARY KEY (phone)
 constraint v2_otp_failures v2_otp_failures_failures CHECK ((failures >= 0))
 constraint v2_otp_failures v2_otp_failures_pkey PRIMARY KEY (phone)
 constraint v2_otp_sends v2_otp_sends_pkey PRIMARY KEY (id)
+constraint v2_place_activities v2_place_activities_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES v2_engagement_activities(id) ON DELETE CASCADE
+constraint v2_place_activities v2_place_activities_pkey PRIMARY KEY (place_id, activity_id)
+constraint v2_place_activities v2_place_activities_place_id_fkey FOREIGN KEY (place_id) REFERENCES v2_places(id) ON DELETE CASCADE
+constraint v2_places v2_places_created_by_fkey FOREIGN KEY (created_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_places v2_places_depth_range CHECK (((depth >= 0) AND (depth <= 2)))
+constraint v2_places v2_places_identity UNIQUE (id, world_id, depth)
+constraint v2_places v2_places_image_media_id_fkey FOREIGN KEY (image_media_id) REFERENCES v2_media_assets(id)
+constraint v2_places v2_places_layer CHECK ((((parent_id IS NULL) AND (parent_depth IS NULL) AND (depth = 0)) OR ((parent_id IS NOT NULL) AND (parent_depth IS NOT NULL) AND (depth = (parent_depth + 1)))))
+constraint v2_places v2_places_parent FOREIGN KEY (parent_id, world_id, parent_depth) REFERENCES v2_places(id, world_id, depth)
+constraint v2_places v2_places_pin_x CHECK (((pin_x >= (0)::numeric) AND (pin_x <= (100)::numeric)))
+constraint v2_places v2_places_pin_y CHECK (((pin_y >= (0)::numeric) AND (pin_y <= (100)::numeric)))
+constraint v2_places v2_places_pkey PRIMARY KEY (id)
+constraint v2_places v2_places_status CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'published'::character varying])::text[])))
+constraint v2_places v2_places_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES v2_admin_users(id) ON DELETE SET NULL
+constraint v2_places v2_places_world_id_fkey FOREIGN KEY (world_id) REFERENCES v2_worlds(id)
 constraint v2_push_subscriptions v2_push_subscriptions_endpoint UNIQUE (endpoint)
 constraint v2_push_subscriptions v2_push_subscriptions_pkey PRIMARY KEY (id)
 constraint v2_push_subscriptions v2_push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
@@ -666,7 +701,7 @@ enum v2_event_status draft,published,unpublished,cancelled,archived
 enum v2_event_type physical,online,hybrid
 enum v2_event_visibility public,world,restricted
 enum v2_gender MALE,FEMALE
-enum v2_media_kind image,motion
+enum v2_media_kind image,motion,model
 enum v2_notification_campaign_status draft,scheduled,sending,sent,cancelled,failed,archived
 enum v2_notification_delivery_status queued,sent,failed,cancelled
 enum v2_onboarding_step basic_info,onboarding,done
@@ -771,6 +806,12 @@ index v2_otp_failures_window CREATE INDEX v2_otp_failures_window ON public.v2_ot
 index v2_otp_sends_ip_window CREATE INDEX v2_otp_sends_ip_window ON public.v2_otp_sends USING btree (ip, sent_at DESC)
 index v2_otp_sends_phone_window CREATE INDEX v2_otp_sends_phone_window ON public.v2_otp_sends USING btree (phone, sent_at DESC)
 index v2_otp_sends_pkey CREATE UNIQUE INDEX v2_otp_sends_pkey ON public.v2_otp_sends USING btree (id)
+index v2_place_activities_activity CREATE INDEX v2_place_activities_activity ON public.v2_place_activities USING btree (activity_id)
+index v2_place_activities_pkey CREATE UNIQUE INDEX v2_place_activities_pkey ON public.v2_place_activities USING btree (place_id, activity_id)
+index v2_places_identity CREATE UNIQUE INDEX v2_places_identity ON public.v2_places USING btree (id, world_id, depth)
+index v2_places_parent_idx CREATE INDEX v2_places_parent_idx ON public.v2_places USING btree (parent_id)
+index v2_places_pkey CREATE UNIQUE INDEX v2_places_pkey ON public.v2_places USING btree (id)
+index v2_places_world CREATE INDEX v2_places_world ON public.v2_places USING btree (world_id, depth, "position")
 index v2_push_subscriptions_endpoint CREATE UNIQUE INDEX v2_push_subscriptions_endpoint ON public.v2_push_subscriptions USING btree (endpoint)
 index v2_push_subscriptions_pkey CREATE UNIQUE INDEX v2_push_subscriptions_pkey ON public.v2_push_subscriptions USING btree (id)
 index v2_push_subscriptions_user CREATE INDEX v2_push_subscriptions_user ON public.v2_push_subscriptions USING btree (user_id)

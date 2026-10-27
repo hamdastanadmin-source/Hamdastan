@@ -13,3 +13,4 @@ export {
 } from './session-handoff';
 export { NEXT_STEP_PATH } from './next-step-path';
 export { shareInvite, type ShareOutcome } from './share';
+export { placeActivityPath, placeParam, placePath } from './place-path';
