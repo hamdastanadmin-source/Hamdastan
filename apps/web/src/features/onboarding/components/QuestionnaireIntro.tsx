@@ -1,6 +1,3 @@
-import { Clock } from 'lucide-react';
-
-import { QUESTIONNAIRE_DURATION_LABEL } from '@hamdastan/config';
 import { Button } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
@@ -11,9 +8,9 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
 
 /**
  * The questionnaire's door. It frames what follows as getting to know the
- * person — never as a test, and never with a question count. The only
- * number is the time it takes. The four empty dots are the four short
- * chapters ahead; each fills as one ends.
+ * person — never as a test, and never with a question count or a time
+ * estimate. The four empty dots are the four short chapters ahead; each
+ * fills as one ends.
  *
  * On a first visit the text writes itself in a word at a time, at the same
  * pace as the onboarding intro, and the actions arrive once it has finished.
@@ -32,16 +29,14 @@ import { ARRIVE_AFTER_STREAM, STREAM_PACE, StreamedText, streamSequence } from '
 const TITLE = 'ترجیحاتت رو بهتر بشناسیم';
 const BODY = 'چند انتخاب کوتاه داریم تا بفهمیم چه آدم‌ها، گروه‌ها و تجربه‌هایی بیشتر بهت می‌خورن.';
 const NOTE = 'جواب درست یا غلطی وجود نداره؛ فقط چیزی رو انتخاب کن که بیشتر شبیه خودته.';
-const DURATION = QUESTIONNAIRE_DURATION_LABEL;
 
 const {
-  starts: [TITLE_START, BODY_START, NOTE_START, DURATION_START],
+  starts: [TITLE_START, BODY_START, NOTE_START],
   endMs: ACTION_START,
 } = streamSequence([
   { text: TITLE, stepMs: STREAM_PACE.titleStepMs },
   { text: BODY, stepMs: STREAM_PACE.bodyStepMs },
   { text: NOTE, stepMs: STREAM_PACE.noteStepMs },
-  { text: DURATION, stepMs: STREAM_PACE.noteStepMs },
 ]);
 
 export function QuestionnaireIntro({
@@ -77,16 +72,6 @@ export function QuestionnaireIntro({
 
         <p className="text-sm leading-relaxed text-muted-foreground">
           {text(NOTE, NOTE_START, STREAM_PACE.noteStepMs)}
-        </p>
-
-        <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          {/* The icon arrives with its words, not before them. */}
-          <Clock
-            aria-hidden="true"
-            className={stream ? 'size-3.5 animate-in fade-in duration-300 fill-mode-backwards motion-reduce:animate-none' : 'size-3.5'}
-            style={stream ? { animationDelay: `${DURATION_START}ms` } : undefined}
-          />
-          <span>{text(DURATION, DURATION_START, STREAM_PACE.noteStepMs)}</span>
         </p>
 
         {/* It arrives with the actions, once the text has finished. */}

@@ -242,7 +242,7 @@ Twenty questions that must not feel like twenty: «ترجیحاتت رو بهت�
 then four short chapters of one decision per screen. The screen never shows a
 question count — only «داریم بیشتر می‌شناسیمت» over a continuous bar.
 
-- **Journey.** Intro («حدود ۵ دقیقه», «شروع کنیم», «بعداً انجام می‌دم») →
+- **Journey.** Intro (no time estimate; «شروع کنیم», «بعداً انجام می‌دم») →
   Section 1 *Social energy* (Q2, Q4, Q5, Q19, Q3) → reward (25%) → Section 2
   *Connection style* (Q6, Q7, Q18, Q20, Q1, then Q1's ranking) → reward
   (50%) → Section 3 *Experience style* (Q8, Q9, Q11, Q12, Q13) → reward

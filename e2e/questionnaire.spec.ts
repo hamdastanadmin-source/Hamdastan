@@ -81,8 +81,8 @@ test('the whole questionnaire, with back, edit, resume and leave', async ({ page
   }
   await next(page).click();
   await expect(heading(page, 'ترجیحاتت رو بهتر بشناسیم')).toBeVisible();
-  await expect(page.getByText('حدود ۵ دقیقه')).toBeVisible();
-  // No question count anywhere.
+  // No question count and no time estimate.
+  await expect(page.getByText('حدود ۵ دقیقه')).toHaveCount(0);
   await expect(page.getByText(/از ۲۰|۲۰ سؤال/)).toHaveCount(0);
 
   await page.getByRole('button', { name: 'شروع کنیم' }).click();
