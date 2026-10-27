@@ -226,6 +226,15 @@ has its own back to this screen.
   interest's category itself, replaces the saved set and marks stage 1
   finished. The page reads the saved set on the server, so coming back shows
   the earlier picks. A successful save goes on to stage 2.
+- **Editing later — `/profile/edit/interests`.** After onboarding the same
+  picker opens from «ویرایش پروفایل» (row «علاقه‌مندی‌ها»): the same cards,
+  chips, brand exception and three-category rule, under the title
+  «علاقه‌مندی‌ها», with the back button to `/profile/edit`. The footer's
+  ready line reads «n علاقه‌مندی از m دسته» and the button is «ذخیره
+  تغییرات». It sends the same `PUT /me/onboarding/interests` — the API never
+  lowers the onboarding stage on a re-save — then returns to the edit list
+  with «ذخیره شد». The social profile's «دنیای مورد علاقه تو» is built from
+  the saved set at read time, so it follows the edit.
 
 **Stage 2, the social questionnaire — `/onboarding/questionnaire`.**
 
@@ -562,7 +571,8 @@ missions are no longer listed on the profile.
 
 **Edit profile — `/profile/edit`.** Opened from «حساب» on the profile
 home; its back button returns there. A list, not a form: «اطلاعات اصلی» (نام,
-نام کاربری, شهر), «درباره من · اختیاری» (بیو) and «شبکه‌های اجتماعی ·
+نام کاربری, شهر, علاقه‌مندی‌ها — «n انتخاب»; this row opens its own screen,
+`/profile/edit/interests`, §stage 1, rather than a sheet), «درباره من · اختیاری» (بیو) and «شبکه‌های اجتماعی ·
 اختیاری» (اینستاگرام, تلگرام, لینکدین — each shown as `@handle`). Each row
 opens a bottom sheet with that one field, a line of help, «ذخیره تغییرات»
 (primary) and «انصراف». A taken username is shown under the field. First

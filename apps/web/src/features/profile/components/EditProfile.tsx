@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { AtSign, FileText, Instagram, Linkedin, MapPin, Send, UserRound } from 'lucide-react';
+import { AtSign, FileText, Heart, Instagram, Linkedin, MapPin, Send, UserRound } from 'lucide-react';
 
 import type { AccountProfile } from '@hamdastan/types';
+import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
 import { Screen, ScreenBack, ScreenBody, ScreenHeader, ScreenTitle } from '@/components';
 
@@ -26,8 +27,11 @@ const SOCIAL_ROWS = [
  *
  * Only the fields the product uses. Name, birth date and gender were given
  * at sign-up and are not edited here.
+ *
+ * Interests are onboarding stage 1's picks; their row opens that picker as
+ * its own screen (`/profile/edit/interests`) — too long for a sheet.
  */
-export function EditProfile({ profile }: { profile: AccountProfile }) {
+export function EditProfile({ profile, interestCount }: { profile: AccountProfile; interestCount: number }) {
   const [editing, setEditing] = useState<ProfileField | null>(null);
   const empty = <span className="text-muted-foreground/70">اضافه کن</span>;
 
@@ -49,6 +53,12 @@ export function EditProfile({ profile }: { profile: AccountProfile }) {
             onClick={() => setEditing('username')}
           />
           <ListRow icon={MapPin} label="شهر" value={profile.city ?? empty} onClick={() => setEditing('city')} />
+          <ListRow
+            icon={Heart}
+            label="علاقه‌مندی‌ها"
+            value={interestCount > 0 ? `${toPersianDigits(interestCount)} انتخاب` : empty}
+            href="/profile/edit/interests"
+          />
         </ListGroup>
 
         <ListGroup title="درباره من · اختیاری">

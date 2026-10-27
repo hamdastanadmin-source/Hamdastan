@@ -6,13 +6,18 @@ import type { InterestCategory } from '@hamdastan/config';
 import type { OnboardingInterests } from '@hamdastan/types';
 import { interestCategoryIndex } from '@hamdastan/validation';
 
-import { onboardingService } from '@/services';
+import { HttpError, onboardingService } from '@/services';
 
 import {
   canContinueInterests,
   selectedCategoryCount,
   withCategorySelection,
 } from '../utils/interest-selection';
+
+export function interestSaveErrorMessage(error: unknown): string {
+  // The API answers in Persian; only "never arrived" needs our wording.
+  return error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.';
+}
 
 /**
  * Stage 1's state: one set of selected ids, and everything else derived

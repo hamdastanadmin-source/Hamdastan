@@ -11,20 +11,27 @@ import { ScreenFooter } from '@/components';
  * The status is a polite live region: it changes with every category the
  * person completes, and a screen-reader user should hear «۲ از ۳ دسته» as
  * it happens without losing their place among the chips.
+ *
+ * `label` and `readyText` default to stage 1's wording; «ویرایش
+ * علاقه‌مندی‌ها» passes its own.
  */
 export function OnboardingBottomCTA({
   selectedCategoryCount,
   canContinue,
   isSaving,
   onContinue,
+  label = 'ادامه',
+  readyText = 'عالیه! حالا می‌تونی بری مرحله‌ی بعد',
 }: {
   selectedCategoryCount: number;
   canContinue: boolean;
   isSaving: boolean;
   onContinue: () => void;
+  label?: string;
+  readyText?: string;
 }) {
   const status = canContinue
-    ? 'عالیه! حالا می‌تونی بری مرحله‌ی بعد'
+    ? readyText
     : `${toPersianDigits(selectedCategoryCount)} از ${toPersianDigits(MIN_INTEREST_CATEGORIES)} دسته انتخاب شده`;
 
   return (
@@ -48,7 +55,7 @@ export function OnboardingBottomCTA({
         loading={isSaving}
         onClick={onContinue}
       >
-        ادامه
+        {label}
       </Button>
     </ScreenFooter>
   );

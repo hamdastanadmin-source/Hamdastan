@@ -188,7 +188,10 @@ nothing), the home header's `NotificationBell`, and the settings screen with
 this device's push subscription. Subscribing is the browser's own
 `PushManager`; the subscription goes to `apps/api` and nowhere else. The
 settings rows (`ListGroup`, `ListRow`, `SettingSwitch`) are borrowed from
-`@/features/profile`'s public surface.
+`@/features/profile`'s public surface. The other way round, `/profile/edit/interests`
+renders `EditInterests` from `@/features/onboarding`: the interest picker
+(`InterestCategoryList`) and its rule belong to the feature that owns stage 1,
+so profile borrows the screen rather than a copy of it.
 
 A feature grows the directories it needs and no others:
 
