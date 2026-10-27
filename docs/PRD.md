@@ -922,12 +922,18 @@ duplicate (a new draft, «(کپی)», no dates), and the status moves.
 - **Questions from Excel.** «ورود از اکسل» in the question list: download the
   template (`.xlsx`, right-to-left, bold headers, one example row per kind),
   fill it, choose it. Columns are recognised by their header, in any order:
-  نوع، متن سؤال (required)، توضیح، الزامی (بله/خیر, default بله)، گزینه‌ها
-  (separated by `|`; matching: `مورد = جفت | …`)، حداکثر انتخاب، پاسخ درست (knowledge: an option's text
-  or number)، امتیاز گزینه‌ها (personality, `|`-separated)، بازه (rating 5 or
-  10; scale `1-5`)، برچسب ابتدا/انتها، بُعد (personality: matched by title,
-  or created; a choice row's scores go to that one dimension — further
-  dimensions are added in the builder's matrix)، معکوس، مرحله (mission: matched by title, or created). Every
+  نوع، متن سؤال (required)، توضیح، الزامی (بله/خیر, default بله)، گزینه ۱ …
+  گزینه ۱۲ (one option per column, a blank column skipped; matching: one
+  `مورد = جفت` pair per column)، حداکثر انتخاب، پاسخ درست (knowledge: an
+  option's text or number)، امتیاز گزینه ۱ … ۱۲ (personality: the option in
+  the column of the same number — a bare number toward the row's «بُعد», or
+  `بُعد = امتیاز | بُعد = امتیاز` toward named dimensions, so one option can
+  score several, as in the builder's matrix; −10…10; a choice row needs at
+  least one non-zero score)، بازه (rating 5 or 10; scale `1-5`)، برچسب
+  ابتدا/انتها، بُعد (personality: required for rating and scale; every
+  dimension a row names is matched by title, or created)، معکوس (rating and
+  scale)، مرحله (mission: matched by title, or created). The dialog explains
+  a numbered run of columns once. Every
   row is checked with the same rules as the builder and listed — its
   question, or its errors by row number; only valid rows are added, after
   the questions already there (a new activity's untouched starter question
@@ -2554,7 +2560,7 @@ against the same objects, including the Persian messages.
 | Journey | A start is required, the end is derived; 1–90 days, each titled, ≤ 1000 questions; a known time zone; per-answer and per-day XP 0–1000; a cover's button text required and its colour `#rrggbb`; motions 0.5–5 s, a random set 2–12 files, every file id in the library (an image where an image goes); with results on: ≥ 1 character, a default, one character per trait, option points −10…10 for traits that exist (`packages/validation/engagement.ts`, `media.ts`) | «زمان شروع کمپین رو مشخص کن» / «نتیجه‌ی پیش‌فرض رو انتخاب کن» / … |
 | Media file | an image ≤ 512 KB, a motion ≤ 250 KB; PNG, JPEG, WebP, Lottie JSON, WebM or MP4 by its bytes; a name 1–120 characters; a known shelf (`packages/validation/media.ts`, `apps/api/src/modules/media/media.sniff.ts`) | «حجم تصویر باید حداکثر ۵۱۲ کیلوبایت باشد» (موشن ۲۵۰) / «فقط تصویر PNG، JPEG و WebP یا موشن …» |
 | Onboarding import row | Interests: «علاقه‌مندی» header; both cells, ≤ 80 characters, not already in that category nor repeated in the file. Questions: «متن سؤال» header; a section 1–4 or its name, a known kind, an integer cap, then `questionInputSchema` (`packages/validation/onboarding-import.ts`) | «این علاقه‌مندی از قبل در همین دسته هست» / «بخش «…» شناخته نشد» / «دست‌کم دو گزینه لازم است» |
-| Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, options, answer key, scores and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
+| Question import row | The «متن سؤال» header must exist; each row's kind, yes/no cells, option columns, answer key, per-option scores (number, or `بُعد = امتیاز`, −10…10) and range are read, then checked with `activityQuestionSchema` (`packages/validation/engagement-import.ts`) | «نوع «…» شناخته نشد» / «پاسخ درست «…» بین گزینه‌ها نیست» / … |
 | Activity answer | By question kind: an option of the question; distinct options within the cap; text ≤ 2000; an integer in the rating or scale range; matching: one distinct match per prompt, in the prompts' order; required ones present — the same `validateAnswers` in the player and the API | «به این سؤال باید جواب بدی» / «حداکثر n مورد می‌تونی انتخاب کنی» |
 | XP revocation reason | Required, ≤ 300 | «دلیل ابطال رو بنویس» |
 | Questionnaire answer | Shape by question: one option code, a list of codes (≥ 1, no repeats, within the cap), a ranked list, or an integer 1–10 (`packages/validation/questionnaire.ts`) | «یک گزینه رو انتخاب کن» / «حداکثر n مورد می‌تونی انتخاب کنی» |

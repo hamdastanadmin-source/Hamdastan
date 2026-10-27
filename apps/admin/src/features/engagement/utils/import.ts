@@ -1,7 +1,6 @@
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityDefinition, ActivityQuestion, ActivityType } from '@hamdastan/types';
 import type { ImportedQuestionRow } from '@hamdastan/validation';
-import { withDimensionScores } from '@hamdastan/validation';
 
 import { isBlankQuestion, limitsFor, newKey } from './draft';
 
@@ -13,7 +12,8 @@ import { isBlankQuestion, limitsFor, newKey } from './draft';
  * or to a new step with that title; a row with none goes to the last step.
  * A journey's go to the day whose title matches, or to the day open in the
  * builder (`targetStep`) — an import never adds days.
- * A personality item's dimension is matched by title, or added. Pure: the
+ * A personality item's dimensions — a rating's or scale's one, a choice's
+ * options' — are matched by title, or added. Pure: the
  * builder applies the result as one edit.
  */
 export function mergeImported(
@@ -32,17 +32,29 @@ export function mergeImported(
   const steps = definition.steps.map((step) => ({ ...step, questions: [...step.questions] }));
   const dimensions = [...(definition.assessment?.dimensions ?? [])];
 
-  for (const { question, stepTitle, dimensionTitle } of valid) {
-    let placed = question;
-    if (dimensionTitle) {
-      let dimension = dimensions.find((d) => d.title === dimensionTitle);
-      if (!dimension) {
-        dimension = { id: newKey(), title: dimensionTitle, description: '' };
-        dimensions.push(dimension);
-      }
-      // The sheet's single dimension and option scores, in the per-option shape the editor holds.
-      placed = withDimensionScores({ ...question, dimensionId: dimension.id });
-    }
+  for (const { question, stepTitle, dimensions: named } of valid) {
+    // The row's own dimension ids → the definition's, by title.
+    const ids = new Map(
+      named.map(({ id, title }) => {
+        let dimension = dimensions.find((d) => d.title === title);
+        if (!dimension) dimensions.push((dimension = { id, title, description: '' }));
+        return [id, dimension.id];
+      })
+    );
+    const placed: ActivityQuestion =
+      ids.size === 0
+        ? question
+        : 'options' in question
+          ? {
+              ...question,
+              options: question.options.map((option) => ({
+                ...option,
+                ...(option.dimensionScores && {
+                  dimensionScores: Object.fromEntries(Object.entries(option.dimensionScores).map(([id, points]) => [ids.get(id) ?? id, points])),
+                }),
+              })),
+            }
+          : { ...question, dimensionId: question.dimensionId && ids.get(question.dimensionId) };
 
     let step =
       type === 'journey'

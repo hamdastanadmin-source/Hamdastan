@@ -164,7 +164,8 @@ export function SheetImportDialog<Row extends SheetPreviewRow>({
               <AccordionTrigger className="py-2 text-sm text-muted-foreground">ستون‌های فایل</AccordionTrigger>
               <AccordionContent>
                 <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                  {columns.map((column) => (
+                  {/* A numbered run of columns (گزینه ۱، ۲، …) is explained once, on its first. */}
+                  {columns.filter((column) => column.hint).map((column) => (
                     <div key={column.key} className="flex gap-2">
                       <dt className="shrink-0 font-medium">{column.title}:</dt>
                       <dd className="text-muted-foreground">{column.hint}</dd>
