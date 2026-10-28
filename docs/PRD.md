@@ -2784,7 +2784,7 @@ app background; re-export them all when the master changes.
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Connect Kaveh-Negar | **Blocking** | Adapter written (5 s timeout, never retried); set `SMS_PROVIDER=kavenegar`. Until then production sign-in is refused (503) — by design |
+| Connect Kaveh-Negar | Done (2026-10-28) | Live in production with the `hamdastan-otp` verify template; `OTP_FIXED_CODE` removed from the production environment. Adapter: 5 s timeout, never retried |
 | Security and reliability layer | Done — apply `0011`–`0014` | Trusted proxy, rate limits, per-number OTP lock, retries and timeouts, idempotent submissions, session lifetimes and management, admin roles, nginx gateway hardening, cleanup job — §4.1, §4.6, §7, §10 |
 | Admin MFA | High | TOTP second factor for the admin panel, then step-up and passkeys — design in `docs/admin-mfa-design.md` |
 | Shared rate-limit store | Low | Redis for `@fastify/rate-limit` — only when there is more than one API instance |

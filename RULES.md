@@ -59,7 +59,9 @@ writing a migration, not after.
     stored or logged. There is no production exception, for test numbers or
     anyone else. The one exception is `OTP_FIXED_CODE`, which makes every
     code that value and sends and logs nothing — honoured in production too,
-    by product decision (2026-10-18), for every number including admins.
+    for every number including admins. Production set it from 2026-10-18
+    until Kaveh-Negar went live on 2026-10-28; it is no longer in the
+    production environment, and must not be put back.
 
 6.  **The client never decides where a user goes.** `nextStep` comes from the
     server on every response that carries a session, and `apps/web/src/

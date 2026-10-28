@@ -17,7 +17,13 @@ alias dc='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
 
 ## 0. Immediate mitigation — before any release
 
-Production today runs with `OTP_DEBUG_DISPLAY=true` and `SMS_PROVIDER=console`:
+**Done 2026-10-28.** Production sends codes through Kaveh-Negar (template
+`hamdastan-otp`) and `OTP_FIXED_CODE` is gone from its environment. It was
+applied with steps 2–3 below: the server's `.env` was backed up to
+`.env.bak-<date>` first, and only `api` was recreated. The same steps rotate
+the API key later. The text below is kept for the record.
+
+Production at the time ran with `OTP_DEBUG_DISPLAY=true` and `SMS_PROVIDER=console`:
 the API returns every one-time code to whoever asks for it, product and admin
 alike, and the admin API is public through nginx. This is independent of the
 release and should be closed first.
