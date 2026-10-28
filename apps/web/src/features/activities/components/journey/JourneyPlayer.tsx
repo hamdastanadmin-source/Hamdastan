@@ -10,6 +10,7 @@ import { Button, Progress } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
 import { useAuthOptional } from '@/features/auth';
+import { useResetScroll } from '@/hooks';
 import { HttpError } from '@/services';
 
 import { useJourneyPlayer, type JourneyPlayerOptions } from '../../hooks/use-journey-player';
@@ -44,6 +45,7 @@ export function JourneyPlayer({ activity, preview, exit }: { activity: PlayerAct
   const player = useJourneyPlayer(activity, preview);
   const name = useAuthOptional()?.firstName ?? null;
   const titleId = useId();
+  useResetScroll(`${player.view}:${player.day?.id}:${player.question?.id}`);
   const readable = useMemo(() => new Set(activity.steps.map((step) => step.id)), [activity.steps]);
 
   const submit = async () => {

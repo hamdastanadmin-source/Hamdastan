@@ -385,6 +385,19 @@ way a "mobile layout on a desktop" gives itself away. Its bottom padding is
 `max(1.25rem, env(safe-area-inset-bottom))`, which clears the iOS home
 indicator without adding a gap on a device that has none.
 
+**A flow that changes screen without changing URL calls `useResetScroll`**
+(`src/hooks`) once, with a key naming the screen on show — an activity's
+`phase:index`, a journey's `view:day:question`, «این یا اون»'s
+`phase:round`, the questionnaire's step. The page is the only scroller and
+Next resets it only on navigation, so without it «بعدی» from the bottom of a
+long question opened the next one at the same offset. The reset runs in a
+layout effect, before the new screen is painted, and never on first render
+(arriving at a page is Next's to handle, back/forward restore included);
+anything that does not change the key — picking an answer, an error, a
+sheet — leaves the scroll alone. A frame that scrolls in place of the page
+(the admin's phone-sized journey preview) carries `data-scroll-root`, and
+that is what is reset instead. Do not write `window.scrollTo` in a screen.
+
 Page metrics, all of them tokens or plain utilities, never ad-hoc values:
 20px side gutter, 24px/800 titles, 16px body, 14px secondary, 48px controls,
 `--radius` of 0.75rem.

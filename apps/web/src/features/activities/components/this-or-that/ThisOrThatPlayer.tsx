@@ -14,6 +14,7 @@ import { Badge, Button, Progress } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle, XpAmount } from '@/components';
 import { RewardChip } from '@/features/profile';
+import { useResetScroll } from '@/hooks';
 import { HttpError } from '@/services';
 
 import { useThisOrThat } from '../../hooks/use-this-or-that';
@@ -32,6 +33,7 @@ import { DuelCard } from './DuelCard';
 export function ThisOrThatPlayer({ activity, exit }: { activity: PlayerActivity; exit?: ActivityExit }) {
   const router = useRouter();
   const game = useThisOrThat(activity);
+  useResetScroll(`${game.phase}:${game.round}`);
   const [coverFailed, setCoverFailed] = useState(false);
   const cover = activity.thisOrThat?.coverImageId ? activity.media[activity.thisOrThat.coverImageId] : undefined;
 

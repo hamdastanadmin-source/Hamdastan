@@ -179,6 +179,8 @@ export function JourneyPreview({ preview }: { preview: Preview }) {
 
       <div className={cn('flex-1', device === 'mobile' && 'py-4')}>
         <div
+          // The frame, not the page, is what the player scrolls back to the top.
+          data-scroll-root={device === 'mobile' ? '' : undefined}
           className={cn(
             device === 'mobile' &&
               // A phone-sized frame; the transform makes it the box the player's overlays fill.

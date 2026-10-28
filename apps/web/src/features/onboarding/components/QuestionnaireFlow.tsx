@@ -6,6 +6,7 @@ import type { ChoiceQuestion } from '@hamdastan/config';
 import type { QuestionnaireState } from '@hamdastan/types';
 
 import { OwlLoader } from '@/components';
+import { useResetScroll } from '@/hooks';
 
 import { useQuestionnaire } from '../hooks/use-questionnaire';
 import { progressOf, selectedCodes } from '../utils/questionnaire-flow';
@@ -39,6 +40,7 @@ export function QuestionnaireFlow({
   const q = useQuestionnaire(initialState);
   const { step } = q;
   const progress = progressOf(step, q.questions);
+  useResetScroll(JSON.stringify(step));
   // The owl plays on the way to the result, not when a finished person reopens it.
   const [owlDone, setOwlDone] = useState(() => step.kind === 'result');
 

@@ -5,4 +5,4 @@
  * A hook that `apps/admin` would also want belongs in `@hamdastan/ui`.
  */
 
-export {};
+export { useResetScroll } from './use-reset-scroll';

@@ -15,6 +15,7 @@ import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle
 import { useAuthOptional } from '@/features/auth';
 import { RewardChip } from '@/features/profile';
 import { InstallAppSheet } from '@/features/pwa-install';
+import { useResetScroll } from '@/hooks';
 import { shareImage } from '@/lib';
 import { HttpError } from '@/services';
 
@@ -53,6 +54,7 @@ export function ActivityPlayer({
   const router = useRouter();
   const player = useActivityPlayer(activity);
   const titleId = useId();
+  useResetScroll(`${player.phase}:${player.index}`);
   const heading = resultHeading(activity.title, useAuthOptional());
 
   // A personality result is worth showing friends: its card, as the image that is shared.
