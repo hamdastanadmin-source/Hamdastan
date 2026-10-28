@@ -1,10 +1,14 @@
 import { ENGAGEMENT_TEXT_SAMPLE_SIZE } from '@hamdastan/config';
+import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type {
+  ActivityAnswers,
   ActivityAnswerValue,
   ActivityDefinition,
   ActivityQuestion,
   AssessmentStats,
   QuestionStat,
+  ThisOrThatCardStat,
+  ThisOrThatSettings,
 } from '@hamdastan/types';
 
 import type { ResponseRow } from './engagement.types';
@@ -111,6 +115,46 @@ export function assessmentStats(definition: ActivityDefinition, responses: Respo
   };
 }
 
+/** A «این یا اون» response's matches, in order, as `[winner, loser]`. */
+const matchesOf = (answers: ActivityAnswers): [string, string][] =>
+  Object.keys(answers)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => answers[key])
+    .filter((value): value is [string, string] => Array.isArray(value) && value.length === 2);
+
+/** A card as the panel names it: its title, else its place in the admin's list. */
+const cardLabel = (settings: ThisOrThatSettings, id: string) => {
+  const index = settings.cards.findIndex((card) => card.id === id);
+  return settings.cards[index]?.title || (index === -1 ? id : `کارت ${toPersianDigits(index + 1)}`);
+};
+
+/**
+ * «این یا اون»: each card's matches won and played, and how many people
+ * ended on it — its share of the responses, which are one per person who
+ * finished. The most chosen first.
+ */
+export function thisOrThatStats(definition: ActivityDefinition, responses: ResponseRow[]): ThisOrThatCardStat[] | null {
+  const settings = definition.thisOrThat;
+  if (!settings) return null;
+  const matches = responses.flatMap((response) => matchesOf(response.answers));
+  const finals = responses.map((response) => matchesOf(response.answers).at(-1)?.[0]);
+
+  return settings.cards
+    .map((card) => {
+      const finalWins = finals.filter((id) => id === card.id).length;
+      return {
+        id: card.id,
+        title: cardLabel(settings, card.id),
+        imageId: card.imageId,
+        wins: matches.filter(([winner]) => winner === card.id).length,
+        matches: matches.filter((match) => match.includes(card.id)).length,
+        finalWins,
+        finalShare: responses.length ? finalWins / responses.length : 0,
+      };
+    })
+    .sort((a, b) => b.finalWins - a.finalWins || b.wins - a.wins);
+}
+
 /** An answer as a person reads it: option labels, not ids. */
 export function describeAnswer(question: ActivityQuestion, value: ActivityAnswerValue | undefined): string {
   if (value === undefined) return '';
@@ -144,12 +188,15 @@ export function toCsv(definition: ActivityDefinition, responses: ResponseRow[], 
   const assessed = definition.assessment !== null;
   // A profile assessment: each profile's weighted total, so the matrix can be checked against real answers.
   const profiles = definition.assessment?.mode === 'profile' ? (definition.assessment.profiles ?? []) : [];
+  // «این یا اون»: when the person started, where they ended, and every match on the way.
+  const duel = definition.thisOrThat;
 
   const header = [
     ...(withIdentity ? ['نام', 'شماره موبایل', 'زمان ثبت'] : ['تاریخ ثبت']),
     ...questions.map((question) => question.title),
     ...(assessed ? ['نمره', 'قبولی', 'نتیجه'] : []),
     ...profiles.map((profile) => `امتیاز ${profile.title}`),
+    ...(duel ? ['زمان شروع', 'انتخاب نهایی', 'رقابت‌ها (برنده > بازنده)'] : []),
   ];
 
   const rows = responses.map((response) => [
@@ -165,6 +212,17 @@ export function toCsv(definition: ActivityDefinition, responses: ResponseRow[], 
         ]
       : []),
     ...profiles.map((profile) => response.result?.profiles?.find((entry) => entry.id === profile.id)?.score ?? ''),
+    ...(duel
+      ? (() => {
+          const matches = matchesOf(response.answers);
+          const final = matches.at(-1)?.[0];
+          return [
+            response.startedAt?.toISOString() ?? '',
+            final ? cardLabel(duel, final) : '',
+            matches.map(([winner, loser]) => `${cardLabel(duel, winner)} > ${cardLabel(duel, loser)}`).join(' | '),
+          ];
+        })()
+      : []),
   ]);
 
   return `﻿${[header, ...rows].map((row) => row.map(csvField).join(',')).join('\r\n')}\r\n`;

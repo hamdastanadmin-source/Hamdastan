@@ -53,6 +53,8 @@ the rule to that document before writing the code.
   `/profile/edit/interests`), in events discovery
   (category chips, the day strip, an active filter button) and basic
   info's gender segments: violet stroke and text on `bg-primary/10`.
+  The «VS» badge between the two cards of «این یا اون» is solid
+  `bg-primary`, also by product decision.
 - **Never hard-code a design value.** In a `className`, use the Tailwind
   utility. Where a real CSS string is needed, import from
   `@hamdastan/ui/tokens` — those files reference the custom properties rather

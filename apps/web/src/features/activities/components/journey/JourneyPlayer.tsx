@@ -18,12 +18,11 @@ import { QuestionImage } from '../QuestionImage';
 import { DayCover } from './DayCover';
 import { DayEndScreen } from './DayEndScreen';
 import { DayReview } from './DayReview';
+import { PROGRESS_LINE } from '../../utils/activity';
 import type { ActivityExit } from '../../utils/exit';
 import { JourneyOverview } from './JourneyOverview';
 import { MotionOverlay } from './MotionOverlay';
 import { ResultScreen } from './ResultScreen';
-
-const PROGRESS = 'h-0.5 bg-foreground/10 [&>[data-slot=progress-indicator]]:bg-foreground';
 
 /** Answers the API turned away because the journey moved on: the page is read again. */
 const STALE = new Set<string>([
@@ -135,7 +134,7 @@ export function JourneyPlayer({ activity, preview, exit }: { activity: PlayerAct
                 {toPersianDigits(day.questions.length)}
               </span>
             </div>
-            <Progress value={(dayState.answeredCount / day.questions.length) * 100} className={PROGRESS} aria-label="پیشرفت روز" />
+            <Progress value={(dayState.answeredCount / day.questions.length) * 100} className={PROGRESS_LINE} aria-label="پیشرفت روز" />
           </ScreenHeader>
           <ScreenBody className="gap-6 pt-6">
             {day.description && player.index === 0 && (

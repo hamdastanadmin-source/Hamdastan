@@ -146,7 +146,8 @@ features/
 `activities` is Engagement Studio's product side: the cards on home and
 `/activities`, and the player at `/activities/:id` — `ActivityPlayer` for a
 survey, mission or assessment, `JourneyPlayer` (`components/journey/`) for a
-multi-day journey. It collects answers and shows what the API answered — it
+multi-day journey, `ThisOrThatPlayer` (`components/this-or-that/`) for
+«این یا اون». It collects answers and shows what the API answered — it
 decides nothing about access or XP; which day is open, what an answer paid
 and when the next day opens all come back from the API. Library files are
 loaded from the API (`activitiesService.mediaUrl`, `.lottie`); Lottie is

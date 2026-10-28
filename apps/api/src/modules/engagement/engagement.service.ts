@@ -35,6 +35,8 @@ import {
   journeyResultDefaults,
   motionOff,
   pickCharacter,
+  thisOrThatAnswers,
+  thisOrThatWinners,
   traitScores,
   validateAnswers,
   type ActivityInputOutput,
@@ -51,8 +53,9 @@ import type { UserRecord } from '../users';
 import { engagementRepository } from './engagement.repository';
 import { isAnswerable, isReadable, journeyDays, nextUnlockAt, type JourneyDayState } from './engagement.journey';
 import { mediaRefs } from './engagement.media';
-import { assessmentStats, describeAnswer, questionStats, toCsv } from './engagement.results';
+import { assessmentStats, describeAnswer, questionStats, thisOrThatStats, toCsv } from './engagement.results';
 import { earnsXp, mayRevealAnswers, reviewAnswers, scoreAssessment } from './engagement.scoring';
+import { cardOrder } from './engagement.this-or-that';
 import type {
   ActivityFields,
   ActivityListQuery,
@@ -163,6 +166,29 @@ function toPlayerQuestion(question: ActivityQuestion): PlayerQuestion {
 
 const playerQuestions = (activity: ActivityRecord) =>
   activity.definition.steps.flatMap((step) => step.questions.map(toPlayerQuestion));
+
+/** «این یا اون»: the cards in the order this person meets them — the same on every read of this version. */
+const duelOrder = (activity: ActivityRecord, userId: string) =>
+  activity.definition.thisOrThat ? cardOrder(activity.definition.thisOrThat, `${activity.versionId}:${userId}`) : [];
+
+/**
+ * «این یا اون»'s answers checked against the person's order: a run of
+ * matches from the first card. A submission must have played them all.
+ */
+function checkDuel(
+  activity: ActivityRecord,
+  userId: string,
+  answers: ActivityAnswers,
+  complete: boolean
+): { ok: true; answers: ActivityAnswers } | { ok: false; errors: Record<string, string> } {
+  const ids = duelOrder(activity, userId).map((card) => card.id);
+  const winners = thisOrThatWinners(ids, answers);
+  if (!winners) return { ok: false, errors: { thisOrThat: 'این انتخاب‌ها با کارت‌های این فعالیت جور نیست' } };
+  if (complete && winners.length !== ids.length - 1) {
+    return { ok: false, errors: { thisOrThat: 'همه‌ی رقابت‌ها رو تا آخر انجام بده' } };
+  }
+  return { ok: true, answers: thisOrThatAnswers(ids, winners) };
+}
 
 function participationStatus(entry: UserActivityRecord): ParticipationStatus {
   return entry.participation?.status ?? 'not_started';
@@ -567,6 +593,7 @@ export const engagementService = {
         lastResult: null,
         answerReview: null,
         journey,
+        thisOrThat: null,
         media,
       },
     };
@@ -586,6 +613,7 @@ export const engagementService = {
       responses: responses.length,
       questions: questionStats(record.definition, responses),
       assessment: assessmentStats(record.definition, responses),
+      thisOrThat: thisOrThatStats(record.definition, responses),
     };
   },
 
@@ -792,6 +820,9 @@ export const engagementService = {
           ? reviewAnswers(activity.definition, entry.lastAnswers)
           : null,
       journey,
+      thisOrThat: activity.definition.thisOrThat
+        ? { coverImageId: activity.definition.thisOrThat.coverImageId, cards: duelOrder(activity, user.id) }
+        : null,
       media: await mediaService.describe([...refs.map((ref) => ref.id), ...resultIds]),
     };
   },
@@ -803,6 +834,14 @@ export const engagementService = {
     if (entry.activity.type === 'journey') throw journeyOnly();
     if (!canSubmit(entry, now)) {
       throw new AppError(409, CODES.ACTIVITY_CLOSED, 'این فعالیت الان پاسخ نمی‌پذیره');
+    }
+
+    if (entry.activity.type === 'this_or_that') {
+      // The matches played so far — a run from the first card, or nothing is kept.
+      const checked = checkDuel(entry.activity, user.id, answers, false);
+      if (!checked.ok) throw new ValidationError(Object.values(checked.errors)[0], { fields: checked.errors });
+      await engagementRepository().saveDraft(id, user.id, checked.answers);
+      return { saved: true };
     }
 
     // Only ids that are questions are kept; a draft is otherwise half-done by design.
@@ -848,7 +887,10 @@ export const engagementService = {
       throw new AppError(409, CODES.ACTIVITY_VERSION_CHANGED, 'این فعالیت به‌روز شده؛ صفحه رو دوباره باز کن');
     }
 
-    const checked = validateAnswers(playerQuestions(activity), input.answers);
+    const checked =
+      activity.type === 'this_or_that'
+        ? checkDuel(activity, user.id, input.answers, true)
+        : validateAnswers(playerQuestions(activity), input.answers);
     if (!checked.ok) {
       throw new ValidationError(Object.values(checked.errors)[0], { fields: checked.errors });
     }

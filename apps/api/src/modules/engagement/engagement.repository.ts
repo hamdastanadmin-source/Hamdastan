@@ -566,6 +566,7 @@ export const sqlEngagementRepository: EngagementRepository = {
       score: string | null;
       passed: boolean | null;
       submitted_at: Date;
+      started_at: Date | null;
       user_id: string | null;
       name: string | null;
       phone: string | null;
@@ -586,9 +587,10 @@ export const sqlEngagementRepository: EngagementRepository = {
        GROUP BY c.user_id, c.day_id, c.completed_at
        )
        SELECT r.id, r.version_id, r.answers, r.result, r.score, r.passed, r.submitted_at,
-              u.id AS user_id, ${PERSON_NAME} AS name, u.phone
+              p.started_at, u.id AS user_id, ${PERSON_NAME} AS name, u.phone
          FROM r
     LEFT JOIN v2_users u ON u.id = r.user_id
+    LEFT JOIN v2_engagement_participations p ON p.activity_id = $1 AND p.user_id = r.user_id
         WHERE ($2::timestamptz IS NULL OR r.submitted_at >= $2)
           AND ($3::timestamptz IS NULL OR r.submitted_at < $3)
           AND ($4::text IS NULL OR EXISTS (
@@ -604,6 +606,7 @@ export const sqlEngagementRepository: EngagementRepository = {
       score: row.score === null ? null : Number(row.score),
       passed: row.passed,
       submittedAt: row.submitted_at,
+      startedAt: row.started_at,
       user: row.user_id ? { id: row.user_id, name: row.name ?? '', phone: row.phone ?? '' } : null,
     }));
   },

@@ -17,6 +17,7 @@ import { useActivityEditor, type ActivityEditorApi } from '../hooks/use-activity
 import { stepsFor, type EditorStepId } from '../utils/draft';
 import { STATUS_BADGE, STATUS_LABELS } from '../utils/labels';
 import { AudienceStep } from './editor/AudienceStep';
+import { CardsStep } from './editor/CardsStep';
 import { DetailsStep } from './editor/DetailsStep';
 import { PreviewStep } from './editor/PreviewStep';
 import { QuestionsStep } from './editor/QuestionsStep';
@@ -29,6 +30,7 @@ const STEP_VIEWS: Record<EditorStepId, (props: { editor: ActivityEditorApi }) =>
   type: TypeStep,
   details: DetailsStep,
   questions: QuestionsStep,
+  cards: CardsStep,
   audience: AudienceStep,
   xp: XpStep,
   schedule: ScheduleStep,

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, ClipboardList, Flag, GraduationCap, Trophy, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardList, Flag, GraduationCap, Swords, Trophy, type LucideIcon } from 'lucide-react';
 
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPES } from '@hamdastan/config';
 import type { ActivityType } from '@hamdastan/types';
@@ -30,6 +30,10 @@ const TYPES: Record<ActivityType, { icon: LucideIcon; body: string }> = {
     icon: Trophy,
     body: 'یک تریویای زمان‌دار: هر نفر یک بار، در بازه‌ی شروع و پایان مسابقه. رتبه با نمره و سپس زمان پاسخ تعیین می‌شود و جدول امتیازات در اپلیکیشن نمایش داده می‌شود.',
   },
+  this_or_that: {
+    icon: Swords,
+    body: 'دو تصویر کنار هم؛ کاربر یکی را انتخاب می‌کند و برنده با کارت بعدی رقابت می‌کند تا یک انتخاب نهایی بماند. هر نفر یک بار، XP پس از اتمام.',
+  },
 };
 
 /** Step 1. Locked once the activity has been published: a survey cannot become a mission mid-flight. */
@@ -47,7 +51,7 @@ export function TypeStep({ editor }: { editor: ActivityEditorApi }) {
         onValueChange={(type) => type && editor.update(switchType(editor.state, type as ActivityType))}
         disabled={locked}
         spacing={3}
-        className="grid w-full grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
+        className="grid w-full grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
         aria-label="نوع فعالیت"
       >
         {ACTIVITY_TYPES.map((type) => {

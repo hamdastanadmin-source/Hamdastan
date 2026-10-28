@@ -136,6 +136,8 @@ export type ResponseRow = {
   score: number | null;
   passed: boolean | null;
   submittedAt: Date;
+  /** When the person's participation began; null for an anonymous response. */
+  startedAt: Date | null;
   /** Null for an anonymous response. */
   user: AdminPerson | null;
 };

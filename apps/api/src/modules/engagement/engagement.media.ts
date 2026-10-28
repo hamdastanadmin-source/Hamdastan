@@ -6,7 +6,7 @@ import { motionAssetIds } from '@hamdastan/validation';
  * must be. Pure: the service checks the list against the library on save,
  * and describes it to the player on read.
  *
- * A question's image, an option's, a dimension's and a cover's background must be images; a motion —
+ * A question's image, an option's, a dimension's, a cover's background and a «این یا اون» card must be images; a motion —
  * a mascot, an answer's, a day's end — may be an image or a motion.
  */
 
@@ -62,6 +62,12 @@ export function mediaRefs(
       }
     });
   }
+  // «این یا اون»: the cover and every card, all images.
+  const duel = definition.thisOrThat;
+  if (duel?.coverImageId) refs.push({ path: 'definition.thisOrThat.coverImageId', id: duel.coverImageId, needs: 'image' });
+  duel?.cards.forEach((card, c) => {
+    if (card.imageId) refs.push({ path: `definition.thisOrThat.cards.${c}.imageId`, id: card.imageId, needs: 'image' });
+  });
   const result = definition.journey?.result;
   if (withResults && result) {
     result.characters.forEach((character, c) => {

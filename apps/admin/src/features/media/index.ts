@@ -7,6 +7,7 @@
 export { CardPreview } from './components/CardPreview';
 export { MediaField } from './components/MediaField';
 export { MediaLibraryScreen } from './components/MediaLibraryScreen';
+export { MediaPicker } from './components/MediaPicker';
 export { MediaPreview } from './components/MediaPreview';
 export { MotionSettingField } from './components/MotionSettingField';
 export { useMediaAsset } from './hooks/use-media-asset';

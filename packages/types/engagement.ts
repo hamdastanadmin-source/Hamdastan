@@ -329,7 +329,24 @@ export type JourneyDayEnd = {
   };
 };
 
+/** One «این یا اون» card: a library image and an optional caption. */
+export type ThisOrThatCard = { id: string; imageId: string; title: string };
+
+/**
+ * «این یا اون»: the cards meet two at a time — the first two, then the
+ * winner against the next — until one is left. The cards are the whole
+ * content; the activity has no steps or questions.
+ */
+export type ThisOrThatSettings = {
+  /** An image across the top of the intro; null for none. */
+  coverImageId: string | null;
+  /** `manual`: the admin's order. `random`: each person's own, fixed for them by the API. */
+  order: 'manual' | 'random';
+  cards: ThisOrThatCard[];
+};
+
 export type ActivityDefinition = {
+  /** Empty for «این یا اون», whose content is `thisOrThat.cards`. */
   steps: ActivityStep[];
   estimatedMinutes: number;
   /** How many times one person may submit. */
@@ -342,6 +359,8 @@ export type ActivityDefinition = {
   assessment: AssessmentSettings | null;
   /** Journey only. */
   journey: JourneySettings | null;
+  /** «این یا اون» only. Absent on a version stored before it existed. */
+  thisOrThat?: ThisOrThatSettings | null;
   xp: XpSettings;
 };
 
@@ -439,6 +458,21 @@ export type AssessmentStats = {
   outcomes: { dimensionId: string; title: string; count: number }[];
 };
 
+/** «این یا اون»: how each card did, best first. */
+export type ThisOrThatCardStat = {
+  id: string;
+  title: string;
+  imageId: string;
+  /** Matches it won, across every response. */
+  wins: number;
+  /** Matches it played. */
+  matches: number;
+  /** How many people ended on it. */
+  finalWins: number;
+  /** finalWins over the responses, 0–1. */
+  finalShare: number;
+};
+
 export type ActivityResultsQuery = {
   from?: string;
   to?: string;
@@ -455,6 +489,8 @@ export type ActivityResults = {
   responses: number;
   questions: QuestionStat[];
   assessment: AssessmentStats | null;
+  /** «این یا اون»: the cards, the most chosen first. */
+  thisOrThat: ThisOrThatCardStat[] | null;
 };
 
 export type ReviewStatus = 'pending' | 'approved' | 'rejected';
@@ -631,6 +667,12 @@ export type PlayerActivity = ActivityCard & {
    * status and opening time are in `journey.days`.
    */
   journey: PlayerJourney | null;
+  /**
+   * «این یا اون» only: the cards in this person's order — the admin's, or
+   * their own shuffle, which stays the same for them. The draft holds the
+   * matches played (`thisOrThatAnswers`).
+   */
+  thisOrThat: { coverImageId: string | null; cards: ThisOrThatCard[] } | null;
   /** Every library file the sent content refers to, by id. A missing id is a file since deleted. */
   media: Record<string, PlayerMedia>;
 };

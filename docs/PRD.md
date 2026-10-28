@@ -79,7 +79,7 @@ The front-end calls `apps/api` and nothing else. See `docs/ARCHITECTURE.md`.
 | **Level (سطح)** | A band of XP: 1 from 0, 2 from 100, 3 from 250, 4 from 500, 5 from 1000 (`LEVEL_THRESHOLDS`). Derived, never stored. |
 | **Mission (ماموریت)** | One thing worth doing, with an XP reward. A mission is finished exactly when the ledger holds its reward. |
 | **Badge (نشان)** | A mark of achievement, earned once every mission it requires is finished. Derived, never stored. |
-| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت), assessment (آزمون), multi-day journey (چالش چندروزه) or competition (مسابقه) designed in Engagement Studio (§4.7). |
+| **Activity (فعالیت)** | A survey (نظرسنجی), mission (مأموریت), assessment (آزمون), multi-day journey (چالش چندروزه), competition (مسابقه) or this-or-that (این یا اون) designed in Engagement Studio (§4.7). |
 | **Activity version** | An activity's questions and scoring/XP settings, frozen. Editing a published or answered activity makes a new version; responses and rewards point at the one they belong to. |
 | **Participation** | One person's progress on one activity: saved draft, how many times they submitted and were rewarded. |
 | **MobileShell** | The 430px column every screen renders inside. |
@@ -1075,6 +1075,64 @@ assessment; there are no rank prizes.
   first 100, with full names — `results.individual`).
 - **Not built:** prizes by rank, a live (pushed) board, mini-games (no
   playable game exists to manage).
+
+**This or that — این یا اون** (`type = 'this_or_that'`, migration `0028`).
+An image duel: the person sees two cards side by side and taps one; the
+winner stays and meets the next card, until one is left — their pick. n
+cards are n − 1 picks (10 cards, 9). Taken **once**; XP, audience, window,
+worlds and statuses as for any activity.
+
+- **Shape.** No steps or questions: the content is `definition.thisOrThat`
+  (`ThisOrThatSettings`) — an optional cover (`coverImageId`, 16:9, above
+  the intro), the order (`manual`: the admin's; `random`: each person's own
+  shuffle, seeded by the version and the person, so it is the same on every
+  read and nothing stores it — `engagement.this-or-that.ts`) and the cards:
+  2–32 (`THIS_OR_THAT_LIMITS`; a new one starts with 10), each a library
+  image (3:4, `IMAGE_FRAMES.thisOrThatCard`) and an optional title (≤ 60).
+  `maxSubmissions` and `xp.maxAwards` are always 1. Editing a published one
+  is a new version, as always.
+- **The answers.** Each match under its number, as `[winner, loser]`
+  (`{ "1": ["b","a"], "2": ["c","b"], … }`), so a stored response says on
+  its own who met whom, in what order, and who won; the last winner is the
+  pick. The rule is one pure function both sides use
+  (`thisOrThatWinners` / `thisOrThatAnswers` in `@hamdastan/validation`):
+  a run of matches from the person's first card, the winner staying on.
+- **Saving and resuming.** Every pick is saved as the draft (`PUT …/draft`;
+  the API keeps only a valid run, else `400`), so leaving and coming back —
+  on any device — resumes at the same match; a draft from another version
+  replays to nothing and the run starts over. «شروع» records the start
+  (`POST …/start`, the participation's `started_at`); the response's time
+  is the end. A submission must be a whole run (`400` otherwise), and a
+  second one is `409 ACTIVITY_LIMIT_REACHED` — the participation lock and
+  the idempotency key keep it to one.
+- **The product** (`ThisOrThatPlayer`). The intro: cover, type, title,
+  description, time, reward, «n تصویر», instructions, how it works, and
+  «شروع» / «ادامه». A match: «قبلی» (takes the last pick back; before the
+  first, the intro), «n از m» and the thin progress line, «این یا اون؟»,
+  two equal 3:4 cards with their titles under them and «VS» between,
+  centred on the images, in the brand violet (a product decision, like
+  onboarding's picks). A tap
+  lifts the winner (foreground border and a check — not the brand colour)
+  and shrinks the loser away (450 ms; input is held meanwhile), then the
+  next card comes in on the loser's side, so the winner never jumps. The
+  image after the next is fetched ahead. The end: the pick, large, with a
+  sparkle, «قبلی» still allowed, and «اتمام فعالیت» — which submits; then
+  «+n XP» when the ledger paid it, and «بازگشت به خانه». Under reduced
+  motion nothing moves.
+- **The panel.** «این یا اون» in the builder's first step. Its third tab is
+  «کارت‌ها» instead of «سؤال‌ها» (`CardsStep`): the cover, «ترتیب نمایش
+  کارت‌ها» (به ترتیب فهرست / تصادفی برای هر کاربر), and the cards — image
+  (choose, replace, remove), title, up/down, delete (not below two),
+  «کارت جدید», and «افزودن چند تصویر» (a multi-pick from the library that
+  fills the empty cards first, then adds cards). ۲ اطلاعات has no «تعداد
+  دفعات». ۷ پیش‌نمایش plays the duel in the phone frame, in the admin's
+  order. Switching to it keeps the questions (unsaved) for switching back.
+- **Results.** The usual figures (شروع‌کننده, تکمیل‌کننده…), and the first
+  tab is «رتبه‌بندی کارت‌ها»: each card with its thumbnail, how many people
+  ended on it and their share of those who finished (`finalShare`), and
+  the matches it won of those it played — the most picked first
+  (`thisOrThatStats`). The CSV adds «زمان شروع», «انتخاب نهایی» and every
+  match («برنده > بازنده»).
 
 **The multi-day journey — چالش چندروزه** (`type = 'journey'`, migration
 `0015`). *All six phases are built: the data model and unlock clock, the builder,
@@ -2310,7 +2368,8 @@ The schema is `database/migrations/0001_users_profile_and_sessions.sql`,
 everyone who finished it before XP existed), `0009_admin_users.sql`,
 `0010_engagement_studio.sql`, `0015_engagement_journeys.sql`,
 `0018_events.sql`, `0019_notifications.sql`,
-`0023_onboarding_catalog.sql` and the places migrations `0025`–`0027`.
+`0023_onboarding_catalog.sql`, the places migrations `0025`–`0027` and
+`0028_this_or_that.sql`.
 
 ---
 
@@ -2805,6 +2864,7 @@ app background; re-export them all when the master changes.
 | World CMS — e2e tests (phase 5) | Done | `worlds.spec` (home banner → world, featured order, empty section, tabs, article and back, unpublishing), `competition.spec` (one try, place, board, answers after the end), `admin-worlds.spec` (draft → published world, menu, article from the world's tab, featured, preview, content filter) — at 390×844 and 1440×900 |
 | World CMS — product screens (phase 3) | Done | `/worlds/:slug` with theme, tabs and home; `/articles/:slug`; home banners linking to published worlds; previews for the panel; return after sign-in — §4.3, §4.10 |
 | Trivia explanations, competitions and leaderboard (phase 4) | Done — apply `0021` | Explanations and answer reveal for knowledge quizzes; «مسابقه» — one try in a window, ranked by score then time, leaderboard in the product and the panel — §4.7 |
+| This or that (این یا اون) — image duel activity | Done — apply `0028` | Cards in the builder, the player with resume and undo, card ranking and CSV — §4.7 |
 | Places — a world's map, places pinned on it (two layers), tasks at each | Done — apply `0025`, `0026`, then `0027` | Images and pins, no 3D; map at the top of the world's home — §4.12. Images in the library may be 512 KB |
 | Community and its moderation | Medium | No community exists in the product; moderation comes with it |
 | Play, commerce | Medium | Module skeletons exist on both sides |

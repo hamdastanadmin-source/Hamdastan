@@ -122,6 +122,9 @@ export {
   type MatchingQuestion,
   type PlayerMatchingQuestion,
   type TextQuestion,
+  type ThisOrThatCard,
+  type ThisOrThatCardStat,
+  type ThisOrThatSettings,
   type XpSettings,
 } from './engagement';
 export type {

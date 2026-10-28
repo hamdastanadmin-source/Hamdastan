@@ -19,7 +19,7 @@ import { HttpError } from '@/services';
 
 import type { ActivityExit } from '../utils/exit';
 import { useActivityPlayer } from '../hooks/use-activity-player';
-import { minutesLabel, STATUS_LABELS } from '../utils/activity';
+import { minutesLabel, PROGRESS_LINE, STATUS_LABELS } from '../utils/activity';
 import { inviteUrl } from '../utils/journey';
 import { formatWhen } from '../utils/quiz';
 import { QuestionField } from './QuestionField';
@@ -27,9 +27,6 @@ import { QuestionImage } from './QuestionImage';
 import { AnswerReviewList } from './quiz/AnswerReviewList';
 import { LeaderboardCard } from './quiz/LeaderboardCard';
 import { ResultCard } from './ResultCard';
-
-/** The progress line in foreground — progress is not the primary action. */
-const PROGRESS = 'h-0.5 bg-foreground/10 [&>[data-slot=progress-indicator]]:bg-foreground';
 
 /**
  * Playing an activity: the intro, one question per screen, and what came
@@ -162,7 +159,7 @@ export function ActivityPlayer({
               {toPersianDigits(player.index + 1)} از {toPersianDigits(player.flow.length)}
             </span>
           </div>
-          <Progress value={player.progress} className={PROGRESS} aria-label="پیشرفت" />
+          <Progress value={player.progress} className={PROGRESS_LINE} aria-label="پیشرفت" />
         </ScreenHeader>
         <ScreenBody className="gap-6 pt-6">
           {showStep && (

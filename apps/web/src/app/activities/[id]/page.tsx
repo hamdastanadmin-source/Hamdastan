@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { ActivityPlayer, JourneyPlayer, type ActivityExit } from '@/features/activities';
+import { ActivityPlayer, JourneyPlayer, ThisOrThatPlayer, type ActivityExit } from '@/features/activities';
 import { getLeaderboard, getPlayerActivity } from '@/features/activities/server';
 import { placeParam, placePath } from '@/lib';
 
@@ -17,6 +17,7 @@ export default async function ActivityPage({ params, searchParams }: { params: P
   const exit: ActivityExit | undefined = at ? { href: placePath(at.slug, at.id), label: 'بازگشت به مکان' } : undefined;
   // Keyed by version: an edit published while the page was open starts the player afresh.
   if (activity.type === 'journey') return <JourneyPlayer key={activity.versionId} activity={activity} exit={exit} />;
+  if (activity.type === 'this_or_that') return <ThisOrThatPlayer key={activity.versionId} activity={activity} exit={exit} />;
   const leaderboard = activity.type === 'competition' ? await getLeaderboard(id) : null;
   return <ActivityPlayer key={activity.versionId} activity={activity} leaderboard={leaderboard} exit={exit} />;
 }

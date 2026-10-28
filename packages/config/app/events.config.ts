@@ -145,6 +145,10 @@ export const IMAGE_FRAMES = {
   articleCover: { width: 1280, height: 720 },
   /** An article's thumbnail, beside its title in a list, square. */
   articleThumbnail: { width: 480, height: 480 },
+  /** An activity's cover, across the top of its intro, 16:9. */
+  activityCover: { width: 1280, height: 720 },
+  /** A «این یا اون» card: half the column, portrait 3:4. */
+  thisOrThatCard: { width: 720, height: 960 },
 } as const;
 
 export type ImageFrame = { width: number; height: number };

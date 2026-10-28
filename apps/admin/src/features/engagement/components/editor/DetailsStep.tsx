@@ -91,7 +91,8 @@ export function DetailsStep({ editor }: { editor: ActivityEditorApi }) {
           onChange={(event) => updateDefinition({ estimatedMinutes: int(event.target.value, 1) })}
         />
       </Field>
-      {state.type !== 'journey' && (
+      {/* A journey and «این یا اون» are taken once. */}
+      {state.type !== 'journey' && state.type !== 'this_or_that' && (
         <Field
           label="تعداد دفعات مجاز پاسخ‌دهی"
           htmlFor="repeats"

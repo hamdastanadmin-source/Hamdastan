@@ -39,6 +39,7 @@ import { errorMessage, formatCount, formatDateTime, formatPercent } from '@/lib'
 
 import { useActivityResults } from '../hooks/use-activity-results';
 import { ACTION_LABELS, ACTIONS_FOR, CONFIRM_COPY, describeAudience, STATUS_BADGE, STATUS_LABELS } from '../utils/labels';
+import { CardRanking } from './results/CardRanking';
 import { GrantsPanel } from './results/GrantsPanel';
 import { LeaderboardPanel } from './results/LeaderboardPanel';
 import { HistoryPanel } from './results/HistoryPanel';
@@ -249,7 +250,7 @@ export function ActivityResultsScreen({ id }: { id: string }) {
       <Tabs defaultValue="questions">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="questions" className={TAB_TRIGGER}>
-            آمار سؤال‌ها
+            {activity?.type === 'this_or_that' ? 'رتبه‌بندی کارت‌ها' : 'آمار سؤال‌ها'}
           </TabsTrigger>
           {activity?.type === 'mission' && individual && (
             <TabsTrigger value="reviews" className={TAB_TRIGGER}>
@@ -279,7 +280,8 @@ export function ActivityResultsScreen({ id }: { id: string }) {
         <TabsContent value="questions" className="mt-4 flex flex-col gap-4">
           {!data && <Skeleton className="h-60 w-full" />}
           {data?.assessment && <AssessmentSummary stats={data.assessment} responses={data.responses} />}
-          {data && <QuestionStats questions={data.questions} />}
+          {data?.thisOrThat && <CardRanking cards={data.thisOrThat} responses={data.responses} />}
+          {data && !data.thisOrThat && <QuestionStats questions={data.questions} />}
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-4">

@@ -1,4 +1,11 @@
-import { ENGAGEMENT_LIMITS, isQuizType, JOURNEY_DEFAULTS, JOURNEY_LIMITS, MOTION_DURATION } from '@hamdastan/config';
+import {
+  ENGAGEMENT_LIMITS,
+  isQuizType,
+  JOURNEY_DEFAULTS,
+  JOURNEY_LIMITS,
+  MOTION_DURATION,
+  THIS_OR_THAT_LIMITS,
+} from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type {
   ActivityDefinition,
@@ -9,6 +16,7 @@ import type {
   AdminActivityDetail,
   DailyCover,
   MatchingPair,
+  ThisOrThatCard,
 } from '@hamdastan/types';
 import { definitionWithDimensionScores, journeyDayEndDefaults, journeyResultDefaults, motionOff } from '@hamdastan/validation';
 
@@ -133,19 +141,28 @@ const emptyJourney = (): NonNullable<ActivityDefinition['journey']> => ({
   result: journeyResultDefaults(),
 });
 
+/** A «این یا اون» card before its image is chosen. */
+export const emptyCard = (imageId = ''): ThisOrThatCard => ({ id: newKey(), imageId, title: '' });
+
 export function emptyDefinition(type: ActivityType): ActivityDefinition {
+  const thisOrThat = type === 'this_or_that';
   const steps =
     type === 'journey'
       ? Array.from({ length: JOURNEY_DEFAULTS.DAYS }, (_, i) => emptyStep(dayTitle(i + 1)))
-      : [emptyStep(type === 'mission' ? 'مرحله‌ی ۱' : '')];
+      : thisOrThat
+        ? []
+        : [emptyStep(type === 'mission' ? 'مرحله‌ی ۱' : '')];
   return {
     steps,
-    estimatedMinutes: type === 'survey' ? 3 : 5,
+    estimatedMinutes: type === 'survey' || thisOrThat ? 3 : 5,
     maxSubmissions: 1,
     anonymous: false,
     review: type === 'mission' ? 'manual' : 'auto',
     assessment: isQuizType(type) ? { mode: 'knowledge', dimensions: [], passingScore: null, showResult: true, revealAnswers: false } : null,
     journey: type === 'journey' ? emptyJourney() : null,
+    thisOrThat: thisOrThat
+      ? { coverImageId: null, order: 'manual', cards: Array.from({ length: THIS_OR_THAT_LIMITS.CARDS_DEFAULT }, () => emptyCard()) }
+      : null,
     xp: { enabled: true, amount: 20, showBeforeStart: true, maxAwards: 1, requirePass: false },
   };
 }
@@ -167,18 +184,24 @@ export function emptyState(type: ActivityType = 'survey'): EditorState {
 /**
  * A new type keeps the content that still fits it: the title and the
  * questions. A journey keeps its week of days — the first holds the
- * questions already written — and every day is titled.
+ * questions already written — and every day is titled. «این یا اون» has
+ * cards instead of questions; it keeps its cards while the admin looks at
+ * another type and back, as the others keep their questions.
  */
 export function switchType(state: EditorState, type: ActivityType): EditorState {
   const blank = emptyDefinition(type);
   const multiStep = (t: ActivityType) => t === 'mission' || t === 'journey';
+  const thisOrThat = state.definition.thisOrThat ?? blank.thisOrThat;
   let steps: ActivityStep[];
-  if (multiStep(type) && multiStep(state.type)) steps = state.definition.steps;
+  // Questions are kept (unsaved — the API drops them) while «این یا اون» is looked at, and come back with the type.
+  if (type === 'this_or_that') steps = state.definition.steps;
+  else if (state.definition.steps.length === 0) steps = blank.steps;
+  else if (multiStep(type) && multiStep(state.type)) steps = state.definition.steps;
   else if (multiStep(type)) steps = [{ ...blank.steps[0], questions: state.definition.steps[0].questions }, ...blank.steps.slice(1)];
   else steps = state.definition.steps.slice(0, 1);
 
   if (type === 'journey') steps = steps.map((step, i) => (step.title ? step : { ...step, title: dayTitle(i + 1) }));
-  return { ...state, type, definition: { ...blank, steps, xp: state.definition.xp } };
+  return { ...state, type, definition: { ...blank, steps, thisOrThat, xp: state.definition.xp } };
 }
 
 /** `datetime-local` holds local wall time without a zone; this is the local reading of an instant. */
@@ -212,15 +235,20 @@ export function toInput(state: EditorState): ActivityInput {
   };
 }
 
-/** The builder's steps, in order: seven for every type, and an eighth a journey adds before the last. */
+/**
+ * The builder's steps, in order: seven for every type — «این یا اون» has
+ * its cards where the others have questions — and an eighth a journey adds
+ * before the last.
+ */
 export const EDITOR_STEPS = [
   { id: 'type', label: 'نوع' },
   { id: 'details', label: 'اطلاعات' },
-  { id: 'questions', label: 'سؤال‌ها' },
+  { id: 'questions', label: 'سؤال‌ها', except: 'this_or_that' },
+  { id: 'cards', label: 'کارت‌ها', only: 'this_or_that' },
   { id: 'audience', label: 'مخاطبان' },
   { id: 'xp', label: 'XP' },
   { id: 'schedule', label: 'زمان‌بندی' },
-  { id: 'sharing', label: 'نتایج و اشتراک‌گذاری', journeyOnly: true },
+  { id: 'sharing', label: 'نتایج و اشتراک‌گذاری', only: 'journey' },
   { id: 'preview', label: 'پیش‌نمایش و انتشار' },
 ] as const;
 
@@ -228,7 +256,7 @@ export type EditorStepId = (typeof EDITOR_STEPS)[number]['id'];
 
 /** The steps an activity of this type walks through. */
 export const stepsFor = (type: ActivityType) =>
-  EDITOR_STEPS.filter((step) => !('journeyOnly' in step) || type === 'journey');
+  EDITOR_STEPS.filter((step) => ('only' in step ? step.only === type : !('except' in step) || step.except !== type));
 
 /** The step whose fields an error path belongs to, so a failed save can open it. */
 export function stepOfPath(path: string): EditorStepId {
@@ -238,6 +266,7 @@ export function stepOfPath(path: string): EditorStepId {
   if (path.startsWith('definition.journey.motions')) return 'questions';
   if (path.startsWith('definition.journey.dayEnd') || path.startsWith('definition.journey.result')) return 'sharing';
   if (path.startsWith('definition.journey')) return 'schedule';
+  if (path.startsWith('definition.thisOrThat')) return 'cards';
   if (path.startsWith('audience')) return 'audience';
   if (path.startsWith('startsAt') || path.startsWith('endsAt')) return 'schedule';
   if (path.startsWith('definition.xp')) return 'xp';

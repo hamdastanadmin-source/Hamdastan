@@ -11,6 +11,9 @@ export const STATUS_LABELS: Record<ParticipationStatus, string> = {
   rejected: 'باید دوباره انجامش بدی',
 };
 
+/** A player's thin progress line, in foreground — progress is not the primary action. */
+export const PROGRESS_LINE = 'h-0.5 bg-foreground/10 [&>[data-slot=progress-indicator]]:bg-foreground';
+
 export const minutesLabel = (minutes: number) => `حدود ${toPersianDigits(minutes)} دقیقه`;
 
 /** The world badge: the first world, and how many more — null when it is filed under none. */

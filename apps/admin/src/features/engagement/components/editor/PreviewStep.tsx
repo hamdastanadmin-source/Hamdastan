@@ -26,6 +26,7 @@ import { errorMessage, formatDateTime } from '@/lib';
 import type { ActivityEditorApi } from '../../hooks/use-activity-editor';
 import { toInput } from '../../utils/draft';
 import { describeAudience } from '../../utils/labels';
+import { ThisOrThatPreview } from './ThisOrThatPreview';
 
 const OPTION =
   'group/option h-auto min-h-12 w-full justify-start gap-3 whitespace-normal rounded-xl border px-4 py-3 text-start font-normal data-[state=on]:border-foreground';
@@ -173,7 +174,14 @@ export function PreviewStep({ editor }: { editor: ActivityEditorApi }) {
               <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{state.instructions}</p>
             )}
 
-            {questions.map(({ step, question }, index) => (
+            {definition.thisOrThat && state.type === 'this_or_that' && (
+              <>
+                <Separator />
+                <ThisOrThatPreview settings={definition.thisOrThat} />
+              </>
+            )}
+
+            {state.type !== 'this_or_that' && questions.map(({ step, question }, index) => (
               <div key={question.id} className="flex flex-col gap-3">
                 <Separator />
                 {state.type === 'mission' && step.questions[0]?.id === question.id && (
@@ -190,7 +198,9 @@ export function PreviewStep({ editor }: { editor: ActivityEditorApi }) {
             {[
               ['نوع', ACTIVITY_TYPE_LABELS[state.type]],
               ['مخاطبان', describeAudience(state.audience, interestCategories)],
-              ['سؤال‌ها', toPersianDigits(questions.length)],
+              state.type === 'this_or_that'
+                ? ['کارت‌ها', toPersianDigits(definition.thisOrThat?.cards.length ?? 0)]
+                : ['سؤال‌ها', toPersianDigits(questions.length)],
               ['XP', definition.xp.enabled ? toPersianDigits(definition.xp.amount) : 'ندارد'],
               ['شروع', input.startsAt ? formatDateTime(input.startsAt) : 'از لحظه‌ی انتشار'],
               ['پایان', input.endsAt ? formatDateTime(input.endsAt) : 'بدون پایان'],

@@ -1,13 +1,14 @@
 /**
  * Engagement Studio — the activities the admin panel designs and the product
- * plays: surveys, missions, assessments and multi-day journeys.
+ * plays: surveys, missions, assessments, multi-day journeys, competitions
+ * and «این یا اون» image duels.
  *
  * The limits are here because both sides hold an activity to them: the
  * builder in `apps/admin` stops at them, and `apps/api` refuses anything
  * past them. The labels are here because both apps print them.
  */
 
-export const ACTIVITY_TYPES = ['survey', 'mission', 'assessment', 'journey', 'competition'] as const;
+export const ACTIVITY_TYPES = ['survey', 'mission', 'assessment', 'journey', 'competition', 'this_or_that'] as const;
 export type ActivityTypeId = (typeof ACTIVITY_TYPES)[number];
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityTypeId, string> = {
@@ -16,6 +17,7 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityTypeId, string> = {
   assessment: 'آزمون',
   journey: 'چالش چندروزه',
   competition: 'مسابقه',
+  this_or_that: 'این یا اون',
 };
 
 /** A knowledge quiz scored on the server: an assessment in knowledge mode, or a competition. */
@@ -91,6 +93,18 @@ export const ENGAGEMENT_LIMITS = {
   MATCHING_PAIRS_MAX: 8,
   MATCHING_LABEL_MAX: 60,
   REASON_MAX: 300,
+} as const;
+
+/**
+ * «این یا اون»: image cards that meet two at a time, the winner staying on
+ * against the next. n cards are n − 1 picks.
+ */
+export const THIS_OR_THAT_LIMITS = {
+  CARDS_MIN: 2,
+  CARDS_MAX: 32,
+  /** What a new one starts with. */
+  CARDS_DEFAULT: 10,
+  CARD_TITLE_MAX: 60,
 } as const;
 
 /**

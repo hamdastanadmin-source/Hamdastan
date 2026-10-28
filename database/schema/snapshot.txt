@@ -689,7 +689,7 @@ constraint v2_xp_transactions v2_xp_transactions_source_type CHECK (((source_typ
 constraint v2_xp_transactions v2_xp_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES v2_users(id) ON DELETE CASCADE
 constraint v2_xp_transactions v2_xp_transactions_xp_amount CHECK (((((source_type)::text = 'reversal'::text) AND (xp_amount < 0)) OR (((source_type)::text <> 'reversal'::text) AND (xp_amount > 0))))
 enum v2_activity_status draft,published,paused,closed,archived
-enum v2_activity_type survey,mission,assessment,journey,competition
+enum v2_activity_type survey,mission,assessment,journey,competition,this_or_that
 enum v2_admin_role SYSTEM_ADMIN,CONTENT_MANAGER,MISSION_REVIEWER,NOTIFICATION_MANAGER
 enum v2_admin_status ACTIVE,INACTIVE
 enum v2_article_kind news,knowledge

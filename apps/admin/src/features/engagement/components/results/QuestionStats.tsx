@@ -6,7 +6,7 @@ import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Progr
 import { formatCount, formatPercent } from '@/lib';
 
 /** A bar in foreground — figures are not the primary action. */
-const BAR = 'bg-muted [&>[data-slot=progress-indicator]]:bg-foreground/70';
+export const BAR = 'bg-muted [&>[data-slot=progress-indicator]]:bg-foreground/70';
 
 function Bars({ rows, total }: { rows: { key: string; label: string; count: number }[]; total: number }) {
   return (

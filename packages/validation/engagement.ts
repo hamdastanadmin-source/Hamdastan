@@ -19,6 +19,7 @@ import {
   EXPLANATION_MAX,
   isQuizType,
   RESULT_CARD,
+  THIS_OR_THAT_LIMITS as T,
   UNDIMENSIONED_KINDS,
   WORLD_LIMITS,
 } from '@hamdastan/config';
@@ -281,9 +282,19 @@ const journeySchema = z.object({
     })),
 });
 
+// An image left unchosen is '' while the admin builds; `checkDefinition` asks for it.
+const thisOrThatSchema = z.object({
+  coverImageId: mediaIdSchema.nullable(),
+  order: z.enum(['manual', 'random']),
+  cards: z
+    .array(z.object({ id: keySchema, imageId: z.union([z.literal(''), mediaIdSchema]), title: line(T.CARD_TITLE_MAX, null) }))
+    .min(T.CARDS_MIN, { error: `حداقل ${fa(T.CARDS_MIN)} کارت لازم است` })
+    .max(T.CARDS_MAX, { error: `حداکثر ${fa(T.CARDS_MAX)} کارت` }),
+});
+
 const definitionSchema = z.object({
-  // The cap depends on the type — a journey runs longer — so it is checked in `checkDefinition`.
-  steps: z.array(stepSchema).min(1, { error: 'حداقل یک مرحله لازم است' }),
+  // The cap depends on the type — a journey runs longer — and «این یا اون» has none, so both are checked in `checkDefinition`.
+  steps: z.array(stepSchema),
   estimatedMinutes: z.number().int().min(1).max(L.ESTIMATED_MINUTES_MAX),
   maxSubmissions: z.number().int().min(1).max(L.REPEAT_MAX),
   anonymous: z.boolean(),
@@ -291,6 +302,8 @@ const definitionSchema = z.object({
   assessment: assessmentSchema.nullable(),
   // Absent on every version stored before journeys existed.
   journey: journeySchema.nullable().default(null),
+  // Absent on every version stored before «این یا اون» existed.
+  thisOrThat: thisOrThatSchema.nullable().default(null),
   xp: xpSchema,
 });
 
@@ -335,13 +348,14 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
   const dimensionIds = assessment?.mode === 'personality' ? new Set(assessment.dimensions.map((d) => d.id)) : new Set<string>();
 
   const journey = type === 'journey';
-  // A journey is taken once, answer by answer; a competition once, against the clock.
-  const maxSubmissions = journey || competition ? 1 : definition.maxSubmissions;
+  const thisOrThat = type === 'this_or_that';
+  // A journey is taken once, answer by answer; a competition once, against the clock; «این یا اون» once, to one pick.
+  const maxSubmissions = journey || competition || thisOrThat ? 1 : definition.maxSubmissions;
 
   return {
     ...definition,
     // A cover, the motions and trait points are a journey's; any other type drops them. A question image stays.
-    steps: (type === 'mission' || journey ? definition.steps : definition.steps.slice(0, 1))
+    steps: (type === 'mission' || journey ? definition.steps : definition.steps.slice(0, thisOrThat ? 0 : 1))
       .map(withOptionStyle)
       .map((step) => (profile ? step : withoutProfileWeights(step)))
       .map((step) => withDimensionsOf(step, dimensionIds))
@@ -365,6 +379,7 @@ function forType(type: ActivityType, definition: ActivityDefinition): ActivityDe
     // Profiles and their tie rules are a profile assessment's; any other mode drops them.
     assessment: assessment && !profile ? { ...assessment, profiles: undefined, tieBreak: undefined } : assessment,
     journey: journey ? definition.journey : null,
+    thisOrThat: thisOrThat ? definition.thisOrThat : null,
     xp: {
       ...definition.xp,
       maxAwards: Math.min(definition.xp.maxAwards, maxSubmissions),
@@ -435,10 +450,16 @@ function checkDefinition(type: ActivityType, definition: ActivityDefinition, ctx
   const issue = (path: (string | number)[], message: string) =>
     ctx.addIssue({ code: 'custom', path: ['definition', ...path], message });
 
+  if (type === 'this_or_that') {
+    checkThisOrThat(definition, issue);
+    return;
+  }
+
   const journey = type === 'journey';
   const stepsMax = journey ? J.DAYS_MAX : L.STEPS_MAX;
   const questionsMax = journey ? J.QUESTIONS_MAX : L.QUESTIONS_MAX;
   const questions = definition.steps.flatMap((step) => step.questions);
+  if (definition.steps.length === 0) issue(['steps'], 'حداقل یک مرحله لازم است');
   if (definition.steps.length > stepsMax) {
     issue(['steps'], journey ? `حداکثر ${fa(stepsMax)} روز` : `حداکثر ${fa(stepsMax)} مرحله`);
   }
@@ -577,6 +598,21 @@ function checkProfiles(definition: ActivityDefinition, issue: (path: (string | n
   if (!tieBreak.defaultProfileId || !profileIds.has(tieBreak.defaultProfileId)) {
     issue([...at, 'tieBreak', 'defaultProfileId'], 'پروفایل پیش‌فرض را انتخاب کنید');
   }
+}
+
+/** «این یا اون»: every card has its own id and an image. */
+function checkThisOrThat(definition: ActivityDefinition, issue: (path: (string | number)[], message: string) => void) {
+  const settings = definition.thisOrThat;
+  if (!settings) {
+    issue(['thisOrThat'], 'کارت‌های این فعالیت را اضافه کنید');
+    return;
+  }
+  if (new Set(settings.cards.map((card) => card.id)).size !== settings.cards.length) {
+    issue(['thisOrThat', 'cards'], 'شناسه‌ی کارت تکراری است');
+  }
+  settings.cards.forEach((card, c) => {
+    if (!card.imageId) issue(['thisOrThat', 'cards', c, 'imageId'], 'تصویر کارت را انتخاب کنید');
+  });
 }
 
 /**

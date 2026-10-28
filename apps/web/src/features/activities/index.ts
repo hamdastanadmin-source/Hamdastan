@@ -1,6 +1,6 @@
 /**
- * Activities — فعالیت‌ها: the surveys, missions, assessments and multi-day
- * journeys published from Engagement Studio, as the person finds and plays
+ * Activities — فعالیت‌ها: the surveys, missions, assessments, multi-day
+ * journeys, competitions and «این یا اون» published from Engagement Studio, as the person finds and plays
  * them.
  *
  * Public surface of the feature; the server-side reads are in `./server`.
@@ -15,4 +15,5 @@ export { ActivityCard } from './components/ActivityCard';
 export { ActivityPlayer } from './components/ActivityPlayer';
 export { JourneyPlayer } from './components/journey/JourneyPlayer';
 export { JourneyPreview } from './components/journey/JourneyPreview';
+export { ThisOrThatPlayer } from './components/this-or-that/ThisOrThatPlayer';
 export type { ActivityExit } from './utils/exit';

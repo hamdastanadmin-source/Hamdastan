@@ -1,0 +1,21 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0028 — «این یا اون» (this or that): image cards met two at a time, the
+-- winner staying on against the next, until one is left.
+--
+-- Additive only: one new value of v2_activity_type. Nothing else changes —
+--   • the cards, the cover and the order (manual or each person's own
+--     shuffle) live in the versioned definition (jsonb), like every other
+--     setting;
+--   • a person's run is their v2_engagement_participations row (started_at,
+--     the draft that lets them leave and come back, status, completed_at)
+--     and one v2_engagement_responses row whose answers keep every match
+--     under its number as [winner, loser] — the last winner is the pick.
+--     One submission per person, held by the participation lock.
+--
+-- Applied by `npm run db:migrate`, which opens the transaction — so no
+-- BEGIN/COMMIT here — and, once applied, never edited. The new value is not
+-- used in this file (PostgreSQL refuses that inside the transaction that
+-- adds it).
+-- ═══════════════════════════════════════════════════════════════════════════
+
+ALTER TYPE v2_activity_type ADD VALUE 'this_or_that';
