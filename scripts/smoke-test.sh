@@ -27,7 +27,7 @@ req() {
   local headers body
   headers="$(mktemp)"; body="$(mktemp)"
   local status
-  status="$(curl -s -m 10 "${RESOLVE[@]}" -D "$headers" -o "$body" -w '%{http_code}' "$@")"
+  status="$(curl -s -m 10 ${RESOLVE[@]+"${RESOLVE[@]}"} -D "$headers" -o "$body" -w '%{http_code}' "$@")"
   printf '%s\t%s\t%s' "$status" "$headers" "$body"
 }
 header() { grep -i "^$1:" "$2" | head -1 | cut -d' ' -f2- | tr -d '\r'; }
