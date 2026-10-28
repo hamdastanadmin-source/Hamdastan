@@ -230,6 +230,8 @@ export function fromDetail(detail: AdminActivityDetail): EditorState {
 export function toInput(state: EditorState): ActivityInput {
   return {
     ...state,
+    // «این یا اون» has no questions: any kept from the type before stay in the builder, never checked or sent.
+    definition: state.type === 'this_or_that' ? { ...state.definition, steps: [] } : state.definition,
     startsAt: state.startsAt ? new Date(state.startsAt).toISOString() : null,
     endsAt: state.endsAt ? new Date(state.endsAt).toISOString() : null,
   };

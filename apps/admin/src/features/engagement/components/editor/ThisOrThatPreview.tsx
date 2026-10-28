@@ -73,10 +73,12 @@ export function ThisOrThatPreview({ settings }: { settings: ThisOrThatSettings }
             <span className="truncate text-center text-sm font-medium">{cardTitle(cards, card)}</span>
           </button>
         ))}
-        {/* rtl-ok: centring between the two cards. */}
-        <span className="pointer-events-none absolute left-1/2 top-[40%] flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border bg-background text-xs font-bold">
-          VS
-        </span>
+        {/* As the player draws it: over the images only (bottom-7 leaves out the titles), violet by product decision. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 bottom-7 flex items-center justify-center">
+          <span className="flex size-10 items-center justify-center rounded-full border-4 border-background bg-primary text-xs font-extrabold text-primary-foreground shadow-md">
+            VS
+          </span>
+        </div>
       </div>
     </div>
   );
