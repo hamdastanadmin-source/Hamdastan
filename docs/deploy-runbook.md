@@ -111,6 +111,23 @@ the migrations are additive and the old code runs on the new schema. The
 staged version below is preferred because it separates the database change
 from the code switch, so each can be watched on its own.
 
+**When the workstation's link to the host is unstable**, an SSH drop kills
+`deploy.sh` mid-build (it happened twice on 2026-10-28). Nothing switches in
+that case — the old containers keep serving — so it is safe to retry, but the
+build and the switch should then run on the host, detached, so a drop cannot
+interrupt them:
+
+```bash
+ssh root@$DEPLOY_HOST "cd /srv/hamdastan && nohup bash -c 'set -e; \
+  for s in api web admin; do dc build \$s; done; dc up -d --remove-orphans; \
+  dc restart nginx; echo DEPLOY_DONE' > /root/deploy-build.log 2>&1 < /dev/null &"
+```
+
+If `up` reports `dependency failed to start: container hamdastan-api is
+unhealthy` (the API could not reach the database on its first boot), `admin`
+is left stopped and nginx un-restarted even after `api` recovers. Run
+`dc up -d --remove-orphans && dc restart nginx` again once `api` is healthy.
+
 | Stage | What | Downtime | If it fails |
 |---|---|---|---|
 | 3.1 | Sync source and env, **build** images — nothing switches | none | nothing changed; fix and retry |
