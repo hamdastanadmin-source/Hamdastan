@@ -9,7 +9,17 @@ import { toast } from 'sonner';
 import { ACTIVITY_TYPE_LABELS, RESULT_CARD } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { ENGAGEMENT_ERROR_CODES, type Leaderboard, type PlayerActivity } from '@hamdastan/types';
-import { Badge, Button, IconBadge, Progress } from '@hamdastan/ui';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Badge,
+  Button,
+  IconBadge,
+  Progress,
+  Separator,
+} from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle, XpAmount } from '@/components';
 import { useAuthOptional } from '@/features/auth';
@@ -234,6 +244,34 @@ export function ActivityPlayer({
 
   // ─── Intro ───────────────────────────────────────────────────────────────
   const waiting = activity.status === 'pending_review';
+  // Once there is a result to show, it is what the page is about: the
+  // activity's own notes fold away under it, closed until asked for.
+  const done = Boolean(activity.lastResult || activity.answerReview);
+  const competitionNote = activity.type === 'competition' && activity.endsAt;
+  const details = (activity.instructions || activity.anonymous || competitionNote || activity.review === 'manual') && (
+    <>
+      {activity.instructions && (
+        <p className="whitespace-pre-line text-base leading-relaxed">{activity.instructions}</p>
+      )}
+      {activity.anonymous && (
+        <p className="flex items-start gap-2 rounded-xl border p-3 text-sm text-muted-foreground">
+          <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          پاسخ‌هات ناشناس ثبت می‌شه؛ هیچ گزارشی اسمت رو کنار جواب‌هات نمی‌ذاره.
+        </p>
+      )}
+      {competitionNote && (
+        <p className="flex items-start gap-2 rounded-xl border p-3 text-sm text-muted-foreground">
+          <Timer aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {new Date(competitionNote) > new Date()
+            ? `فقط یک بار می‌تونی شرکت کنی، تا ${formatWhen(competitionNote)}. زمانت از لحظه‌ی «شروع» حساب می‌شه.`
+            : 'مسابقه تموم شده و رتبه‌ها قطعی‌ان.'}
+        </p>
+      )}
+      {activity.review === 'manual' && (
+        <p className="text-sm text-muted-foreground">بعد از ثبت، کارت رو بررسی می‌کنیم و XP بعد از تأیید به حسابت میاد.</p>
+      )}
+    </>
+  );
   return (
     <Screen>
       <ScreenHeader>
@@ -253,26 +291,21 @@ export function ActivityPlayer({
           {activity.xp !== null && <RewardChip xp={activity.xp} />}
           <span>{toPersianDigits(player.flow.length)} سؤال</span>
         </div>
-        {activity.instructions && (
-          <p className="whitespace-pre-line text-base leading-relaxed">{activity.instructions}</p>
+        {done ? (
+          details && (
+            <Accordion type="single" collapsible>
+              <AccordionItem value="details">
+                <AccordionTrigger className="min-h-11 items-center py-3 font-semibold hover:no-underline">
+                  درباره‌ی این فعالیت
+                </AccordionTrigger>
+                <AccordionContent className="flex flex-col gap-4">{details}</AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )
+        ) : (
+          details
         )}
-        {activity.anonymous && (
-          <p className="flex items-start gap-2 rounded-xl border p-3 text-sm text-muted-foreground">
-            <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            پاسخ‌هات ناشناس ثبت می‌شه؛ هیچ گزارشی اسمت رو کنار جواب‌هات نمی‌ذاره.
-          </p>
-        )}
-        {activity.type === 'competition' && activity.endsAt && (
-          <p className="flex items-start gap-2 rounded-xl border p-3 text-sm text-muted-foreground">
-            <Timer aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            {new Date(activity.endsAt) > new Date()
-              ? `فقط یک بار می‌تونی شرکت کنی، تا ${formatWhen(activity.endsAt)}. زمانت از لحظه‌ی «شروع» حساب می‌شه.`
-              : 'مسابقه تموم شده و رتبه‌ها قطعی‌ان.'}
-          </p>
-        )}
-        {activity.review === 'manual' && (
-          <p className="text-sm text-muted-foreground">بعد از ثبت، کارت رو بررسی می‌کنیم و XP بعد از تأیید به حسابت میاد.</p>
-        )}
+        {done && <Separator />}
         {activity.lastResult && <ResultCard result={activity.lastResult} media={activity.media} heading={heading} />}
         {leaderboard && <LeaderboardCard board={leaderboard} />}
         {activity.answerReview && <AnswerReviewList activity={activity} review={activity.answerReview} />}

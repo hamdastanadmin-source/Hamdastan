@@ -995,7 +995,9 @@ description, «حدود n دقیقه», and «+n XP» when the admin chose to sh
 - **Intro.** Title, description, time, reward, question count, instructions;
   «پاسخ‌هات ناشناس ثبت می‌شه…» for an anonymous survey; for a reviewed
   mission, that XP follows approval; the last result if the assessment shows
-  one. The one action is «شروع», «ادامه» (a saved draft — it resumes at the
+  one. Once there is a result (or a revealed answer review) the result leads:
+  those notes fold into a «درباره‌ی این فعالیت» accordion, closed by default,
+  and a separator divides them from the result below. The one action is «شروع», «ادامه» (a saved draft — it resumes at the
   first unanswered question) or «انجام دوباره»; otherwise a disabled «در
   انتظار تأیید» / «انجامش دادی» / «این فعالیت الان باز نیست».
 - **Playing.** One question per screen, with «n از m» and a thin neutral
