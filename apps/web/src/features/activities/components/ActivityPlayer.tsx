@@ -6,21 +6,22 @@ import { useRouter } from 'next/navigation';
 import { CircleCheck, Clock, Hourglass, Lock, Share2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ACTIVITY_TYPE_LABELS } from '@hamdastan/config';
+import { ACTIVITY_TYPE_LABELS, RESULT_CARD } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { ENGAGEMENT_ERROR_CODES, type Leaderboard, type PlayerActivity } from '@hamdastan/types';
 import { Badge, Button, IconBadge, Progress } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle, XpAmount } from '@/components';
+import { useAuthOptional } from '@/features/auth';
 import { RewardChip } from '@/features/profile';
 import { InstallAppSheet } from '@/features/pwa-install';
-import { shareInvite } from '@/lib';
+import { shareImage } from '@/lib';
 import { HttpError } from '@/services';
 
 import type { ActivityExit } from '../utils/exit';
 import { useActivityPlayer } from '../hooks/use-activity-player';
-import { minutesLabel, PROGRESS_LINE, STATUS_LABELS } from '../utils/activity';
-import { inviteUrl } from '../utils/journey';
+import { useResultCard } from '../hooks/use-result-card';
+import { minutesLabel, PROGRESS_LINE, resultHeading, STATUS_LABELS } from '../utils/activity';
 import { formatWhen } from '../utils/quiz';
 import { QuestionField } from './QuestionField';
 import { QuestionImage } from './QuestionImage';
@@ -32,11 +33,12 @@ import { ResultCard } from './ResultCard';
  * Playing an activity: the intro, one question per screen, and what came
  * of it.
  *
- * The done screen reports the API's answer and nothing else: «XP گرفتی»
- * appears only when the response says XP was written to the ledger, and a
- * mission waiting for review says so instead. A competition adds the
- * person's place and its leaderboard; a quiz whose answers may be revealed
- * lists them, with each one's explanation.
+ * The done screen reports the API's answer and nothing else: the result
+ * leads, and «XP گرفتی» closes the page — only when the response says XP was
+ * written to the ledger; a mission waiting for review says so instead. A
+ * competition adds the person's place and its leaderboard; a quiz whose
+ * answers may be revealed lists them, with each one's explanation. A
+ * personality result is shared as its card, drawn as an image.
  */
 export function ActivityPlayer({
   activity,
@@ -51,6 +53,25 @@ export function ActivityPlayer({
   const router = useRouter();
   const player = useActivityPlayer(activity);
   const titleId = useId();
+  const heading = resultHeading(activity.title, useAuthOptional());
+
+  // A personality result is worth showing friends: its card, as the image that is shared.
+  const result = player.outcome?.result?.mode === 'personality' ? player.outcome.result : null;
+  const personality = result?.outcome ?? null;
+  const card = useResultCard(
+    result && personality && {
+      name: personality.title,
+      title: '',
+      description: personality.description,
+      userName: null,
+      heading,
+      bars: result.dimensions.map((dimension) => ({ label: dimension.title, value: dimension.value })),
+      brandName: RESULT_CARD.BRAND,
+      background: null,
+    },
+    { character: personality?.imageId ? activity.media[personality.imageId] : undefined },
+    `hamdastan-${personality?.title ?? 'result'}`
+  );
 
   const next = async () => {
     try {
@@ -69,48 +90,37 @@ export function ActivityPlayer({
   if (player.phase === 'done' && player.outcome) {
     const { outcome } = player;
     const waiting = outcome.status === 'pending_review';
-    // A personality result is worth showing friends: sharing becomes the primary action.
-    const personality = outcome.result?.mode === 'personality' ? outcome.result.outcome : null;
     const share = async () => {
-      if (!personality) return;
-      const shared = await shareInvite({
+      if (!card || !personality) return;
+      const shared = await shareImage(card, {
         title: activity.title,
         text: `توی «${activity.title}» شدم «${personality.title}»! تو کدومی؟`,
-        url: inviteUrl(activity.id, window.location.origin),
       });
-      if (shared === 'copied') toast.success('لینک کپی شد');
-      if (shared === 'failed') toast.error('اشتراک‌گذاری انجام نشد؛ دوباره امتحان کن');
+      if (shared === 'saved') toast.success('کارت ذخیره شد؛ از گالری به اشتراک بذارش.');
     };
     return (
       <Screen>
         <ScreenHeader />
         <ScreenBody center className="gap-6">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <IconBadge tone="muted" size="lg">
-              {waiting ? <Hourglass aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}
-            </IconBadge>
-            <ScreenTitle
-              title={waiting ? 'ثبت شد؛ در انتظار تأیید' : 'آفرین، ثبت شد!'}
-              description={
-                waiting
-                  ? 'مدرکت برای بررسی فرستاده شد. بعد از تأیید، XP این مأموریت به حسابت اضافه می‌شه.'
-                  : activity.anonymous
-                    ? 'پاسخت بدون نام ثبت شد.'
-                    : 'ممنون که وقت گذاشتی.'
-              }
-            />
-            {outcome.xpAwarded > 0 && (
-              <p className="flex flex-col items-center gap-1" role="status">
-                <span className="text-2xl font-bold text-success">
-                  <XpAmount value={outcome.xpAwarded} signed />
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  گرفتی — موجودی‌ات حالا <XpAmount value={outcome.xpTotal} />
-                </span>
-              </p>
-            )}
-          </div>
-          {outcome.result && <ResultCard result={outcome.result} media={activity.media} />}
+          {/* A result speaks for itself; without one, the activity is named and the person thanked. */}
+          {(waiting || !outcome.result) && (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <IconBadge tone="muted" size="lg">
+                {waiting ? <Hourglass aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}
+              </IconBadge>
+              <ScreenTitle
+                title={waiting ? 'ثبت شد؛ در انتظار تأیید' : activity.title}
+                description={
+                  waiting
+                    ? 'مدرکت برای بررسی فرستاده شد. بعد از تأیید، XP این مأموریت به حسابت اضافه می‌شه.'
+                    : activity.anonymous
+                      ? 'پاسخت بدون نام ثبت شد.'
+                      : 'ممنون که وقت گذاشتی.'
+                }
+              />
+            </div>
+          )}
+          {outcome.result && <ResultCard result={outcome.result} media={activity.media} heading={heading} />}
           {outcome.rank && (
             <p className="text-center text-sm" role="status">
               فعلاً رتبه‌ی <span className="font-bold tabular-nums">{toPersianDigits(outcome.rank.rank)}</span> رو داری.{' '}
@@ -128,10 +138,20 @@ export function ActivityPlayer({
             </p>
           )}
           {outcome.answerReview && <AnswerReviewList activity={activity} review={outcome.answerReview} />}
+          {outcome.xpAwarded > 0 && (
+            <p className="flex flex-col items-center gap-1 text-center" role="status">
+              <span className="text-2xl font-bold text-success">
+                <XpAmount value={outcome.xpAwarded} signed />
+              </span>
+              <span className="text-sm text-muted-foreground">
+                گرفتی — موجودی‌ات حالا <XpAmount value={outcome.xpTotal} />
+              </span>
+            </p>
+          )}
         </ScreenBody>
         <ScreenFooter className="grid auto-cols-fr grid-flow-col gap-2">
           {personality && (
-            <Button size="xl" className="min-w-0" onClick={share} aria-label="اشتراک‌گذاری نتیجه">
+            <Button size="xl" className="min-w-0" onClick={share} disabled={!card} aria-label="اشتراک‌گذاری کارت نتیجه">
               <Share2 aria-hidden="true" />
               اشتراک‌گذاری
             </Button>
@@ -251,7 +271,7 @@ export function ActivityPlayer({
         {activity.review === 'manual' && (
           <p className="text-sm text-muted-foreground">بعد از ثبت، کارت رو بررسی می‌کنیم و XP بعد از تأیید به حسابت میاد.</p>
         )}
-        {activity.lastResult && <ResultCard result={activity.lastResult} media={activity.media} />}
+        {activity.lastResult && <ResultCard result={activity.lastResult} media={activity.media} heading={heading} />}
         {leaderboard && <LeaderboardCard board={leaderboard} />}
         {activity.answerReview && <AnswerReviewList activity={activity} review={activity.answerReview} />}
       </ScreenBody>

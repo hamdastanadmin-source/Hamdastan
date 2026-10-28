@@ -855,11 +855,16 @@ dimension a choice touches, the picked options' points are put on 0–1
 relative to that question's lowest and highest for it. Every dimension's
 items are averaged (0–100). The dimension on top is the outcome (ties to the
 first listed); the person sees its image (if any), title and description and
-every dimension's share, if «نمایش نتیجه» is on. With the result shown, the
-done screen's footer holds two equal buttons side by side: «اشتراک‌گذاری»,
-the primary — the system's share sheet (or the link copied) with «توی
-«‹activity›» شدم «‹outcome›»! تو کدومی؟» and the activity's link — and
-«بازگشت به خانه» in outline; a moment later it offers to install the app (§9.3). Text and matching
+every dimension's share, if «نمایش نتیجه» is on, under the heading «نتیجه
+تست ‹activity› - ‹first name› ‹last name›» (without the name when there is
+none; `resultHeading`). With the result shown, the done screen's footer holds
+two equal buttons side by side: «اشتراک‌گذاری», the primary — the result card
+as a PNG, never a link: the same heading, the outcome's image, title and
+description and every dimension as a bar, drawn on a canvas at 1080 × 1920
+by `@hamdastan/ui/result-card` (as a journey's card is), sent through the
+share sheet with «توی «‹activity›» شدم «‹outcome›»! تو کدومی؟», else saved
+for the gallery — and «بازگشت به خانه» in outline; a moment later it offers
+to install the app (§9.3). Text and matching
 questions measure no dimension. A version saved when a choice question measured one
 dimension (a `dimensionId` on the question, a `score` per option, `reverse`)
 is read in the per-option shape (`withDimensionScores`: reverse-keyed points
@@ -1000,11 +1005,13 @@ description, «حدود n دقیقه», and «+n XP» when the admin chose to sh
   draft (`PUT …/draft`; a lost draft is not reported); «قبلی» keeps the
   answer; the last question's action is «ثبت نهایی». Selection is a
   foreground border and a check — the violet is the footer button's alone.
-- **Done.** «آفرین، ثبت شد!» — or, for a reviewed mission, «ثبت شد؛ در انتظار
-  تأیید». «+n XP» and the new balance appear **only** when the response's
+- **Done.** No «آفرین، ثبت شد!»: the result card leads, if allowed; without
+  one, the activity's title with «ممنون که وقت گذاشتی» (or «پاسخت بدون نام ثبت
+  شد»), and for a reviewed mission «ثبت شد؛ در انتظار تأیید». «+n XP» and the
+  new balance close the page, at its foot, **only** when the response's
   `xpAwarded` is above zero, i.e. the ledger row was written in the same
   transaction; a repeat, a failed pass mark or a pending review shows no XP.
-  Then the result card, if allowed, and «بازگشت به خانه».
+  Then «بازگشت به خانه».
 
 **XP — the ledger.** Activity rewards are rows in the same
 `v2_xp_transactions` as the missions (§4.4): user, `activity_id`,
@@ -1117,7 +1124,8 @@ worlds and statuses as for any activity.
   next card comes in on the loser's side, so the winner never jumps. The
   image after the next is fetched ahead. The end: the pick, large, with a
   sparkle, «قبلی» still allowed, and «اتمام فعالیت» — which submits; then
-  «+n XP» when the ledger paid it, and «بازگشت به خانه». Under reduced
+  (no «ثبت شد!») «+n XP» at the foot when the ledger paid it, and «بازگشت به
+  خانه». Under reduced
   motion nothing moves.
 - **The panel.** «این یا اون» in the builder's first step. Its third tab is
   «کارت‌ها» instead of «سؤال‌ها» (`CardsStep`): the cover, «ترتیب نمایش

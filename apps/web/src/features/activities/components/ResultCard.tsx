@@ -15,7 +15,16 @@ const BAR = 'bg-muted [&>[data-slot=progress-indicator]]:bg-foreground/70';
  * profile's weighted totals stay with the admin: they can be negative and
  * mean nothing on their own.
  */
-export function ResultCard({ result, media }: { result: AssessmentResult; media: Record<string, PlayerMedia> }) {
+export function ResultCard({
+  result,
+  media,
+  heading,
+}: {
+  result: AssessmentResult;
+  media: Record<string, PlayerMedia>;
+  /** A personality result's line above its title — `resultHeading`. */
+  heading: string;
+}) {
   if (result.mode === 'profile') {
     return (
       <Card className="gap-3">
@@ -54,7 +63,7 @@ export function ResultCard({ result, media }: { result: AssessmentResult; media:
     <Card className="gap-3">
       <CardHeader>
         {image && <QuestionImage media={image} />}
-        <CardDescription>نتیجه‌ی تو</CardDescription>
+        <CardDescription>{heading}</CardDescription>
         <CardTitle className="text-xl">{result.outcome?.title ?? '—'}</CardTitle>
         {result.outcome?.description && (
           <p className="text-sm leading-relaxed text-muted-foreground">{result.outcome.description}</p>

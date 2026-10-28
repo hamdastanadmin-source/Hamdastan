@@ -66,11 +66,7 @@ export function ThisOrThatPlayer({ activity, exit }: { activity: PlayerActivity;
           </div>
           <ScreenTitle
             title={winner.title || 'انتخاب نهایی تو'}
-            description={
-              outcome
-                ? 'ثبت شد! ممنون که بازی کردی.'
-                : `از بین ${toPersianDigits(game.cards.length)} تصویر، این یکی انتخاب نهایی توئه.`
-            }
+            description={`از بین ${toPersianDigits(game.cards.length)} تصویر، این یکی انتخاب نهایی توئه.`}
           />
           {outcome && outcome.xpAwarded > 0 && (
             <p className="flex flex-col items-center gap-1" role="status">

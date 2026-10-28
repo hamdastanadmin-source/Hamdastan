@@ -16,6 +16,12 @@ export const PROGRESS_LINE = 'h-0.5 bg-foreground/10 [&>[data-slot=progress-indi
 
 export const minutesLabel = (minutes: number) => `حدود ${toPersianDigits(minutes)} دقیقه`;
 
+/** A personality result's heading: «نتیجه تست <test> - <first last>», without the name when there is none. */
+export function resultHeading(activityTitle: string, person: { firstName: string | null; lastName: string | null } | null): string {
+  const name = [person?.firstName, person?.lastName].filter(Boolean).join(' ');
+  return name ? `نتیجه تست ${activityTitle} - ${name}` : `نتیجه تست ${activityTitle}`;
+}
+
 /** The world badge: the first world, and how many more — null when it is filed under none. */
 export function worldLabel(worlds: ActivityCard['worlds']): string | null {
   const [first, ...rest] = worlds;

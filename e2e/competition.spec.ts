@@ -105,7 +105,7 @@ test('a competition: one try, a place on the board, the answers after the end', 
     await page.getByRole('button', { name: 'بعدی' }).click();
     await page.getByText('اسنیپ', { exact: true }).click();
     await page.getByRole('button', { name: 'ثبت نهایی' }).click();
-    await expect(page.getByText('آفرین، ثبت شد!')).toBeVisible();
+    await expect(page.getByText('نمره‌ی تو')).toBeVisible();
     await expect(page.getByText('۵۰٪')).toBeVisible();
     await expect(page.getByRole('status').filter({ hasText: 'رتبه' })).toContainText('۲');
     // Still open: no answers yet.

@@ -8,6 +8,7 @@ import type { PlayerActivity, PlayerJourneyResult, PlayerMedia } from '@hamdasta
 import { Button, Label, Skeleton, Switch } from '@hamdastan/ui';
 
 import { Screen, ScreenBack, ScreenBody, ScreenFooter, ScreenHeader, ScreenTitle } from '@/components';
+import { saveImage, shareImage } from '@/lib';
 
 import { useResultCard } from '../../hooks/use-result-card';
 import { inviteUrl } from '../../utils/journey';
@@ -33,30 +34,31 @@ export function ResultScreen({
 }) {
   const canShowName = result.card.showUserName && Boolean(name);
   const [withName, setWithName] = useState(canShowName);
-  const card = useResultCard(result, media, withName ? name : null);
+  const card = useResultCard(
+    {
+      name: result.character.name,
+      title: result.character.title,
+      description: result.character.description,
+      userName: withName ? name : null,
+      brandName: result.card.brandName,
+      background: result.card.background,
+    },
+    {
+      character: result.character.imageId ? media[result.character.imageId] : undefined,
+      logo: result.card.logoId ? media[result.card.logoId] : undefined,
+    },
+    `hamdastan-${result.character.name}`
+  );
 
-  const download = () => {
-    if (!card) return;
-    const link = document.createElement('a');
-    link.href = card.url;
-    link.download = card.file.name;
-    link.click();
-  };
+  const download = () => card && saveImage(card);
 
   const share = async () => {
     if (!card) return;
-    const files = [card.file];
-    if (typeof navigator.canShare === 'function' && navigator.canShare({ files })) {
-      try {
-        await navigator.share({ files, title: activity.title, text: `${result.character.name} — ${inviteUrl(activity.id, window.location.origin)}` });
-      } catch {
-        // Closing the sheet is not an error.
-      }
-      return;
-    }
-    // No sharing files here: the card is saved instead, to post from the gallery.
-    download();
-    toast.success('کارت ذخیره شد؛ از گالری به اشتراک بذارش.');
+    const shared = await shareImage(card, {
+      title: activity.title,
+      text: `${result.character.name} — ${inviteUrl(activity.id, window.location.origin)}`,
+    });
+    if (shared === 'saved') toast.success('کارت ذخیره شد؛ از گالری به اشتراک بذارش.');
   };
 
   return (

@@ -1,8 +1,10 @@
 import { RESULT_CARD } from '@hamdastan/config';
+import { toPersianDigits } from '@hamdastan/shared/format/persian';
 
 /**
- * The journey's character card, drawn on a canvas at Instagram-story size
- * (1080 × 1920) — so it can be saved or shared as a real image, never a
+ * The result card — a journey's character, or a personality test's outcome
+ * with its dimensions — drawn on a canvas at Instagram-story size
+ * (1080 × 1920), so it can be saved or shared as a real image, never a
  * screenshot. The panel's preview and the product's export call this same
  * function, so the admin sees exactly what people will get.
  *
@@ -17,6 +19,10 @@ export type ResultCardContent = {
   description: string;
   /** The person's first name, when it may be printed. */
   userName: string | null;
+  /** The line above the name, in place of «شخصیت <userName>:». */
+  heading?: string;
+  /** A personality test's dimensions, 0–100 each, drawn as bars under the words. */
+  bars?: { label: string; value: number }[];
   brandName: string;
   /** The admin's `#rrggbb`, or null for the product's surface. */
   background: string | null;
@@ -95,21 +101,24 @@ export function drawResultCard(canvas: HTMLCanvasElement, content: ResultCardCon
     ctx.fillText(content.brandName, WIDTH / 2, 190);
   }
 
-  // The character, in a soft panel.
+  // The character, in a soft panel — shorter when bars need the room below it.
+  const bars = content.bars ?? [];
+  const panel = bars.length ? Math.max(360, 760 - bars.length * 100) : 820;
   soft(0.08);
   ctx.fillStyle = ink;
   ctx.beginPath();
-  ctx.roundRect(110, 300, WIDTH - 220, 820, 64);
+  ctx.roundRect(110, 300, WIDTH - 220, panel, 64);
   ctx.fill();
   soft(1);
-  if (images.character) contain(ctx, images.character, 150, 340, WIDTH - 300, 740);
+  if (images.character) contain(ctx, images.character, 150, 340, WIDTH - 300, panel - 80);
 
   ctx.fillStyle = ink;
-  let y = 1240;
-  if (content.userName) {
+  let y = 300 + panel + 120;
+  const heading = content.heading ?? (content.userName ? `شخصیت ${content.userName}:` : '');
+  if (heading) {
     soft(0.7);
     ctx.font = `500 44px ${font}`;
-    ctx.fillText(`شخصیت ${content.userName}:`, WIDTH / 2, y);
+    ctx.fillText(heading, WIDTH / 2, y, WIDTH - 160);
     soft(1);
     y += 110;
   } else {
@@ -131,12 +140,38 @@ export function drawResultCard(canvas: HTMLCanvasElement, content: ResultCardCon
   if (content.description) {
     soft(0.7);
     ctx.font = `400 42px ${font}`;
-    for (const line of wrap(ctx, content.description, WIDTH - 220, 5)) {
+    for (const line of wrap(ctx, content.description, WIDTH - 220, bars.length ? 3 : 5)) {
       ctx.fillText(line, WIDTH / 2, y);
       y += 66;
     }
     soft(1);
   }
+
+  // Each dimension: its name at the start, its share at the end, a bar filling from the start.
+  const barWidth = WIDTH - 280;
+  for (const bar of bars) {
+    y += 40;
+    ctx.font = `500 40px ${font}`;
+    ctx.textAlign = 'right'; // rtl-ok: the canvas is drawn right to left; this is its start edge.
+    ctx.fillText(bar.label, WIDTH - 140, y, barWidth - 160);
+    soft(0.7);
+    ctx.textAlign = 'left'; // rtl-ok: the end edge of a right-to-left card.
+    ctx.fillText(`${toPersianDigits(bar.value)}٪`, 140, y);
+    soft(0.12);
+    ctx.beginPath();
+    ctx.roundRect(140, y + 24, barWidth, 20, 10);
+    ctx.fill();
+    soft(0.7);
+    const filled = (barWidth * Math.min(100, Math.max(0, bar.value))) / 100;
+    if (filled > 0) {
+      ctx.beginPath();
+      ctx.roundRect(140 + barWidth - filled, y + 24, filled, 20, 10);
+      ctx.fill();
+    }
+    soft(1);
+    y += 60;
+  }
+  ctx.textAlign = 'center';
 
   // The brand again at the foot, where a story's reader looks last.
   if (content.brandName) {

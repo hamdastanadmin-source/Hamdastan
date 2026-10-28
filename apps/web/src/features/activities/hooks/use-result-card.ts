@@ -2,25 +2,33 @@
 
 import { useEffect, useState } from 'react';
 
-import type { PlayerJourneyResult, PlayerMedia } from '@hamdastan/types';
-import { cardFile, drawResultCard, loadCardImage } from '@hamdastan/ui/result-card';
+import type { PlayerMedia } from '@hamdastan/types';
+import { cardFile, drawResultCard, loadCardImage, type ResultCardContent } from '@hamdastan/ui/result-card';
 
 import { activitiesService } from '@/services';
+import type { SharedImage } from '@/lib';
 
 /** The product's own logo, for a card whose admin chose none. */
 const PRODUCT_LOGO = '/images/brand/logo.svg';
 
 /**
- * The person's character card as a real PNG — drawn on a canvas from the
- * kept result, at 1080 × 1920 — and an address to show it at. Redrawn when
- * the person turns their name on or off.
+ * A result card as a real PNG — drawn on a canvas at 1080 × 1920 — and an
+ * address to show it at: a journey's character, or a personality test's
+ * outcome. Redrawn when what is on it changes (the person turning their name
+ * on or off); nothing is drawn while `content` is null.
  */
-export function useResultCard(result: PlayerJourneyResult, media: Record<string, PlayerMedia>, userName: string | null) {
-  const [card, setCard] = useState<{ file: File; url: string } | null>(null);
-  const character = result.character.imageId ? media[result.character.imageId] : undefined;
-  const logo = result.card.logoId ? media[result.card.logoId] : undefined;
+export function useResultCard(
+  content: ResultCardContent | null,
+  images: { character?: PlayerMedia; logo?: PlayerMedia },
+  fileName: string
+) {
+  const [card, setCard] = useState<SharedImage | null>(null);
+  const { character, logo } = images;
+  // A fresh object each render: the drawing follows what is in it, not its identity.
+  const key = content && JSON.stringify(content);
 
   useEffect(() => {
+    if (!key) return;
     let active = true;
     let url: string | null = null;
     (async () => {
@@ -32,19 +40,8 @@ export function useResultCard(result: PlayerJourneyResult, media: Record<string,
       ]);
       if (!active) return;
       const canvas = document.createElement('canvas');
-      drawResultCard(
-        canvas,
-        {
-          name: result.character.name,
-          title: result.character.title,
-          description: result.character.description,
-          userName,
-          brandName: result.card.brandName,
-          background: result.card.background,
-        },
-        { character: characterImage, logo: logoImage }
-      );
-      const file = await cardFile(canvas, `hamdastan-${result.character.name}`);
+      drawResultCard(canvas, JSON.parse(key) as ResultCardContent, { character: characterImage, logo: logoImage });
+      const file = await cardFile(canvas, fileName);
       if (!active || !file) return;
       url = URL.createObjectURL(file);
       setCard({ file, url });
@@ -53,7 +50,7 @@ export function useResultCard(result: PlayerJourneyResult, media: Record<string,
       active = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [result, character, logo, userName]);
+  }, [key, character, logo, fileName]);
 
   return card;
 }
