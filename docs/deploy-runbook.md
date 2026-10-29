@@ -174,6 +174,10 @@ From the workstation:
 SMOKE_OTP_PHONE=09XXXXXXXXX ./scripts/smoke-test.sh https://hamdaastaan.ir   # sends one real SMS
 ```
 
+`deploy.sh` recreates nginx last. A smoke test started in the same second can
+see `/_up — status 000` while nginx is still binding; re-run it once before
+treating that as a failure.
+
 ---
 
 ## 4. After the deploy — first 30 minutes
