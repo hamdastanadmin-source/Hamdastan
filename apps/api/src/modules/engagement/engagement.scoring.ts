@@ -21,7 +21,9 @@ import { definitionWithDimensionScores } from '@hamdastan/validation';
  *
  * Personality: every answered item is put on 0–1 for each dimension it
  * measures and averaged per dimension; the dimension on top is the outcome.
- * Ties go to the dimension listed first. A rating or scale measures its one
+ * Ties go to the dimension listed first. What the person sees is each
+ * dimension's share of the whole, rounded so the shares add up to exactly
+ * 100 (`toShares`). A rating or scale measures its one
  * dimension, by its position on the range, turned round when reverse-keyed.
  * A choice measures every dimension one of its options has points toward,
  * by the picked options' points relative to the question's lowest and
@@ -118,7 +120,7 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
       .map((question) => itemValue(question, answers[question.id], dimension.id))
       .filter((value) => value !== null);
     const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-    return { dimension, value: mean === null ? null : Math.round(mean * 100) };
+    return { dimension, value: mean };
   });
 
   const measured = dimensions.filter((entry) => entry.value !== null);
@@ -126,16 +128,36 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
     (best, entry) => (best === null || entry.value! > best.value! ? entry : best),
     null
   );
+  const shares = toShares(measured.map((entry) => entry.value!));
 
   return {
     mode: 'personality',
     score: null,
     passed: null,
-    dimensions: measured.map(({ dimension, value }) => ({ id: dimension.id, title: dimension.title, value: value! })),
+    dimensions: measured.map(({ dimension }, i) => ({ id: dimension.id, title: dimension.title, value: shares[i] })),
     outcome: top
       ? { title: top.dimension.title, description: top.dimension.description, imageId: top.dimension.imageId }
       : null,
   };
+}
+
+/**
+ * Each value's share of their sum as whole percentages that add up to 100:
+ * floor every share, then hand the points left over to the largest
+ * remainders, earlier first on a tie. All zero splits evenly.
+ */
+function toShares(values: number[]): number[] {
+  if (values.length === 0) return [];
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const exact = values.map((value) => (total > 0 ? (value / total) * 100 : 100 / values.length));
+  const shares = exact.map(Math.floor);
+  const order = exact.map((value, i) => ({ i, rest: value - shares[i] })).sort((a, b) => b.rest - a.rest || a.i - b.i);
+  let left = 100 - shares.reduce((sum, share) => sum + share, 0);
+  for (const { i } of order) {
+    if (left-- <= 0) break;
+    shares[i] += 1;
+  }
+  return shares;
 }
 
 /** What one answered choice question adds to one profile: its picks' weights, times the question's weight. */

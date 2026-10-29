@@ -855,7 +855,9 @@ dimension a choice touches, the picked options' points are put on 0–1
 relative to that question's lowest and highest for it. Every dimension's
 items are averaged (0–100). The dimension on top is the outcome (ties to the
 first listed); the person sees its image (if any), title and description and
-every dimension's share, if «نمایش نتیجه» is on, under the heading «نتیجه
+every dimension's share of the whole — whole percentages that add up to
+exactly 100 (largest remainders get the rounding; all zero splits evenly) —
+if «نمایش نتیجه» is on, under the heading «نتیجه
 تست ‹activity› - ‹first name› ‹last name›» (without the name when there is
 none; `resultHeading`). With the result shown, the done screen's footer holds
 two equal buttons side by side: «اشتراک‌گذاری», the primary — the result card

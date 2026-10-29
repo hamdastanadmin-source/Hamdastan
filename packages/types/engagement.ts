@@ -593,7 +593,7 @@ export type AssessmentResult = {
   score: number | null;
   /** Knowledge with a pass mark. */
   passed: boolean | null;
-  /** Personality: each dimension, 0–100. */
+  /** Personality: each dimension's share, 0–100; together they add up to 100. */
   dimensions: { id: string; title: string; value: number }[];
   /** Personality: the dimension on top, with its image if it has one. Profile: the profile that won. */
   outcome: { title: string; description: string; imageId?: string } | null;

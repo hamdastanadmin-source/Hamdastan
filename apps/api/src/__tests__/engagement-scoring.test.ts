@@ -79,6 +79,16 @@ describe('scoreAssessment', () => {
     expect(result.outcome).toEqual({ title: 'X', description: 'dx' });
   });
 
+  it('shows each dimension as its share of the whole, adding up to exactly 100', () => {
+    // a = 4 → 0.75, b = 4 reversed → 0.25: X is 0.5; c = hi: Y is 1. Shares 33⅓ and 66⅔.
+    expect(scoreAssessment(personality, { a: 4, b: 4, c: 'hi' })!.dimensions).toEqual([
+      { id: 'x', title: 'X', value: 33 },
+      { id: 'y', title: 'Y', value: 67 },
+    ]);
+    // Nothing on either: an even split.
+    expect(scoreAssessment(personality, { a: 1, b: 5, c: 'lo' })!.dimensions.map((d) => d.value)).toEqual([50, 50]);
+  });
+
   it('places a choice by its points between the question’s lowest and highest', () => {
     const result = scoreAssessment(personality, { a: 1, b: 5, c: 'hi' })!;
     expect(result.dimensions.find((d) => d.id === 'y')?.value).toBe(100);
