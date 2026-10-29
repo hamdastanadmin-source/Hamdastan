@@ -60,6 +60,9 @@ export function mediaRefs(
       if (dimension.imageId) {
         refs.push({ path: `definition.assessment.dimensions.${d}.imageId`, id: dimension.imageId, needs: 'image' });
       }
+      for (const [gender, id] of Object.entries(dimension.genderImageIds ?? {})) {
+        if (id) refs.push({ path: `definition.assessment.dimensions.${d}.genderImageIds.${gender}`, id, needs: 'image' });
+      }
     });
   }
   // «این یا اون»: the cover and every card, all images.

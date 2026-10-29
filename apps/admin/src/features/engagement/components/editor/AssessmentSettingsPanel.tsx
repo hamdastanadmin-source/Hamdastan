@@ -4,13 +4,18 @@ import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 
 import { ENGAGEMENT_LIMITS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityQuestion, AssessmentDimension, AssessmentProfile, AssessmentSettings, ProfileTieBreak } from '@hamdastan/types';
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from '@hamdastan/ui';
+import type { ActivityQuestion, AssessmentDimension, AssessmentProfile, AssessmentSettings, Gender, ProfileTieBreak } from '@hamdastan/types';
+import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from '@hamdastan/ui';
 
 import { MediaField } from '@/features/media';
 
 import { newKey } from '../../utils/draft';
 import { Field, invalid, SwitchRow } from './Field';
+
+const GENDERS: { gender: Gender; label: string }[] = [
+  { gender: 'male', label: 'مرد' },
+  { gender: 'female', label: 'زن' },
+];
 
 /** The assessment's scoring: its mode, its dimensions, pass mark or profiles, and whether people see a result. */
 export function AssessmentSettingsPanel({
@@ -106,7 +111,7 @@ export function AssessmentSettingsPanel({
           <Field
             label="ابعاد ارزیابی"
             error={dimensionsError}
-            hint="تصویر هر بُعد (اختیاری) همراه نتیجه به کاربری نمایش داده می‌شود که در آن بُعد قرار می‌گیرد. امتیاز هر گزینه برای هر بُعد در ویرایش همان سؤال تعیین می‌شود."
+            hint="تصویر هر بُعد (اختیاری) همراه نتیجه به کاربری نمایش داده می‌شود که در آن بُعد قرار می‌گیرد. با «تصویر متفاوت بر اساس جنسیت»، مرد و زن هر کدام تصویر خودشان را می‌بینند؛ اگر جنسیت کاربر مشخص نباشد یا تصویرش انتخاب نشده باشد، تصویر عمومی بُعد نمایش داده می‌شود. امتیاز هر گزینه برای هر بُعد در ویرایش همان سؤال تعیین می‌شود."
           >
             <ul className="flex flex-col gap-3">
               {settings.dimensions.map((dimension, index) => (
@@ -135,14 +140,41 @@ export function AssessmentSettingsPanel({
                     aria-label={`توضیح بُعد ${toPersianDigits(index + 1)}`}
                     onChange={(event) => setDimension(dimension.id, { description: event.target.value })}
                   />
-                  <MediaField
-                    value={dimension.imageId}
-                    onChange={(imageId) => setDimension(dimension.id, { imageId: imageId ?? undefined })}
-                    kind="image"
-                    category="result"
-                    pickerTitle={`تصویر ${dimension.title || `بُعد ${toPersianDigits(index + 1)}`}`}
-                    invalid={Boolean(errors[`definition.assessment.dimensions.${index}.imageId`])}
-                  />
+                  <div className="flex items-center justify-between gap-4">
+                    <Label htmlFor={`gendered-images-${dimension.id}`}>تصویر متفاوت بر اساس جنسیت</Label>
+                    <Switch
+                      id={`gendered-images-${dimension.id}`}
+                      checked={Boolean(dimension.genderedImages)}
+                      onCheckedChange={(genderedImages) => setDimension(dimension.id, { genderedImages })}
+                    />
+                  </div>
+                  {dimension.genderedImages ? (
+                    GENDERS.map(({ gender, label }) => (
+                      <Field key={gender} label={`تصویر نتیجه برای ${label}`}>
+                        <MediaField
+                          value={dimension.genderImageIds?.[gender]}
+                          onChange={(imageId) =>
+                            setDimension(dimension.id, {
+                              genderImageIds: { ...dimension.genderImageIds, [gender]: imageId ?? undefined },
+                            })
+                          }
+                          kind="image"
+                          category="result"
+                          pickerTitle={`تصویر ${dimension.title || `بُعد ${toPersianDigits(index + 1)}`} برای ${label}`}
+                          invalid={Boolean(errors[`definition.assessment.dimensions.${index}.genderImageIds.${gender}`])}
+                        />
+                      </Field>
+                    ))
+                  ) : (
+                    <MediaField
+                      value={dimension.imageId}
+                      onChange={(imageId) => setDimension(dimension.id, { imageId: imageId ?? undefined })}
+                      kind="image"
+                      category="result"
+                      pickerTitle={`تصویر ${dimension.title || `بُعد ${toPersianDigits(index + 1)}`}`}
+                      invalid={Boolean(errors[`definition.assessment.dimensions.${index}.imageId`])}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,5 +1,6 @@
 import type { ActivityTypeId } from '@hamdastan/config';
 
+import type { Gender } from './auth';
 import type { MotionSetting, PlayerMedia } from './media';
 
 /**
@@ -164,6 +165,13 @@ export type AssessmentDimension = {
   description: string;
   /** An image from the media library, shown with the result when this dimension comes out on top. */
   imageId?: string;
+  /**
+   * Whether a man and a woman see different images. While on, the person's
+   * own image from `genderImageIds` is shown; without one — or without a
+   * gender on their profile — `imageId` is. Turning it off keeps both.
+   */
+  genderedImages?: boolean;
+  genderImageIds?: Partial<Record<Gender, string>>;
 };
 
 /** Profile assessment: a result a person can come out as. */

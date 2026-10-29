@@ -4,8 +4,10 @@ import type {
   ActivityQuestion,
   ActivityType,
   AnswerReview,
+  AssessmentDimension,
   AssessmentResult,
   ChoiceQuestion,
+  Gender,
   MatchingQuestion,
 } from '@hamdastan/types';
 import { definitionWithDimensionScores } from '@hamdastan/validation';
@@ -94,7 +96,15 @@ function itemValue(question: ActivityQuestion, value: ActivityAnswers[string] | 
   }
 }
 
-export function scoreAssessment(definition: ActivityDefinition, answers: ActivityAnswers): AssessmentResult | null {
+/**
+ * `gender` only picks the personality outcome's image — never the scores or
+ * the dimension on top.
+ */
+export function scoreAssessment(
+  definition: ActivityDefinition,
+  answers: ActivityAnswers,
+  gender: Gender | null = null
+): AssessmentResult | null {
   const settings = definition.assessment;
   if (!settings) return null;
   const questions = allQuestions(definition);
@@ -136,9 +146,15 @@ export function scoreAssessment(definition: ActivityDefinition, answers: Activit
     passed: null,
     dimensions: measured.map(({ dimension }, i) => ({ id: dimension.id, title: dimension.title, value: shares[i] })),
     outcome: top
-      ? { title: top.dimension.title, description: top.dimension.description, imageId: top.dimension.imageId }
+      ? { title: top.dimension.title, description: top.dimension.description, imageId: dimensionImageId(top.dimension, gender) }
       : null,
   };
+}
+
+/** The person's own image when the dimension has one per gender, otherwise the shared one. */
+function dimensionImageId(dimension: AssessmentDimension, gender: Gender | null): string | undefined {
+  const own = dimension.genderedImages && gender ? dimension.genderImageIds?.[gender] : undefined;
+  return own ?? dimension.imageId;
 }
 
 /**

@@ -187,6 +187,8 @@ const assessmentSchema = z.object({
         title: line(L.TITLE_MAX, 'عنوان بُعد را وارد کنید'),
         description: paragraph(L.DESCRIPTION_MAX).default(''),
         imageId: mediaIdSchema.optional(),
+        genderedImages: z.boolean().optional(),
+        genderImageIds: z.object({ male: mediaIdSchema.optional(), female: mediaIdSchema.optional() }).optional(),
       })
     )
     .max(L.DIMENSIONS_MAX),

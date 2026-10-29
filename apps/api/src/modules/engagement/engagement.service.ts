@@ -906,7 +906,7 @@ export const engagementService = {
     }
 
     const { definition } = activity;
-    const result = scoreAssessment(definition, checked.answers);
+    const result = scoreAssessment(definition, checked.answers, user.gender);
     const completes = definition.review === 'auto';
 
     const outcome = await engagementRepository().submit({

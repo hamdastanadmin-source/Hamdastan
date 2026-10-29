@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { SCORED_KINDS } from '@hamdastan/config';
-import type { ActivityDefinition } from '@hamdastan/types';
+import type { ActivityDefinition, AssessmentDimension, Gender } from '@hamdastan/types';
 import { activityInputSchema, validateAnswers, withDimensionScores } from '@hamdastan/validation';
 
 import { earnsXp, scoreAssessment } from '../modules/engagement';
@@ -135,6 +135,31 @@ describe('scoreAssessment', () => {
       { id: 'y', title: 'Y', value: 100 },
     ]);
     expect(two.outcome).toEqual({ title: 'Y', description: 'dy', imageId: 'img-y' });
+  });
+
+  it('shows the person’s own gender’s image only while the dimension has them on, falling back to the shared one', () => {
+    const withImages = (x: Partial<AssessmentDimension>): ActivityDefinition => ({
+      ...personality,
+      assessment: {
+        ...personality.assessment!,
+        dimensions: [{ id: 'x', title: 'X', description: 'dx', imageId: 'img', ...x }, personality.assessment!.dimensions[1]],
+      },
+    });
+    const answers = { a: 5, b: 1, c: 'lo' };
+    const image = (definition: ActivityDefinition, gender: Gender | null) => scoreAssessment(definition, answers, gender)!.outcome?.imageId;
+
+    const both = withImages({ genderedImages: true, genderImageIds: { male: 'img-m', female: 'img-f' } });
+    expect(image(both, 'male')).toBe('img-m');
+    expect(image(both, 'female')).toBe('img-f');
+    expect(image(both, null)).toBe('img');
+
+    expect(image(withImages({ genderedImages: true, genderImageIds: { male: 'img-m' } }), 'female')).toBe('img');
+    expect(image(withImages({ genderedImages: false, genderImageIds: { male: 'img-m' } }), 'male')).toBe('img');
+    expect(image(withImages({ genderedImages: true, imageId: undefined, genderImageIds: { male: 'img-m' } }), 'female')).toBeUndefined();
+
+    // Only the image changes: the scores and the dimension on top are the same for everyone.
+    const male = scoreAssessment(both, answers, 'male')!;
+    expect(scoreAssessment(both, answers, 'female')).toEqual({ ...male, outcome: { ...male.outcome, imageId: 'img-f' } });
   });
 
   it('reads a choice stored with one dimension, reverse-keyed, as the same per-option points', () => {
