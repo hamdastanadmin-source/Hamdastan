@@ -19,6 +19,7 @@ import {
   EXPLANATION_MAX,
   isQuizType,
   RESULT_CARD,
+  RESULT_SECTIONS,
   THIS_OR_THAT_LIMITS as T,
   UNDIMENSIONED_KINDS,
   WORLD_LIMITS,
@@ -26,6 +27,7 @@ import {
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { isTimeZone, zonedMidnight } from '@hamdastan/shared/time-zone';
 import type {
+  ResultPageSettings,
   ActivityAnswers,
   ActivityAnswerValue,
   ActivityDefinition,
@@ -178,6 +180,13 @@ const xpSchema = z.object({
   requirePass: z.boolean(),
 });
 
+/** `ResultImage`: a dimension's or a profile's picture, shared or per gender. */
+const resultImageFields = {
+  imageId: mediaIdSchema.optional(),
+  genderedImages: z.boolean().optional(),
+  genderImageIds: z.object({ male: mediaIdSchema.optional(), female: mediaIdSchema.optional() }).optional(),
+};
+
 const assessmentSchema = z.object({
   mode: z.enum(['personality', 'knowledge', 'profile']),
   dimensions: z
@@ -186,9 +195,7 @@ const assessmentSchema = z.object({
         id: keySchema,
         title: line(L.TITLE_MAX, 'عنوان بُعد را وارد کنید'),
         description: paragraph(L.DESCRIPTION_MAX).default(''),
-        imageId: mediaIdSchema.optional(),
-        genderedImages: z.boolean().optional(),
-        genderImageIds: z.object({ male: mediaIdSchema.optional(), female: mediaIdSchema.optional() }).optional(),
+        ...resultImageFields,
       })
     )
     .max(L.DIMENSIONS_MAX),
@@ -198,6 +205,7 @@ const assessmentSchema = z.object({
         id: keySchema,
         title: line(L.TITLE_MAX, 'عنوان پروفایل را وارد کنید'),
         description: paragraph(L.DESCRIPTION_MAX).default(''),
+        ...resultImageFields,
       })
     )
     .max(L.PROFILES_MAX, { error: `حداکثر ${fa(L.PROFILES_MAX)} پروفایل` })
@@ -306,6 +314,19 @@ const definitionSchema = z.object({
   journey: journeySchema.nullable().default(null),
   // Absent on every version stored before «این یا اون» existed.
   thisOrThat: thisOrThatSchema.nullable().default(null),
+  // Absent on every version stored before the done screen could be designed.
+  resultPage: z
+    .object({
+      title: line(L.TITLE_MAX, null),
+      message: paragraph(L.DESCRIPTION_MAX),
+      imageId: mediaIdSchema.nullable(),
+      sections: z
+        .array(z.enum(RESULT_SECTIONS))
+        .refine((sections) => sections.length === RESULT_SECTIONS.length && new Set(sections).size === sections.length, {
+          error: 'ترتیب بخش‌های صفحه‌ی نتیجه معتبر نیست',
+        }),
+    })
+    .default(() => resultPageDefaults()),
   xp: xpSchema,
 });
 
@@ -625,6 +646,11 @@ function journeyEnd(input: { type: ActivityType; startsAt: string | null; defini
   const { journey, steps } = input.definition;
   if (input.type !== 'journey' || !journey || !input.startsAt) return null;
   return zonedMidnight(new Date(input.startsAt), journey.timezone, steps.length).toISOString();
+}
+
+/** The done screen an activity starts with — and the one a version stored before it existed is shown. */
+export function resultPageDefaults(): ResultPageSettings {
+  return { title: '', message: '', imageId: null, sections: [...RESULT_SECTIONS] };
 }
 
 /** The day-end page a journey starts with. */

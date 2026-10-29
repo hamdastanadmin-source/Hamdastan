@@ -314,6 +314,20 @@ describe('profile assessment', () => {
     expect(result.tieBrokenBy).toBeNull();
   });
 
+  it('shows the winning profile’s image, the person’s own gender’s while it has them on', () => {
+    const definition = profile();
+    definition.assessment!.profiles![0] = {
+      ...definition.assessment!.profiles![0],
+      imageId: 'img',
+      genderedImages: true,
+      genderImageIds: { female: 'img-f' },
+    };
+    const image = (gender: Gender | null) => scoreAssessment(definition, { q1: 'a' }, gender)!.outcome?.imageId;
+    expect(image('female')).toBe('img-f');
+    expect(image('male')).toBe('img');
+    expect(image(null)).toBe('img');
+  });
+
   it('breaks a tie by the priority questions, then by the default profile', () => {
     // Nothing answered: both 0, and the priority question splits nothing.
     expect(scoreAssessment(profile(['q2']), {})).toMatchObject({ outcome: { title: 'آرام' }, tieBrokenBy: 'default_profile' });

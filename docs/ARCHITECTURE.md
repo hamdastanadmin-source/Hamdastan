@@ -153,7 +153,8 @@ and when the next day opens all come back from the API. Library files are
 loaded from the API (`activitiesService.mediaUrl`, `.lottie`); Lottie is
 drawn with `lottie-web`'s light build, as in the panel. `useReducedMotion`
 (`@hamdastan/ui`) is how both apps hold a motion still. The character card —
-and a personality test's result card, with its dimensions as bars — is
+and a personality test's result card, with its dimensions as bars, or a
+profile test's — is
 drawn by `@hamdastan/ui/result-card` (a canvas, 1080 × 1920) through
 `useResultCard`, shared by the product's export and the panel's preview so
 both draw the same pixels; sending or saving the PNG is `shareImage` /

@@ -85,6 +85,8 @@ export {
   type AdminXpGrant,
   type AssessmentDimension,
   type AssessmentProfile,
+  type ResultImage,
+  type ResultPageSettings,
   type ProfileTieBreak,
   type OptionStyle,
   type AssessmentMode,

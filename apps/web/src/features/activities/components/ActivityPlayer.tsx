@@ -1,12 +1,12 @@
 'use client';
 
-import { useId } from 'react';
+import { Fragment, useId, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CircleCheck, Clock, Hourglass, Lock, Share2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ACTIVITY_TYPE_LABELS, RESULT_CARD } from '@hamdastan/config';
+import { ACTIVITY_TYPE_LABELS, RESULT_CARD, type ResultSectionId } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import { ENGAGEMENT_ERROR_CODES, type Leaderboard, type PlayerActivity } from '@hamdastan/types';
 import {
@@ -38,7 +38,7 @@ import { QuestionField } from './QuestionField';
 import { QuestionImage } from './QuestionImage';
 import { AnswerReviewList } from './quiz/AnswerReviewList';
 import { LeaderboardCard } from './quiz/LeaderboardCard';
-import { ResultCard } from './ResultCard';
+import { ResultCard, ResultHero } from './ResultCard';
 
 /**
  * Playing an activity: the intro, one question per screen, and what came
@@ -48,8 +48,10 @@ import { ResultCard } from './ResultCard';
  * leads, and «XP گرفتی» closes the page — only when the response says XP was
  * written to the ledger; a mission waiting for review says so instead. A
  * competition adds the person's place and its leaderboard; a quiz whose
- * answers may be revealed lists them, with each one's explanation. A
- * personality result is shared as its card, drawn as an image.
+ * answers may be revealed lists them, with each one's explanation. The
+ * admin's message — title, text and image — and the order of these blocks
+ * come from `resultPage`. A personality or profile result is shared as its
+ * card, drawn as an image.
  */
 export function ActivityPlayer({
   activity,
@@ -67,22 +69,24 @@ export function ActivityPlayer({
   useResetScroll(`${player.phase}:${player.index}`);
   const heading = resultHeading(activity.title, useAuthOptional());
 
-  // A personality result is worth showing friends: its card, as the image that is shared.
-  const result = player.outcome?.result?.mode === 'personality' ? player.outcome.result : null;
-  const personality = result?.outcome ?? null;
+  const page = activity.resultPage;
+
+  // A personality or profile result is worth showing friends: its card, as the image that is shared.
+  const result = player.outcome?.result?.mode === 'knowledge' ? null : (player.outcome?.result ?? null);
+  const shareable = result?.outcome ?? null;
   const card = useResultCard(
-    result && personality && {
-      name: personality.title,
+    result && shareable && {
+      name: shareable.title,
       title: '',
-      description: personality.description,
+      description: shareable.description,
       userName: null,
       heading,
       bars: result.dimensions.map((dimension) => ({ label: dimension.title, value: dimension.value })),
       brandName: RESULT_CARD.BRAND,
       background: null,
     },
-    { character: personality?.imageId ? activity.media[personality.imageId] : undefined },
-    `hamdastan-${personality?.title ?? 'result'}`
+    { character: shareable?.imageId ? activity.media[shareable.imageId] : undefined },
+    `hamdastan-${shareable?.title ?? 'result'}`
   );
 
   const next = async () => {
@@ -103,76 +107,88 @@ export function ActivityPlayer({
     const { outcome } = player;
     const waiting = outcome.status === 'pending_review';
     const share = async () => {
-      if (!card || !personality) return;
+      if (!card || !shareable) return;
       const shared = await shareImage(card, {
         title: activity.title,
-        text: `توی «${activity.title}» شدم «${personality.title}»! تو کدومی؟`,
+        text: `توی «${activity.title}» شدم «${shareable.title}»! تو کدومی؟`,
       });
       if (shared === 'saved') toast.success('کارت ذخیره شد؛ از گالری به اشتراک بذارش.');
+    };
+    // A result speaks for itself; without one — or when the admin wrote a message — the message block names the activity and thanks the person.
+    const image = page.imageId ? activity.media[page.imageId] : undefined;
+    const custom = Boolean(page.title || page.message || image);
+    const blocks: Record<ResultSectionId, ReactNode> = {
+      message: (waiting || !outcome.result || custom) && (
+        <div className="flex flex-col items-center gap-4 text-center">
+          {image ? (
+            <div className="w-full">
+              <ResultHero media={image} reveal />
+            </div>
+          ) : (
+            <IconBadge tone="muted" size="lg">
+              {waiting ? <Hourglass aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}
+            </IconBadge>
+          )}
+          <ScreenTitle
+            title={waiting ? 'ثبت شد؛ در انتظار تأیید' : page.title || activity.title}
+            description={
+              waiting
+                ? 'مدرکت برای بررسی فرستاده شد. بعد از تأیید، XP این مأموریت به حسابت اضافه می‌شه.'
+                : page.message ||
+                  (outcome.result ? undefined : activity.anonymous ? 'پاسخت بدون نام ثبت شد.' : 'ممنون که وقت گذاشتی.')
+            }
+          />
+        </div>
+      ),
+      outcome: outcome.result && <ResultCard result={outcome.result} media={activity.media} heading={heading} reveal />,
+      rank: outcome.rank && (
+        <p className="text-center text-sm" role="status">
+          فعلاً رتبه‌ی <span className="font-bold tabular-nums">{toPersianDigits(outcome.rank.rank)}</span> رو داری.{' '}
+          <Button
+            variant="link"
+            className="h-auto p-0 font-semibold text-foreground"
+            onClick={() => {
+              // The same address: refresh what the server sent, then show the intro with the board on it.
+              router.refresh();
+              player.toIntro();
+            }}
+          >
+            جدول امتیازات
+          </Button>
+        </p>
+      ),
+      review: outcome.answerReview && <AnswerReviewList activity={activity} review={outcome.answerReview} />,
+      xp: outcome.xpAwarded > 0 && (
+        <p className="flex flex-col items-center gap-1 text-center" role="status">
+          <span className="text-2xl font-bold text-success">
+            <XpAmount value={outcome.xpAwarded} signed />
+          </span>
+          <span className="text-sm text-muted-foreground">
+            گرفتی — موجودی‌ات حالا <XpAmount value={outcome.xpTotal} />
+          </span>
+        </p>
+      ),
     };
     return (
       <Screen>
         <ScreenHeader />
         <ScreenBody center className="gap-6">
-          {/* A result speaks for itself; without one, the activity is named and the person thanked. */}
-          {(waiting || !outcome.result) && (
-            <div className="flex flex-col items-center gap-4 text-center">
-              <IconBadge tone="muted" size="lg">
-                {waiting ? <Hourglass aria-hidden="true" /> : <CircleCheck aria-hidden="true" />}
-              </IconBadge>
-              <ScreenTitle
-                title={waiting ? 'ثبت شد؛ در انتظار تأیید' : activity.title}
-                description={
-                  waiting
-                    ? 'مدرکت برای بررسی فرستاده شد. بعد از تأیید، XP این مأموریت به حسابت اضافه می‌شه.'
-                    : activity.anonymous
-                      ? 'پاسخت بدون نام ثبت شد.'
-                      : 'ممنون که وقت گذاشتی.'
-                }
-              />
-            </div>
-          )}
-          {outcome.result && <ResultCard result={outcome.result} media={activity.media} heading={heading} />}
-          {outcome.rank && (
-            <p className="text-center text-sm" role="status">
-              فعلاً رتبه‌ی <span className="font-bold tabular-nums">{toPersianDigits(outcome.rank.rank)}</span> رو داری.{' '}
-              <Button
-                variant="link"
-                className="h-auto p-0 font-semibold text-foreground"
-                onClick={() => {
-                  // The same address: refresh what the server sent, then show the intro with the board on it.
-                  router.refresh();
-                  player.toIntro();
-                }}
-              >
-                جدول امتیازات
-              </Button>
-            </p>
-          )}
-          {outcome.answerReview && <AnswerReviewList activity={activity} review={outcome.answerReview} />}
-          {outcome.xpAwarded > 0 && (
-            <p className="flex flex-col items-center gap-1 text-center" role="status">
-              <span className="text-2xl font-bold text-success">
-                <XpAmount value={outcome.xpAwarded} signed />
-              </span>
-              <span className="text-sm text-muted-foreground">
-                گرفتی — موجودی‌ات حالا <XpAmount value={outcome.xpTotal} />
-              </span>
-            </p>
-          )}
+          {page.sections.map((id) => (
+            <Fragment key={id}>{blocks[id]}</Fragment>
+          ))}
         </ScreenBody>
         <ScreenFooter className="grid auto-cols-fr grid-flow-col gap-2">
-          {personality && (
+          {shareable && (
             <Button size="xl" className="min-w-0" onClick={share} disabled={!card} aria-label="اشتراک‌گذاری کارت نتیجه">
               <Share2 aria-hidden="true" />
               اشتراک‌گذاری
             </Button>
           )}
-          <Button asChild size="xl" variant={personality ? 'outline' : 'default'} className="min-w-0">
+          <Button asChild size="xl" variant={shareable ? 'outline' : 'default'} className="min-w-0">
             <Link href={exit?.href ?? '/'}>{exit?.label ?? 'بازگشت به خانه'}</Link>
           </Button>
         </ScreenFooter>
-        {personality && <InstallAppSheet />}
+        {shareable && <InstallAppSheet />}
       </Screen>
     );
   }
@@ -248,6 +264,11 @@ export function ActivityPlayer({
   // activity's own notes fold away under it, closed until asked for.
   const done = Boolean(activity.lastResult || activity.answerReview);
   const competitionNote = activity.type === 'competition' && activity.endsAt;
+  const introBlocks: Partial<Record<ResultSectionId, ReactNode>> = {
+    outcome: activity.lastResult && <ResultCard result={activity.lastResult} media={activity.media} heading={heading} />,
+    rank: leaderboard && <LeaderboardCard board={leaderboard} />,
+    review: activity.answerReview && <AnswerReviewList activity={activity} review={activity.answerReview} />,
+  };
   const details = (activity.instructions || activity.anonymous || competitionNote || activity.review === 'manual') && (
     <>
       {activity.instructions && (
@@ -306,9 +327,10 @@ export function ActivityPlayer({
           details
         )}
         {done && <Separator />}
-        {activity.lastResult && <ResultCard result={activity.lastResult} media={activity.media} heading={heading} />}
-        {leaderboard && <LeaderboardCard board={leaderboard} />}
-        {activity.answerReview && <AnswerReviewList activity={activity} review={activity.answerReview} />}
+        {/* In the admin's order, as on the done screen. */}
+        {page.sections.map((id) => (
+          <Fragment key={id}>{introBlocks[id]}</Fragment>
+        ))}
       </ScreenBody>
       <ScreenFooter>
         {activity.canSubmit ? (

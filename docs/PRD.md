@@ -879,7 +879,9 @@ dimension (a `dimensionId` on the question, a `score` per option, `reverse`)
 is read in the per-option shape (`withDimensionScores`: reverse-keyed points
 are negated), with the same result; the builder opens and saves it so.
 *Profile (پروفایل‌سنجی وزن‌دار):* the admin defines 2–20 result profiles
-(title, description, titles distinct). Each choice question has a weight
+(title, description, titles distinct, and an optional image — one for
+everybody, or with «تصویر متفاوت بر اساس جنسیت» one per gender, picked on
+submit exactly as a personality dimension's is). Each choice question has a weight
 («ضریب سؤال», a whole number 0–10, 1 by default; 0 makes it count for
 nothing), and in the question's scoring matrix each option has a weight toward
 each profile — a whole number −100…100, an empty cell is 0. A profile's score
@@ -893,8 +895,9 @@ questions, reorderable) — one by one, of the tied profiles only those that
 scored most on that question stay, until one is left; (2) the default profile
 (required), which is the result when a tie survives them. The result keeps
 every profile's total and what broke the tie (`tieBrokenBy`); the person sees
-only the profile's title and description (if «نمایش نتیجه» is on) — totals can
-be negative and mean nothing alone. The results page counts people per
+only the profile's image (if any), title and description (if «نمایش نتیجه»
+is on) — totals can be negative and mean nothing alone — and can share it
+as a result card, as a personality result is (no bars). The results page counts people per
 profile, and the CSV adds a «امتیاز <profile>» column per profile. Weights,
 question weights and profiles are cleared when the mode or the type changes.
 Question and option counts keep the usual caps (50 questions, 12 options);
@@ -935,7 +938,8 @@ duplicate (a new draft, «(کپی)», no dates), the status moves, and delete.
   — its kind is changed in the editor's «نوع سؤال»; «⋯» on a
   row moves, duplicates or deletes it; a mission's steps group the list and
   open their own title and description; an assessment's «روش محاسبه‌ی نتیجه» —
-  mode, dimensions, pass mark, show-result — opens from the top of it), ۴ مخاطبان (with a live count
+  mode, dimensions, pass mark, show-result — and «صفحه‌ی نتیجه» open from
+  the top of it), ۴ مخاطبان (with a live count
   from the API), ۵ XP (the pay rule spelled out), ۶ زمان‌بندی (start and end;
   an empty start is «on publish»), ۷ پیش‌نمایش و انتشار — the card and every
   question in the product's 430px column, a summary, and the one primary
@@ -1022,13 +1026,28 @@ description, «حدود n دقیقه», and «+n XP» when the admin chose to sh
   draft (`PUT …/draft`; a lost draft is not reported); «قبلی» keeps the
   answer; the last question's action is «ثبت نهایی». Selection is a
   foreground border and a check — the violet is the footer button's alone.
-- **Done.** No «آفرین، ثبت شد!»: the result card leads, if allowed; without
-  one, the activity's title with «ممنون که وقت گذاشتی» (or «پاسخت بدون نام ثبت
-  شد»), and for a reviewed mission «ثبت شد؛ در انتظار تأیید». «+n XP» and the
-  new balance close the page, at its foot, **only** when the response's
-  `xpAwarded` is above zero, i.e. the ledger row was written in the same
-  transaction; a repeat, a failed pass mark or a pending review shows no XP.
-  Then «بازگشت به خانه».
+- **Done.** No «آفرین، ثبت شد!». Its blocks are the message, the result
+  card (if allowed), the place in a competition, the revealed answers and
+  «+n XP» with the new balance — **only** when the response's `xpAwarded`
+  is above zero, i.e. the ledger row was written in the same transaction; a
+  repeat, a failed pass mark or a pending review shows no XP. Without a
+  result, the message is the activity's title with «ممنون که وقت گذاشتی»
+  (or «پاسخت بدون نام ثبت شد») under a tick; for a reviewed mission, «ثبت
+  شد؛ در انتظار تأیید». Then «بازگشت به خانه».
+- **صفحه‌ی نتیجه — the done screen, designed by the admin**
+  (`definition.resultPage`; survey, mission, assessment, competition — a
+  journey and «این یا اون» have their own). A row «صفحه‌ی نتیجه» at the top
+  of ۳ سؤال‌ها opens it: a title (empty keeps the activity's), a message
+  (empty keeps the default above — and none beside a result), an image
+  from the library (category «کارت نتیجه»; it replaces the tick), and the
+  order of the blocks, moved up and down (`RESULT_SECTIONS` in
+  `@hamdastan/config`: message, outcome, rank, review, xp — the builder
+  lists only the ones the type can have). With a title, message or image
+  the message shows beside a result too; a pending review keeps its own
+  words. The intro's last result, leaderboard and revealed answers follow
+  the same order. A version saved before it existed reads as the defaults
+  — that order, nothing custom (`resultPageDefaults`); no schema change,
+  it lives in the version's `definition`.
 
 **XP — the ledger.** Activity rewards are rows in the same
 `v2_xp_transactions` as the missions (§4.4): user, `activity_id`,

@@ -6,8 +6,9 @@ import { motionAssetIds } from '@hamdastan/validation';
  * must be. Pure: the service checks the list against the library on save,
  * and describes it to the player on read.
  *
- * A question's image, an option's, a dimension's, a cover's background and a «این یا اون» card must be images; a motion —
- * a mascot, an answer's, a day's end — may be an image or a motion.
+ * A question's image, an option's, a dimension's, a profile's, the done
+ * screen's, a cover's background and a «این یا اون» card must be images; a
+ * motion — a mascot, an answer's, a day's end — may be an image or a motion.
  */
 
 export type MediaRef = { path: string; id: string; needs: MediaKind | null };
@@ -54,17 +55,23 @@ export function mediaRefs(
   motionAssetIds(definition.journey?.dayEnd?.mascot).forEach((id) =>
     refs.push({ path: 'definition.journey.dayEnd.mascot', id, needs: null })
   );
-  // A personality result shows its dimension's image; the player has them all up front, as it does a question's.
-  if (definition.assessment?.mode === 'personality') {
-    definition.assessment.dimensions.forEach((dimension, d) => {
-      if (dimension.imageId) {
-        refs.push({ path: `definition.assessment.dimensions.${d}.imageId`, id: dimension.imageId, needs: 'image' });
-      }
-      for (const [gender, id] of Object.entries(dimension.genderImageIds ?? {})) {
-        if (id) refs.push({ path: `definition.assessment.dimensions.${d}.genderImageIds.${gender}`, id, needs: 'image' });
-      }
-    });
-  }
+  // A personality or profile result shows its own image; the player has them all up front, as it does a question's.
+  const assessment = definition.assessment;
+  const outcomes =
+    assessment?.mode === 'personality'
+      ? { key: 'dimensions', list: assessment.dimensions }
+      : assessment?.mode === 'profile'
+        ? { key: 'profiles', list: assessment.profiles ?? [] }
+        : null;
+  outcomes?.list.forEach((outcome, o) => {
+    const at = `definition.assessment.${outcomes.key}.${o}`;
+    if (outcome.imageId) refs.push({ path: `${at}.imageId`, id: outcome.imageId, needs: 'image' });
+    for (const [gender, id] of Object.entries(outcome.genderImageIds ?? {})) {
+      if (id) refs.push({ path: `${at}.genderImageIds.${gender}`, id, needs: 'image' });
+    }
+  });
+  const resultImageId = definition.resultPage?.imageId;
+  if (resultImageId) refs.push({ path: 'definition.resultPage.imageId', id: resultImageId, needs: 'image' });
   // «این یا اون»: the cover and every card, all images.
   const duel = definition.thisOrThat;
   if (duel?.coverImageId) refs.push({ path: 'definition.thisOrThat.coverImageId', id: duel.coverImageId, needs: 'image' });

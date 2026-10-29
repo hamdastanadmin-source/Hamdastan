@@ -163,6 +163,25 @@ export const JOURNEY_DAY_END_DEFAULTS = {
   SHARE_MESSAGE: 'من دارم این چالش رو توی هم‌داستان انجام می‌دم؛ تو هم بیا!',
 } as const;
 
+/**
+ * The done screen of a survey, mission, assessment or competition: its
+ * blocks, in the order a new activity shows them. The admin reorders them;
+ * a block with nothing to show for this person is left out.
+ */
+export const RESULT_SECTIONS = ['message', 'outcome', 'rank', 'review', 'xp'] as const;
+export type ResultSectionId = (typeof RESULT_SECTIONS)[number];
+
+export const RESULT_SECTION_LABELS: Record<ResultSectionId, string> = {
+  message: 'پیام پایان (عنوان، متن و تصویر)',
+  outcome: 'نتیجه‌ی آزمون',
+  rank: 'رتبه و جدول امتیازات',
+  review: 'پاسخ‌های درست',
+  xp: 'XP دریافتی',
+};
+
+/** The activity types whose done screen the admin designs; a journey and «این یا اون» have their own. */
+export const hasResultPage = (type: ActivityTypeId) => type !== 'journey' && type !== 'this_or_that';
+
 /** The shareable card: an Instagram story. */
 export const RESULT_CARD = { WIDTH: 1080, HEIGHT: 1920, BRAND: 'هم‌داستان' } as const;
 

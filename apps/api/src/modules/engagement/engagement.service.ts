@@ -35,6 +35,7 @@ import {
   journeyResultDefaults,
   motionOff,
   pickCharacter,
+  resultPageDefaults,
   thisOrThatAnswers,
   thisOrThatWinners,
   traitScores,
@@ -604,6 +605,7 @@ export const engagementService = {
         answerReview: null,
         journey,
         thisOrThat: null,
+        resultPage: resultPageDefaults(),
         media,
       },
     };
@@ -833,6 +835,7 @@ export const engagementService = {
       thisOrThat: activity.definition.thisOrThat
         ? { coverImageId: activity.definition.thisOrThat.coverImageId, cards: duelOrder(activity, user.id) }
         : null,
+      resultPage: activity.definition.resultPage ?? resultPageDefaults(),
       media: await mediaService.describe([...refs.map((ref) => ref.id), ...resultIds]),
     };
   },

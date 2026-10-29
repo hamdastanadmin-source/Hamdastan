@@ -4,11 +4,11 @@ import type {
   ActivityQuestion,
   ActivityType,
   AnswerReview,
-  AssessmentDimension,
   AssessmentResult,
   ChoiceQuestion,
   Gender,
   MatchingQuestion,
+  ResultImage,
 } from '@hamdastan/types';
 import { definitionWithDimensionScores } from '@hamdastan/validation';
 
@@ -97,8 +97,8 @@ function itemValue(question: ActivityQuestion, value: ActivityAnswers[string] | 
 }
 
 /**
- * `gender` only picks the personality outcome's image — never the scores or
- * the dimension on top.
+ * `gender` only picks the outcome's image — never the scores, the
+ * dimension on top or the profile that wins.
  */
 export function scoreAssessment(
   definition: ActivityDefinition,
@@ -122,7 +122,7 @@ export function scoreAssessment(
     };
   }
 
-  if (settings.mode === 'profile') return scoreProfiles(definition, answers);
+  if (settings.mode === 'profile') return scoreProfiles(definition, answers, gender);
 
   const items = allQuestions(definitionWithDimensionScores(definition));
   const dimensions = settings.dimensions.map((dimension) => {
@@ -146,15 +146,15 @@ export function scoreAssessment(
     passed: null,
     dimensions: measured.map(({ dimension }, i) => ({ id: dimension.id, title: dimension.title, value: shares[i] })),
     outcome: top
-      ? { title: top.dimension.title, description: top.dimension.description, imageId: dimensionImageId(top.dimension, gender) }
+      ? { title: top.dimension.title, description: top.dimension.description, imageId: resultImageId(top.dimension, gender) }
       : null,
   };
 }
 
-/** The person's own image when the dimension has one per gender, otherwise the shared one. */
-function dimensionImageId(dimension: AssessmentDimension, gender: Gender | null): string | undefined {
-  const own = dimension.genderedImages && gender ? dimension.genderImageIds?.[gender] : undefined;
-  return own ?? dimension.imageId;
+/** The person's own image when the result has one per gender, otherwise the shared one. */
+function resultImageId(image: ResultImage, gender: Gender | null): string | undefined {
+  const own = image.genderedImages && gender ? image.genderImageIds?.[gender] : undefined;
+  return own ?? image.imageId;
 }
 
 /**
@@ -185,7 +185,7 @@ function questionProfileScore(question: ChoiceQuestion, value: ActivityAnswers[s
   return weights * (question.weight ?? 1);
 }
 
-function scoreProfiles(definition: ActivityDefinition, answers: ActivityAnswers): AssessmentResult {
+function scoreProfiles(definition: ActivityDefinition, answers: ActivityAnswers, gender: Gender | null): AssessmentResult {
   const settings = definition.assessment!;
   const profiles = settings.profiles ?? [];
   const tieBreak = settings.tieBreak ?? { priorityQuestionIds: [], defaultProfileId: null };
@@ -226,7 +226,7 @@ function scoreProfiles(definition: ActivityDefinition, answers: ActivityAnswers)
     score: null,
     passed: null,
     dimensions: [],
-    outcome: winner ? { title: winner.title, description: winner.description } : null,
+    outcome: winner ? { title: winner.title, description: winner.description, imageId: resultImageId(winner, gender) } : null,
     profiles: totals.map(({ profile, score }) => ({ id: profile.id, title: profile.title, score })),
     tieBrokenBy,
   };

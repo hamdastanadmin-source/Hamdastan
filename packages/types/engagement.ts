@@ -1,4 +1,4 @@
-import type { ActivityTypeId } from '@hamdastan/config';
+import type { ActivityTypeId, ResultSectionId } from '@hamdastan/config';
 
 import type { Gender } from './auth';
 import type { MotionSetting, PlayerMedia } from './media';
@@ -159,11 +159,9 @@ export type ActivityStep = {
 
 export type AssessmentMode = 'personality' | 'knowledge' | 'profile';
 
-export type AssessmentDimension = {
-  id: string;
-  title: string;
-  description: string;
-  /** An image from the media library, shown with the result when this dimension comes out on top. */
+/** A result's picture: one for everybody, or — while `genderedImages` is on — one per gender. */
+export type ResultImage = {
+  /** An image from the media library, shown with the result when it is the one the person comes out as. */
   imageId?: string;
   /**
    * Whether a man and a woman see different images. While on, the person's
@@ -174,8 +172,26 @@ export type AssessmentDimension = {
   genderImageIds?: Partial<Record<Gender, string>>;
 };
 
+export type AssessmentDimension = ResultImage & {
+  id: string;
+  title: string;
+  description: string;
+};
+
 /** Profile assessment: a result a person can come out as. */
-export type AssessmentProfile = { id: string; title: string; description: string };
+export type AssessmentProfile = ResultImage & { id: string; title: string; description: string };
+
+/**
+ * The done screen of a survey, mission, assessment or competition. The
+ * message replaces «ممنون که وقت گذاشتی» — an empty title or message keeps
+ * the default — and `sections` is every block once, in the order shown.
+ */
+export type ResultPageSettings = {
+  title: string;
+  message: string;
+  imageId: string | null;
+  sections: ResultSectionId[];
+};
 
 /**
  * Profile assessment: how a tie on the top score is broken, in this order.
@@ -369,6 +385,8 @@ export type ActivityDefinition = {
   journey: JourneySettings | null;
   /** «این یا اون» only. Absent on a version stored before it existed. */
   thisOrThat?: ThisOrThatSettings | null;
+  /** Absent on a version stored before the done screen could be designed: the defaults. */
+  resultPage?: ResultPageSettings;
   xp: XpSettings;
 };
 
@@ -603,7 +621,7 @@ export type AssessmentResult = {
   passed: boolean | null;
   /** Personality: each dimension's share, 0–100; together they add up to 100. */
   dimensions: { id: string; title: string; value: number }[];
-  /** Personality: the dimension on top, with its image if it has one. Profile: the profile that won. */
+  /** Personality: the dimension on top. Profile: the profile that won. Either with its image, if it has one. */
   outcome: { title: string; description: string; imageId?: string } | null;
   /** Profile: every profile's weighted total, in the admin's order. */
   profiles?: { id: string; title: string; score: number }[];
@@ -681,6 +699,8 @@ export type PlayerActivity = ActivityCard & {
    * matches played (`thisOrThatAnswers`).
    */
   thisOrThat: { coverImageId: string | null; cards: ThisOrThatCard[] } | null;
+  /** The done screen as the admin designed it, or its defaults. */
+  resultPage: ResultPageSettings;
   /** Every library file the sent content refers to, by id. A missing id is a file since deleted. */
   media: Record<string, PlayerMedia>;
 };

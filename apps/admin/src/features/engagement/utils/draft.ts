@@ -18,7 +18,13 @@ import type {
   MatchingPair,
   ThisOrThatCard,
 } from '@hamdastan/types';
-import { definitionWithDimensionScores, journeyDayEndDefaults, journeyResultDefaults, motionOff } from '@hamdastan/validation';
+import {
+  definitionWithDimensionScores,
+  journeyDayEndDefaults,
+  journeyResultDefaults,
+  motionOff,
+  resultPageDefaults,
+} from '@hamdastan/validation';
 
 /**
  * The builder's working copy and the blank pieces it starts from.
@@ -163,6 +169,7 @@ export function emptyDefinition(type: ActivityType): ActivityDefinition {
     thisOrThat: thisOrThat
       ? { coverImageId: null, order: 'manual', cards: Array.from({ length: THIS_OR_THAT_LIMITS.CARDS_DEFAULT }, () => emptyCard()) }
       : null,
+    resultPage: resultPageDefaults(),
     xp: { enabled: true, amount: 20, showBeforeStart: true, maxAwards: 1, requirePass: false },
   };
 }
@@ -201,7 +208,8 @@ export function switchType(state: EditorState, type: ActivityType): EditorState 
   else steps = state.definition.steps.slice(0, 1);
 
   if (type === 'journey') steps = steps.map((step, i) => (step.title ? step : { ...step, title: dayTitle(i + 1) }));
-  return { ...state, type, definition: { ...blank, steps, thisOrThat, xp: state.definition.xp } };
+  const resultPage = state.definition.resultPage ?? blank.resultPage;
+  return { ...state, type, definition: { ...blank, steps, thisOrThat, resultPage, xp: state.definition.xp } };
 }
 
 /** `datetime-local` holds local wall time without a zone; this is the local reading of an instant. */
@@ -218,8 +226,8 @@ export function fromDetail(detail: AdminActivityDetail): EditorState {
     title: detail.title,
     summary: detail.summary,
     instructions: detail.instructions,
-    // A version saved when a choice question measured one dimension opens in today's shape.
-    definition: definitionWithDimensionScores(detail.definition),
+    // A version saved when a choice question measured one dimension opens in today's shape; one saved before the done screen could be designed, with its defaults.
+    definition: { resultPage: resultPageDefaults(), ...definitionWithDimensionScores(detail.definition) },
     audience: detail.audience,
     worldIds: detail.worlds.map((world) => world.id),
     startsAt: toLocalInput(detail.startsAt),
@@ -272,6 +280,8 @@ export function stepOfPath(path: string): EditorStepId {
   if (path.startsWith('audience')) return 'audience';
   if (path.startsWith('startsAt') || path.startsWith('endsAt')) return 'schedule';
   if (path.startsWith('definition.xp')) return 'xp';
-  if (path.startsWith('definition.steps') || path.startsWith('definition.assessment')) return 'questions';
+  if (path.startsWith('definition.steps') || path.startsWith('definition.assessment') || path.startsWith('definition.resultPage')) {
+    return 'questions';
+  }
   return 'details';
 }

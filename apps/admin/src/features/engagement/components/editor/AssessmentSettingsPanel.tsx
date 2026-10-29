@@ -4,7 +4,15 @@ import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 
 import { ENGAGEMENT_LIMITS } from '@hamdastan/config';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
-import type { ActivityQuestion, AssessmentDimension, AssessmentProfile, AssessmentSettings, Gender, ProfileTieBreak } from '@hamdastan/types';
+import type {
+  ActivityQuestion,
+  AssessmentDimension,
+  AssessmentProfile,
+  AssessmentSettings,
+  Gender,
+  ProfileTieBreak,
+  ResultImage,
+} from '@hamdastan/types';
 import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from '@hamdastan/ui';
 
 import { MediaField } from '@/features/media';
@@ -140,41 +148,13 @@ export function AssessmentSettingsPanel({
                     aria-label={`توضیح بُعد ${toPersianDigits(index + 1)}`}
                     onChange={(event) => setDimension(dimension.id, { description: event.target.value })}
                   />
-                  <div className="flex items-center justify-between gap-4">
-                    <Label htmlFor={`gendered-images-${dimension.id}`}>تصویر متفاوت بر اساس جنسیت</Label>
-                    <Switch
-                      id={`gendered-images-${dimension.id}`}
-                      checked={Boolean(dimension.genderedImages)}
-                      onCheckedChange={(genderedImages) => setDimension(dimension.id, { genderedImages })}
-                    />
-                  </div>
-                  {dimension.genderedImages ? (
-                    GENDERS.map(({ gender, label }) => (
-                      <Field key={gender} label={`تصویر نتیجه برای ${label}`}>
-                        <MediaField
-                          value={dimension.genderImageIds?.[gender]}
-                          onChange={(imageId) =>
-                            setDimension(dimension.id, {
-                              genderImageIds: { ...dimension.genderImageIds, [gender]: imageId ?? undefined },
-                            })
-                          }
-                          kind="image"
-                          category="result"
-                          pickerTitle={`تصویر ${dimension.title || `بُعد ${toPersianDigits(index + 1)}`} برای ${label}`}
-                          invalid={Boolean(errors[`definition.assessment.dimensions.${index}.genderImageIds.${gender}`])}
-                        />
-                      </Field>
-                    ))
-                  ) : (
-                    <MediaField
-                      value={dimension.imageId}
-                      onChange={(imageId) => setDimension(dimension.id, { imageId: imageId ?? undefined })}
-                      kind="image"
-                      category="result"
-                      pickerTitle={`تصویر ${dimension.title || `بُعد ${toPersianDigits(index + 1)}`}`}
-                      invalid={Boolean(errors[`definition.assessment.dimensions.${index}.imageId`])}
-                    />
-                  )}
+                  <ResultImageField
+                    image={dimension}
+                    name={dimension.title || `بُعد ${toPersianDigits(index + 1)}`}
+                    path={`definition.assessment.dimensions.${index}`}
+                    errors={errors}
+                    onChange={(patch) => setDimension(dimension.id, patch)}
+                  />
                 </li>
               ))}
             </ul>
@@ -255,6 +235,8 @@ function ProfileSettings({
       ...tieBreak,
       defaultProfileId: next.some((profile) => profile.id === tieBreak.defaultProfileId) ? tieBreak.defaultProfileId : null,
     });
+  const setProfile = (id: string, patch: Partial<AssessmentProfile>) =>
+    setProfiles(profiles.map((profile) => (profile.id === id ? { ...profile, ...patch } : profile)));
   const setPriority = (priorityQuestionIds: string[]) => onChange(profiles, { ...tieBreak, priorityQuestionIds });
   const movePriority = (index: number, offset: -1 | 1) => {
     const next = [...tieBreak.priorityQuestionIds];
@@ -267,7 +249,7 @@ function ProfileSettings({
       <Field
         label="پروفایل‌های نتیجه"
         error={errors['definition.assessment.profiles']}
-        hint="وزن هر گزینه برای هر پروفایل در ویرایش همان سؤال تعیین می‌شود."
+        hint="تصویر هر پروفایل (اختیاری) همراه نتیجه به کاربری نمایش داده می‌شود که آن پروفایل نتیجه‌اش باشد؛ با «تصویر متفاوت بر اساس جنسیت»، مرد و زن هر کدام تصویر خودشان را می‌بینند. وزن هر گزینه برای هر پروفایل در ویرایش همان سؤال تعیین می‌شود."
       >
         <ul className="flex flex-col gap-3">
           {profiles.map((profile, index) => (
@@ -277,9 +259,7 @@ function ProfileSettings({
                   value={profile.title}
                   placeholder={`عنوان پروفایل ${toPersianDigits(index + 1)} — مثلاً «رهبر»`}
                   aria-label={`عنوان پروفایل ${toPersianDigits(index + 1)}`}
-                  onChange={(event) =>
-                    setProfiles(profiles.map((p) => (p.id === profile.id ? { ...p, title: event.target.value } : p)))
-                  }
+                  onChange={(event) => setProfile(profile.id, { title: event.target.value })}
                   {...invalid(errors[`definition.assessment.profiles.${index}.title`])}
                 />
                 <Button
@@ -296,9 +276,14 @@ function ProfileSettings({
                 value={profile.description}
                 placeholder="متنی که کاربر در صورت قرار گرفتن در این پروفایل می‌بیند"
                 aria-label={`توضیح پروفایل ${toPersianDigits(index + 1)}`}
-                onChange={(event) =>
-                  setProfiles(profiles.map((p) => (p.id === profile.id ? { ...p, description: event.target.value } : p)))
-                }
+                onChange={(event) => setProfile(profile.id, { description: event.target.value })}
+              />
+              <ResultImageField
+                image={profile}
+                name={profile.title || `پروفایل ${toPersianDigits(index + 1)}`}
+                path={`definition.assessment.profiles.${index}`}
+                errors={errors}
+                onChange={(patch) => setProfile(profile.id, patch)}
               />
             </li>
           ))}
@@ -404,6 +389,63 @@ function ProfileSettings({
           </SelectContent>
         </Select>
       </Field>
+    </>
+  );
+}
+
+/**
+ * A dimension's or a profile's picture: one for everybody, or — with
+ * «تصویر متفاوت بر اساس جنسیت» — one for a man and one for a woman.
+ * Turning the switch off keeps both sets.
+ */
+function ResultImageField({
+  image,
+  name,
+  path,
+  errors,
+  onChange,
+}: {
+  image: ResultImage & { id: string };
+  /** The result's title, or its placeholder: names the picker. */
+  name: string;
+  /** Where the result sits in the definition, for its errors. */
+  path: string;
+  errors: Record<string, string>;
+  onChange: (patch: ResultImage) => void;
+}) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <Label htmlFor={`gendered-images-${image.id}`}>تصویر متفاوت بر اساس جنسیت</Label>
+        <Switch
+          id={`gendered-images-${image.id}`}
+          checked={Boolean(image.genderedImages)}
+          onCheckedChange={(genderedImages) => onChange({ genderedImages })}
+        />
+      </div>
+      {image.genderedImages ? (
+        GENDERS.map(({ gender, label }) => (
+          <Field key={gender} label={`تصویر نتیجه برای ${label}`}>
+            <MediaField
+              value={image.genderImageIds?.[gender]}
+              onChange={(imageId) => onChange({ genderImageIds: { ...image.genderImageIds, [gender]: imageId ?? undefined } })}
+              kind="image"
+              category="result"
+              pickerTitle={`تصویر ${name} برای ${label}`}
+              invalid={Boolean(errors[`${path}.genderImageIds.${gender}`])}
+            />
+          </Field>
+        ))
+      ) : (
+        <MediaField
+          value={image.imageId}
+          onChange={(imageId) => onChange({ imageId: imageId ?? undefined })}
+          kind="image"
+          category="result"
+          pickerTitle={`تصویر ${name}`}
+          invalid={Boolean(errors[`${path}.imageId`])}
+        />
+      )}
     </>
   );
 }

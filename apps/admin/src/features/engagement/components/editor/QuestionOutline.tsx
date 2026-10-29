@@ -11,11 +11,12 @@ import {
   FileSpreadsheet,
   Flag,
   MoreHorizontal,
+  PartyPopper,
   Plus,
   Trash2,
 } from 'lucide-react';
 
-import { isQuizType, QUESTION_KIND_LABELS, SCORED_KINDS, UNSCORED_LABEL, UNSCORED_SHORT_LABEL } from '@hamdastan/config';
+import { hasResultPage, isQuizType, QUESTION_KIND_LABELS, SCORED_KINDS, UNSCORED_LABEL, UNSCORED_SHORT_LABEL } from '@hamdastan/config';
 import { cn } from '@hamdastan/shared/cn';
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityStep, ActivityType, AssessmentMode } from '@hamdastan/types';
@@ -39,6 +40,7 @@ export type Selection =
   | { kind: 'question'; id: string }
   | { kind: 'step'; id: string }
   | { kind: 'scoring' }
+  | { kind: 'result' }
   | { kind: 'motions' };
 
 /** The actions a row's «⋯» offers; null leaves one out. */
@@ -109,7 +111,8 @@ function RowMenu({ label, actions }: { label: string; actions: RowActions }) {
  * and a dot when it has something to fix. A mission groups them under its
  * steps; a journey shows one day at a time (`visibleSteps`), numbered from 1
  * within it, under a row that opens the day's settings; an assessment opens
- * with its scoring, and marks a question its scoring leaves out. Choosing a row opens it in
+ * with its scoring, and marks a question its scoring leaves out; every type
+ * with a done screen of its own opens with «صفحه‌ی نتیجه». Choosing a row opens it in
  * the editing panel; «⋯» moves, duplicates or removes it.
  */
 export function QuestionOutline({
@@ -161,19 +164,33 @@ export function QuestionOutline({
     <div className="flex flex-col gap-4">
       <nav aria-label="سؤال‌ها">
         <ul className="flex flex-col gap-0.5">
-          {isQuizType(type) && (
-            <li className="mb-2 border-b pb-2">
+          {hasResultPage(type) && (
+            <li className="mb-2 flex flex-col gap-0.5 border-b pb-2">
+              {isQuizType(type) && (
+                <button
+                  type="button"
+                  className={ROW}
+                  data-active={selection.kind === 'scoring'}
+                  onClick={() => onSelect({ kind: 'scoring' })}
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted">
+                    <Calculator aria-hidden="true" className="size-3.5" />
+                  </span>
+                  <span className="flex-1 truncate">روش محاسبه‌ی نتیجه</span>
+                  {hasError('definition.assessment') && <ErrorDot />}
+                </button>
+              )}
               <button
                 type="button"
                 className={ROW}
-                data-active={selection.kind === 'scoring'}
-                onClick={() => onSelect({ kind: 'scoring' })}
+                data-active={selection.kind === 'result'}
+                onClick={() => onSelect({ kind: 'result' })}
               >
                 <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted">
-                  <Calculator aria-hidden="true" className="size-3.5" />
+                  <PartyPopper aria-hidden="true" className="size-3.5" />
                 </span>
-                <span className="flex-1 truncate">روش محاسبه‌ی نتیجه</span>
-                {hasError('definition.assessment') && <ErrorDot />}
+                <span className="flex-1 truncate">صفحه‌ی نتیجه</span>
+                {hasError('definition.resultPage') && <ErrorDot />}
               </button>
             </li>
           )}

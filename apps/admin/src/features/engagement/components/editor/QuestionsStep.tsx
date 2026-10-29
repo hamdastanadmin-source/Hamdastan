@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { toPersianDigits } from '@hamdastan/shared/format/persian';
 import type { ActivityQuestion, ActivityStep } from '@hamdastan/types';
+import { resultPageDefaults } from '@hamdastan/validation';
 import { Alert, AlertDescription, Button, Input, Tabs, TabsList, TabsTrigger, Textarea } from '@hamdastan/ui';
 
 import type { ActivityEditorApi } from '../../hooks/use-activity-editor';
@@ -18,6 +19,7 @@ import { JourneyMotionsPanel } from './JourneyMotionsPanel';
 import { PreviewQuestion } from './PreviewStep';
 import { QuestionEditor } from './QuestionEditor';
 import { QuestionOutline, type Selection } from './QuestionOutline';
+import { ResultPagePanel } from './ResultPagePanel';
 
 /** Moves `items[index]` by `offset`, if it stays inside the list. */
 function moved<T>(items: T[], index: number, offset: -1 | 1): T[] {
@@ -52,7 +54,7 @@ function locate(steps: ActivityStep[], selection: Selection) {
  * Step 3, laid out like Porsline: the list of questions on the reading-start
  * side, and the one being edited beside it with its preview. A new question
  * is single-choice until its «نوع سؤال» says otherwise; a mission's steps group the list; an
- * assessment's scoring opens from the top of it. «ورود از اکسل» adds rows
+ * assessment's scoring and the done screen open from the top of it. «ورود از اکسل» adds rows
  * from a spreadsheet after the questions already there.
  *
  * A journey is edited one day at a time: the day tabs choose it, the list
@@ -61,7 +63,7 @@ function locate(steps: ActivityStep[], selection: Selection) {
  */
 export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
   const { state, updateDefinition, errors } = editor;
-  const { steps, assessment, journey } = state.definition;
+  const { steps, assessment, journey, resultPage } = state.definition;
   const isJourney = state.type === 'journey';
   const [selected, setSelected] = useState<Selection>(() => ({ kind: 'question', id: steps[0].questions[0].id }));
   const [openDay, setOpenDay] = useState(0);
@@ -71,8 +73,8 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
   // A removed or replaced selection falls back to the first question (of the open day, on a journey).
   const day = Math.min(openDay, steps.length - 1);
   const fallbackStep = isJourney ? day : 0;
-  // The scoring and the journey's motions are panels of their own, not places in the list.
-  const panelOnly = (s: Selection) => s.kind === 'scoring' || s.kind === 'motions';
+  // The scoring, the result page and the journey's motions are panels of their own, not places in the list.
+  const panelOnly = (s: Selection) => s.kind === 'scoring' || s.kind === 'result' || s.kind === 'motions';
   const where = panelOnly(selected) ? null : locate(steps, selected);
   const selection: Selection =
     panelOnly(selected) || (where && (!isJourney || where.s === day))
@@ -255,6 +257,15 @@ export function QuestionsStep({ editor }: { editor: ActivityEditorApi }) {
               questions={steps.flatMap((step) => step.questions)}
               competition={state.type === 'competition'}
               onChange={(next) => updateDefinition({ assessment: next })}
+            />
+          )}
+
+          {selection.kind === 'result' && (
+            <ResultPagePanel
+              type={state.type}
+              settings={resultPage ?? resultPageDefaults()}
+              errors={errors}
+              onChange={(next) => updateDefinition({ resultPage: next })}
             />
           )}
 
