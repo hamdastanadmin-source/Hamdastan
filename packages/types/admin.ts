@@ -25,7 +25,7 @@ export const ADMIN_PERMISSIONS = [
   'activities.read',
   /** Create, edit, duplicate. */
   'activities.write',
-  /** Publish, pause, close, archive. */
+  /** Publish, pause, close, archive, delete. */
   'activities.publish',
   /** The aggregate dashboard — counts and charts, no one person's answers. */
   'results.read',

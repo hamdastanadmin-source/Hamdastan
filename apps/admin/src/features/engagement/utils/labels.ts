@@ -55,6 +55,9 @@ export const CONFIRM_COPY: Partial<Record<ActivityStatusAction, string>> = {
   archive: 'از فهرست کاربران حذف می‌شود و دیگر قابل ویرایش نیست؛ نتایج و XPهای اعطاشده حفظ می‌شوند.',
 };
 
+export const DELETE_COPY =
+  'فعالیت با همه‌ی نسخه‌ها و پاسخ‌هایش برای همیشه پاک می‌شود و برگشت‌پذیر نیست. فعالیتی که XP پرداخت کرده حذف نمی‌شود؛ آن را بایگانی کنید.';
+
 export const REVIEW_LABELS: Record<ReviewStatus, string> = {
   pending: 'در انتظار بررسی',
   approved: 'تأییدشده',

@@ -664,7 +664,7 @@ reads the same table only to hide what would be refused.
 | `sessions.manage` — a person's sessions | ✓ | | |
 | `activities.read` | ✓ | ✓ | ✓ |
 | `activities.write` — create, edit, duplicate | ✓ | ✓ | |
-| `activities.publish` — publish, pause, close, archive | ✓ | ✓ | |
+| `activities.publish` — publish, pause, close, archive, delete | ✓ | ✓ | |
 | `results.read` — the aggregate dashboard | ✓ | ✓ | ✓ |
 | `results.individual` — one person's answers (the review queue) | ✓ | | ✓ |
 | `xp.read` — the per-person XP grants list | ✓ | | |
@@ -902,12 +902,18 @@ type, version, status, audience and how many active people it covers today,
 responses / completions, participation rate (completions ÷ eligible), the XP
 set and the XP actually paid (the ledger's net sum), and the publish and end
 dates. Filters: search, status, type. Row actions: results, edit, preview,
-duplicate (a new draft, «(کپی)», no dates), and the status moves.
+duplicate (a new draft, «(کپی)», no dates), the status moves, and delete.
 
 - **Status.** `draft` → publish → `published` (or `scheduled`, when its start
   is ahead — derived, not stored) ⇄ `paused`; published or paused → `closed`
   (final); anything → `archived` (no more edits). An activity past its end
-  reads `closed`. Pause, close and archive ask first. A published activity's
+  reads `closed`. Pause, close and archive ask first.
+- **Delete.** «حذف» asks first, then removes the activity for good with
+  its versions, responses, participations and its place and world-home
+  links. An activity with any row in the XP ledger is refused (409
+  `ACTIVITY_HAS_XP`) — the ledger is never rewritten; archive it instead.
+  The deletion is kept in the history with no activity attached
+  (`deleted`, with its id and title). A published activity's
   type cannot change.
 - **The builder — `/engagement/new`, `/engagement/:id/edit`.** Seven tabs,
   walked with «بعدی»/«قبلی» or opened directly: ۱ نوع, ۲ اطلاعات (title,
@@ -1124,10 +1130,14 @@ worlds and statuses as for any activity.
   lifts the winner (foreground border and a check — not the brand colour)
   and shrinks the loser away (450 ms; input is held meanwhile), then the
   next card comes in on the loser's side, so the winner never jumps. The
-  image after the next is fetched ahead. The end: the pick, large, with a
-  sparkle, «قبلی» still allowed, and «اتمام فعالیت» — which submits; then
-  (no «ثبت شد!») «+n XP» at the foot when the ledger paid it, and «بازگشت به
-  خانه». Under reduced
+  image after the next is fetched ahead. The end: the last pick submits the
+  run by itself — there is no «اتمام فعالیت» to press, and no «قبلی» (the
+  pick is the result; there is no step back from it). The pick, large, with
+  a sparkle; while the submission is in flight the footer is a waiting
+  «در حال ثبت», and if it fails, a toast and «دوباره امتحان کن» (the same
+  idempotency key). Then (no «ثبت شد!») «+n XP» at the foot when the
+  ledger paid it, and «بازگشت به خانه». A resumed run whose every pick was
+  already made submits on «ادامه». Under reduced
   motion nothing moves.
 - **The panel.** «این یا اون» in the builder's first step. Its third tab is
   «کارت‌ها» instead of «سؤال‌ها» (`CardsStep`): the cover, «ترتیب نمایش
@@ -2446,7 +2456,7 @@ Engagement Studio, under `/api/v1/admin/engagement` (admin session) and
 |--------|----------|--------------|---------|
 The permission each studio route needs: reading activities, their history
 and an audience preview — `activities.read`; create, edit, duplicate —
-`activities.write`; status — `activities.publish`; results — `results.read`;
+`activities.write`; status and delete — `activities.publish`; results — `results.read`;
 submissions — `results.individual`; grants — `xp.read`; export — `results.export`;
 review — `submissions.review`; revoke — `xp.revoke`.
 
@@ -2458,6 +2468,7 @@ review — `submissions.review`; revoke — `xp.revoke`.
 | PUT | `/admin/engagement/activities/:id` | `ActivityInput` | `AdminActivityDetail` — a new version once published or answered; 409 `ACTIVITY_ARCHIVED` |
 | POST | `/admin/engagement/activities/:id/status` | `{ action: publish \| pause \| resume \| close \| archive }` | `AdminActivityDetail`; 409 `ACTIVITY_INVALID_TRANSITION` |
 | POST | `/admin/engagement/activities/:id/duplicate` | — | `AdminActivityDetail` (201) |
+| DELETE | `/admin/engagement/activities/:id` | — | `{ deleted: true }`; 409 `ACTIVITY_HAS_XP` once it has paid XP |
 | GET | `/admin/engagement/activities/:id/results` | `?from=&to=&categoryId=` | `ActivityResults` |
 | GET | `/admin/engagement/activities/:id/export` | same | `{ filename, csv }` |
 | GET | `/admin/engagement/activities/:id/submissions` | `?status=pending\|approved\|rejected&page=` | `Paginated<AdminSubmission>` |

@@ -49,6 +49,10 @@ export const engagementController = {
     return reply.status(201).send(ok(await service.duplicate(currentAdmin(request), idOf(request))));
   },
 
+  async remove(request: FastifyRequest, reply: FastifyReply) {
+    return reply.send(ok(await service.remove(currentAdmin(request), idOf(request))));
+  },
+
   async previewAudience(request: FastifyRequest, reply: FastifyReply) {
     const { audience } = parseBody(schemas.audience.body, request.body);
     return reply.send(ok(await service.previewAudience(audience)));

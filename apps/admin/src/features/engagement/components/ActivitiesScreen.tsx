@@ -32,12 +32,13 @@ import {
   TableRow,
 } from '@hamdastan/ui';
 
+import { ConfirmDialog } from '@/components';
 import { useInterestCategories } from '@/hooks';
 import { useAdminCan } from '@/features/auth';
 import { errorMessage, formatCount, formatDate, formatPercent } from '@/lib';
 
 import { useActivities } from '../hooks/use-activities';
-import { CONFIRM_COPY, describeAudience, STATUS_BADGE, STATUS_LABELS } from '../utils/labels';
+import { CONFIRM_COPY, DELETE_COPY, describeAudience, STATUS_BADGE, STATUS_LABELS } from '../utils/labels';
 import { ActivityActionsMenu } from './ActivityActionsMenu';
 import { StatusActionDialog } from './StatusActionDialog';
 
@@ -54,11 +55,13 @@ export function ActivitiesScreen() {
   const interestCategories = useInterestCategories();
   const router = useRouter();
   const can = useAdminCan();
-  const { filters, setFilters, page, setPage, data, loading, error, reload, changeStatus, duplicate } = useActivities();
+  const { filters, setFilters, page, setPage, data, loading, error, reload, changeStatus, duplicate, remove } =
+    useActivities();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ activity: AdminActivitySummary; action: ActivityStatusAction } | null>(
     null
   );
+  const [deleting, setDeleting] = useState<AdminActivitySummary | null>(null);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
   const firstLoad = loading && !data;
@@ -89,6 +92,17 @@ export function ActivitiesScreen() {
     } finally {
       setPendingId(null);
     }
+  };
+
+  const onDelete = async () => {
+    if (!deleting) return;
+    try {
+      await remove(deleting.id);
+      toast.success(`«${deleting.title}» حذف شد`);
+    } catch (caught) {
+      toast.error(errorMessage(caught));
+    }
+    setDeleting(null);
   };
 
   return (
@@ -266,6 +280,7 @@ export function ActivitiesScreen() {
                       disabled={pendingId === activity.id}
                       onStatus={(action) => onStatus(activity, action)}
                       onDuplicate={() => onDuplicate(activity)}
+                      onDelete={() => setDeleting(activity)}
                     />
                   </TableCell>
                 </TableRow>
@@ -305,6 +320,18 @@ export function ActivitiesScreen() {
           if (confirming) await runStatus(confirming.activity, action);
           setConfirming(null);
         }}
+      />
+
+      <ConfirmDialog
+        pending={
+          deleting && {
+            title: `حذف «${deleting.title}»`,
+            description: DELETE_COPY,
+            confirm: 'حذف',
+          }
+        }
+        onCancel={() => setDeleting(null)}
+        onConfirm={onDelete}
       />
     </div>
   );

@@ -77,6 +77,12 @@ export interface EngagementRepository {
   setStatus(id: string, to: StoredActivityStatus, from: StoredActivityStatus[], adminId: string, action: string): Promise<boolean>;
   /** A new draft with the current version's content. Answers with its id. */
   duplicate(id: string, title: string, adminId: string): Promise<string>;
+  /**
+   * Deletes the activity with everything filed under it — versions,
+   * responses, participations, its place and world-home links. Refused
+   * while the XP ledger has a row for it: the ledger is never rewritten.
+   */
+  remove(id: string, adminId: string): Promise<'deleted' | 'has_xp' | 'not_found'>;
   countAudience(audience: ActivityAudience): Promise<number>;
   listResponses(activityId: string, filter: ResponseFilter): Promise<ResponseRow[]>;
   listSubmissions(
@@ -546,6 +552,27 @@ export const sqlEngagementRepository: EngagementRepository = {
       );
       await writeAudit(client, copyId, adminId, 'duplicated', { from: id });
       return copyId;
+    });
+  },
+
+  async remove(id, adminId) {
+    return withTransaction(async (client) => {
+      // One statement: the ledger check and the delete see the same rows.
+      const { rows } = await client.query<{ title: string; has_xp: boolean }>(
+        `WITH target AS (
+           SELECT a.id, a.title,
+                  EXISTS (SELECT 1 FROM v2_xp_transactions x WHERE x.activity_id = a.id) AS has_xp
+             FROM v2_engagement_activities a WHERE a.id = $1),
+         gone AS (DELETE FROM v2_engagement_activities d USING target t WHERE d.id = t.id AND NOT t.has_xp RETURNING d.id)
+         SELECT t.title, t.has_xp FROM target t`,
+        [id]
+      );
+      const row = rows[0];
+      if (!row) return 'not_found';
+      if (row.has_xp) return 'has_xp';
+      // The activity's own history went with it; the deletion is kept unattached.
+      await writeAudit(client, null, adminId, 'deleted', { id, title: row.title });
+      return 'deleted';
     });
   },
 

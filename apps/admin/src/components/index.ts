@@ -4,6 +4,7 @@
  */
 
 export { AdminShell } from './AdminShell';
+export { ConfirmDialog } from './ConfirmDialog';
 export { ThemeToggle } from './ThemeToggle';
 export { Field, invalid, NEUTRAL_CHECKBOX, NEUTRAL_TAB, NEUTRAL_TOGGLE, SwitchRow } from './EditorField';
 export { WorldsField } from './WorldsField';

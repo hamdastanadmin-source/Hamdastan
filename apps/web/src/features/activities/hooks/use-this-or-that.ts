@@ -19,10 +19,11 @@ const PICK_MS = 450;
 /**
  * «این یا اون»'s state: the picks so far, the two cards on screen, and the
  * submission. Every pick is saved as the draft, so leaving and coming back
- * resumes the same run; «قبلی» takes the last pick back. The order of the
- * cards, and whether the run counts, are the API's.
+ * resumes the same run; «قبلی» takes the last pick back, until the final one.
+ * The final pick ends the run: it is submitted at once, with no button to
+ * press. The order of the cards, and whether the run counts, are the API's.
  */
-export function useThisOrThat(activity: PlayerActivity) {
+export function useThisOrThat(activity: PlayerActivity, onSubmitError: (error: unknown) => void) {
   const still = useReducedMotion();
   const cards = useMemo(() => activity.thisOrThat?.cards ?? [], [activity.thisOrThat]);
   const ids = useMemo(() => cards.map((card) => card.id), [cards]);
@@ -34,6 +35,7 @@ export function useThisOrThat(activity: PlayerActivity) {
   const [picked, setPicked] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<ActivitySubmission | null>(null);
+  const [failed, setFailed] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** As in `useActivityPlayer`: kept across a failed attempt, so a retry is the same submission. */
   const submissionKey = useRef<string | null>(null);
@@ -61,11 +63,37 @@ export function useThisOrThat(activity: PlayerActivity) {
     [activity.id, ids]
   );
 
-  /** The participation's start is recorded on the server; a run already played to the end opens on its pick. */
+  /** Sends the run. A failure is the screen's to report, and «دوباره امتحان کن» sends it again. */
+  const finish = useCallback(
+    async (picks: string[] = winners) => {
+      setSubmitting(true);
+      setFailed(false);
+      submissionKey.current ??= createIdempotencyKey();
+      try {
+        setOutcome(
+          await activitiesService.submit(activity.id, activity.versionId, thisOrThatAnswers(ids, picks), submissionKey.current)
+        );
+        submissionKey.current = null;
+      } catch (error) {
+        setFailed(true);
+        onSubmitError(error);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [activity.id, activity.versionId, ids, onSubmitError, winners]
+  );
+
+  /** The participation's start is recorded on the server; a run already played to the end opens on its pick, sent. */
   const start = useCallback(() => {
     void activitiesService.start(activity.id).catch(() => undefined);
-    setPhase(winners.length === rounds ? 'final' : 'play');
-  }, [activity.id, rounds, winners.length]);
+    if (winners.length < rounds) {
+      setPhase('play');
+      return;
+    }
+    setPhase('final');
+    void finish();
+  }, [activity.id, finish, rounds, winners.length]);
 
   const pick = useCallback(
     (id: string) => {
@@ -77,17 +105,20 @@ export function useThisOrThat(activity: PlayerActivity) {
           setWinners(next);
           setPicked(null);
           save(next);
-          if (next.length === rounds) setPhase('final');
+          if (next.length === rounds) {
+            setPhase('final');
+            void finish(next);
+          }
         },
         still ? 0 : PICK_MS
       );
     },
-    [pair, picked, rounds, save, still, winners]
+    [finish, pair, picked, rounds, save, still, winners]
   );
 
-  /** One pick back — from the final card, too — or, before the first, the intro. */
+  /** One pick back during the matches or, before the first, the intro. The final pick is the result: no step back. */
   const back = useCallback(() => {
-    if (picked || outcome) return;
+    if (picked || phase === 'final') return;
     if (winners.length === 0) {
       setPhase('intro');
       return;
@@ -96,21 +127,7 @@ export function useThisOrThat(activity: PlayerActivity) {
     setWinners(next);
     save(next);
     setPhase('play');
-  }, [outcome, picked, save, winners]);
-
-  /** Sends the run. Throws the API's error for the screen to show. */
-  const finish = useCallback(async () => {
-    setSubmitting(true);
-    submissionKey.current ??= createIdempotencyKey();
-    try {
-      setOutcome(
-        await activitiesService.submit(activity.id, activity.versionId, thisOrThatAnswers(ids, winners), submissionKey.current)
-      );
-      submissionKey.current = null;
-    } finally {
-      setSubmitting(false);
-    }
-  }, [activity.id, activity.versionId, ids, winners]);
+  }, [phase, picked, save, winners]);
 
   return {
     cards,
@@ -123,6 +140,7 @@ export function useThisOrThat(activity: PlayerActivity) {
     progress: rounds ? Math.round((winners.length / rounds) * 100) : 0,
     hasDraft: winners.length > 0,
     submitting,
+    failed,
     outcome,
     start,
     pick,

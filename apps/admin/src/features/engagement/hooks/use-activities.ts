@@ -76,6 +76,14 @@ export function useActivities() {
     [reload]
   );
 
+  const remove = useCallback(
+    async (id: string) => {
+      await adminEngagementService.remove(id);
+      reload();
+    },
+    [reload]
+  );
+
   return {
     filters,
     setFilters,
@@ -87,5 +95,6 @@ export function useActivities() {
     reload,
     changeStatus,
     duplicate,
+    remove,
   };
 }

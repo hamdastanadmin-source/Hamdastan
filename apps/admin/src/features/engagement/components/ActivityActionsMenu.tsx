@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, Copy, Eye, MoreHorizontal, Pencil } from 'lucide-react';
+import { BarChart3, Copy, Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import type { ActivityStatusAction, AdminActivitySummary } from '@hamdastan/types';
 import {
@@ -17,22 +17,25 @@ import { useAdminCan } from '@/features/auth';
 
 import { ACTION_LABELS, ACTIONS_FOR } from '../utils/labels';
 
-/** A row's actions: open, edit, preview, the status moves its status allows, duplicate. */
+/** A row's actions: open, edit, preview, the status moves its status allows, duplicate, delete. */
 export function ActivityActionsMenu({
   activity,
   disabled,
   onStatus,
   onDuplicate,
+  onDelete,
 }: {
   activity: AdminActivitySummary;
   disabled?: boolean;
   onStatus: (action: ActivityStatusAction) => void;
   onDuplicate: () => void;
+  onDelete: () => void;
 }) {
   const can = useAdminCan();
   const writable = can('activities.write');
   const editable = activity.status !== 'archived' && writable;
-  const actions = can('activities.publish') ? ACTIONS_FOR[activity.status] : [];
+  const publishable = can('activities.publish');
+  const actions = publishable ? ACTIONS_FOR[activity.status] : [];
 
   return (
     <DropdownMenu>
@@ -68,7 +71,7 @@ export function ActivityActionsMenu({
             تکثیر
           </DropdownMenuItem>
         )}
-        {actions.length > 0 && <DropdownMenuSeparator />}
+        {publishable && <DropdownMenuSeparator />}
         {actions.map((action) => (
           <DropdownMenuItem
             key={action}
@@ -78,6 +81,12 @@ export function ActivityActionsMenu({
             {ACTION_LABELS[action]}
           </DropdownMenuItem>
         ))}
+        {publishable && (
+          <DropdownMenuItem onSelect={onDelete} variant="destructive">
+            <Trash2 aria-hidden="true" />
+            حذف
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -24,6 +24,8 @@ export const engagementAdminRoutes: FastifyPluginAsync = async (app) => {
   app.put('/activities/:id', guard('activities.write'), c.update);
   app.post('/activities/:id/status', guard('activities.publish'), c.changeStatus);
   app.post('/activities/:id/duplicate', guard('activities.write'), c.duplicate);
+  // Refused once the activity has paid XP — archiving is what keeps that history.
+  app.delete('/activities/:id', guard('activities.publish'), c.remove);
   // The full preview of a journey: read-only, nothing it does is recorded.
   app.get('/activities/:id/preview', guard('activities.read'), c.preview);
   app.get('/activities/:id/results', guard('results.read'), c.results);

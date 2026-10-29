@@ -32,6 +32,7 @@ import {
 } from '@hamdastan/ui';
 import { placeInputSchema, placePublishProblems, type PlaceInputOutput } from '@hamdastan/validation';
 
+import { ConfirmDialog } from '@/components';
 import { useAdminCan } from '@/features/auth';
 import { MediaField, useMediaAsset } from '@/features/media';
 import { errorMessage, fieldErrors } from '@/lib';
@@ -41,7 +42,6 @@ import { usePlaceActions } from '../hooks/use-place-actions';
 import { useWorldActivities } from '../hooks/use-world-activities';
 import { toForm, type PlaceFormInput } from '../utils/form';
 import { DEPTH_LABELS, PLACE_ACTION_LABELS, PLACE_STATUS_BADGE } from '../utils/labels';
-import { ConfirmDialog } from './ConfirmDialog';
 import { CreatePlaceDialog } from './CreatePlaceDialog';
 import { PinBoard } from './PinBoard';
 import { TasksSection } from './TasksSection';

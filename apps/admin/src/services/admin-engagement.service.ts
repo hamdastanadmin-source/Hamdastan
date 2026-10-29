@@ -57,6 +57,10 @@ export const adminEngagementService = {
     return apiClient.post<AdminActivityDetail>(`${base}/activities/${id}/duplicate`);
   },
 
+  remove(id: string) {
+    return apiClient.delete<{ deleted: true }>(`${base}/activities/${id}`);
+  },
+
   previewAudience(audience: ActivityAudience) {
     return apiClient.post<{ eligible: number }>(`${base}/audience/preview`, { audience });
   },

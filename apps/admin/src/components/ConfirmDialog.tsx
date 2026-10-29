@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@hamdastan/ui';
 
 /**
- * Asks before a place is taken away from people — unpublished, archived or
+ * Asks before something is taken away from people — unpublished, archived or
  * deleted — and says what that does. Null `pending` keeps it closed.
  */
 export function ConfirmDialog({

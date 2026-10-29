@@ -540,6 +540,16 @@ export const engagementService = {
     return this.get(copyId);
   },
 
+  /** Only an activity that never paid XP; otherwise archive it. */
+  async remove(actor: AdminRecord, id: string): Promise<{ deleted: true }> {
+    const outcome = await engagementRepository().remove(id, actor.id);
+    if (outcome === 'not_found') throw notFound();
+    if (outcome === 'has_xp') {
+      throw new AppError(409, CODES.ACTIVITY_HAS_XP, 'این فعالیت XP پرداخت کرده است؛ به‌جای حذف، آن را بایگانی کنید');
+    }
+    return { deleted: true };
+  },
+
   async previewAudience(audience: ActivityAudience): Promise<{ eligible: number }> {
     return { eligible: await engagementRepository().countAudience(audience) };
   },

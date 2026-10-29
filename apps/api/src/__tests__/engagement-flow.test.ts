@@ -44,7 +44,7 @@ function nextPhone(): string {
 const cookiesFrom = (response: LightMyRequestResponse): Cookies =>
   Object.fromEntries(response.cookies.map(({ name, value }) => [name, value]));
 
-function call(method: 'GET' | 'POST' | 'PUT', url: string, cookies: Cookies, body?: unknown) {
+function call(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, cookies: Cookies, body?: unknown) {
   return app.inject({ method, url: `${API_PREFIX}${url}`, payload: body as object, cookies });
 }
 
@@ -625,6 +625,22 @@ describe.skipIf(!hasDatabase)('Engagement Studio against a migrated database', (
 
     const list = (await call('GET', '/admin/engagement/activities?status=archived', admin)).json().data;
     expect(list.items.every((item: { status: string }) => item.status === 'archived')).toBe(true);
+  });
+
+  it('deletes an activity that never paid XP, and refuses one that did', async () => {
+    const draft = (await call('POST', '/admin/engagement/activities', admin, activity())).json().data;
+    const removed = await call('DELETE', `/admin/engagement/activities/${draft.id}`, admin);
+    expect(removed.statusCode, removed.body).toBe(200);
+    expect((await call('GET', `/admin/engagement/activities/${draft.id}`, admin)).statusCode).toBe(404);
+    expect((await call('DELETE', `/admin/engagement/activities/${draft.id}`, admin)).statusCode).toBe(404);
+
+    const paid = await publish(activity());
+    const user = await newUser();
+    await submit(user.cookies, paid.id, paid.versionId, { q1: 'a' });
+    const refused = await call('DELETE', `/admin/engagement/activities/${paid.id}`, admin);
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().error.code).toBe('ACTIVITY_HAS_XP');
+    expect((await call('GET', `/admin/engagement/activities/${paid.id}`, admin)).statusCode).toBe(200);
   });
 
   it('saves progress and resumes it', async () => {

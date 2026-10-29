@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock, Images } from 'lucide-react';
@@ -27,28 +27,22 @@ import { DuelCard } from './DuelCard';
 
 /**
  * «این یا اون»: the intro, then two cards at a time — tap one, it wins and
- * stays for the next — and the one left at the end, with «اتمام فعالیت».
- * What the run earns is the API's answer, shown as it comes back.
+ * stays for the next — and the one left at the end. The last pick sends the
+ * run; what it earns is the API's answer, shown as it comes back.
  */
 export function ThisOrThatPlayer({ activity, exit }: { activity: PlayerActivity; exit?: ActivityExit }) {
   const router = useRouter();
-  const game = useThisOrThat(activity);
+  const onSubmitError = useCallback(
+    (error: unknown) => {
+      toast.error(error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.');
+      if (error instanceof HttpError && error.code === ENGAGEMENT_ERROR_CODES.ACTIVITY_VERSION_CHANGED) router.refresh();
+    },
+    [router]
+  );
+  const game = useThisOrThat(activity, onSubmitError);
   useResetScroll(`${game.phase}:${game.round}`);
   const [coverFailed, setCoverFailed] = useState(false);
   const cover = activity.thisOrThat?.coverImageId ? activity.media[activity.thisOrThat.coverImageId] : undefined;
-
-  const finish = async () => {
-    try {
-      await game.finish();
-    } catch (error) {
-      if (error instanceof HttpError && error.code === ENGAGEMENT_ERROR_CODES.ACTIVITY_VERSION_CHANGED) {
-        toast.error(error.message);
-        router.refresh();
-        return;
-      }
-      toast.error(error instanceof HttpError ? error.message : 'ارتباط برقرار نشد. اینترنتت رو چک کن و دوباره امتحان کن.');
-    }
-  };
 
   // ─── The pick ────────────────────────────────────────────────────────────
   if (game.phase === 'final' && game.winner) {
@@ -56,7 +50,8 @@ export function ThisOrThatPlayer({ activity, exit }: { activity: PlayerActivity;
     const media = activity.media[winner.imageId];
     return (
       <Screen>
-        <ScreenHeader>{!outcome && <ScreenBack onClick={game.back} label="قبلی" />}</ScreenHeader>
+        {/* The pick is the result: the run is over, there is no step back from it. */}
+        <ScreenHeader />
         <ScreenBody center className="items-center gap-6 text-center">
           <div className="relative w-3/5">
             <div className="pointer-events-none absolute -inset-8">
@@ -87,8 +82,9 @@ export function ThisOrThatPlayer({ activity, exit }: { activity: PlayerActivity;
               <Link href={exit?.href ?? '/'}>{exit?.label ?? 'بازگشت به خانه'}</Link>
             </Button>
           ) : (
-            <Button size="xl" className="w-full" onClick={finish} loading={game.submitting}>
-              اتمام فعالیت
+            // The last pick has already sent the run; this is only its retry, and its wait.
+            <Button size="xl" className="w-full" onClick={() => game.finish()} loading={!game.failed}>
+              {game.failed ? 'دوباره امتحان کن' : 'در حال ثبت'}
             </Button>
           )}
         </ScreenFooter>

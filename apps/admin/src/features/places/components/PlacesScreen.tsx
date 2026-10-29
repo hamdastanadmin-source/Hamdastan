@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@hamdastan/ui';
 
+import { ConfirmDialog } from '@/components';
 import { useAdminCan } from '@/features/auth';
 import { MediaPreview, useMediaAsset } from '@/features/media';
 import { useWorldOptions } from '@/hooks';
@@ -30,7 +31,6 @@ import { formatCount } from '@/lib';
 import { useMaps } from '../hooks/use-maps';
 import { usePlaceActions } from '../hooks/use-place-actions';
 import { PLACE_STATUS_BADGE } from '../utils/labels';
-import { ConfirmDialog } from './ConfirmDialog';
 import { CreatePlaceDialog } from './CreatePlaceDialog';
 import { PlaceRowActions } from './PlaceRowActions';
 
