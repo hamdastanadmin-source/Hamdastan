@@ -164,7 +164,7 @@ test('an invitee is brought back to the journey after signing up', async ({ brow
     const guest = await browser.newContext();
     const page = await guest.newPage();
     await page.goto(`/activities/${id}`);
-    await expect(page).toHaveURL(/\/welcome$/);
+    await expect(page).toHaveURL(/\/landing$/);
 
     await readyPerson(page, phone);
     await page.goto('/');

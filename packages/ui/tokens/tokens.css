@@ -217,6 +217,18 @@
     /* The app is a mobile product wherever it is opened. This is the widest
        its single column ever gets — see MobileShell in apps/web. */
     --shell-max-width: 430px;
+
+    /* ─── Landing page ──────────────────────────────────────────── */
+    /* The storybook palette of `/landing` and nowhere else. The action on
+       that page is still `--primary`. */
+    --landing-accent: 178 44% 62%;
+    --landing-gold: 40 80% 52%;
+    --landing-teal: 181 88% 27%;
+    --landing-teal-deep: 183 80% 17%;
+    --landing-gryffindor: 0 54% 54%;
+    --landing-slytherin: 156 47% 36%;
+    --landing-ravenclaw: 210 36% 40%;
+    --landing-hufflepuff: 40 90% 32%;
   }
 
   .dark {
@@ -333,6 +345,33 @@
     --glow-color: 0 0% 100%;
     --glow-shell-alpha: 0.05;
     --glow-hero-alpha: 0.07;
+
+    /* `@theme` resolves these at :root, so a `.dark` below <html> (the landing
+       page) has to bind again the colours that screen's components read. */
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+  }
+
+  /* `/landing`: night sky rather than the product's charcoal. Sits on `.dark`. */
+  .landing {
+    --background: 248 24% 10%;
+    --card: 250 23% 15%;
+    --secondary: 250 20% 20%;
+    --muted: 250 20% 20%;
+    --border: 250 15% 24%;
   }
 }
 
@@ -341,6 +380,14 @@
   --font-family-mono: 'Courier New', 'Monaco', 'Menlo', monospace;
   --font-sans: var(--font-family);
 
+  --color-landing-accent: hsl(var(--landing-accent));
+  --color-landing-gold: hsl(var(--landing-gold));
+  --color-landing-teal: hsl(var(--landing-teal));
+  --color-landing-teal-deep: hsl(var(--landing-teal-deep));
+  --color-landing-gryffindor: hsl(var(--landing-gryffindor));
+  --color-landing-slytherin: hsl(var(--landing-slytherin));
+  --color-landing-ravenclaw: hsl(var(--landing-ravenclaw));
+  --color-landing-hufflepuff: hsl(var(--landing-hufflepuff));
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
 

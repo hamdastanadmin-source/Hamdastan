@@ -95,6 +95,13 @@ password and no separate registration.
 
 **Features:**
 
+- A first-time visitor starts at `/landing`: a dark, storybook introduction to
+  the world, the people and the shared memories, inside the same 430px column.
+  They can pick a house and a first memory, which only dress the invitation
+  ticket at the bottom and are never saved. The one primary action,
+  «منم هم‌داستانم» in the sticky footer, stays on screen throughout and leads
+  to `/welcome`; the hero's neutral button scrolls to the story. Scroll motion is CSS and stops under reduced motion. Code
+  in `apps/web/src/features/landing`.
 - One path for everybody. The screen never asks "sign in or sign up?" —
   the server answers that after the code verifies, and answering it earlier
   would leak which numbers have accounts.
@@ -2041,7 +2048,8 @@ that `GET /me` returns.
 
 | State | Destination |
 |-------|-------------|
-| Not signed in | `/welcome` |
+| No session cookie | `/landing` |
+| Session expired for good | `/welcome` |
 | Signed in, profile incomplete | `/auth/basic-info` |
 | Signed in, username not yet chosen | `/auth/username` |
 | Signed in, onboarding unfinished | `/onboarding` and the pages under it |
@@ -2050,14 +2058,16 @@ that `GET /me` returns.
 An unfinished account is pinned to its step: it can be on that step's page,
 or a page beneath it (the onboarding stages live under `/onboarding/`), and
 nowhere else.
-A finished one may go anywhere — `/activities` included — except back through `/welcome`, `/auth/*` —
+A finished one may go anywhere — `/activities` included — except back through `/landing`, `/welcome`, `/auth/*` —
 or into `/onboarding/*`, which it has been through, apart from
 `/onboarding/questionnaire`, which can be put off until later.
 
 ### 5.2 A new number
 
 ```
-/welcome
+/landing
+  └─ «منم هم‌داستانم»
+     └─ /welcome
   └─ «شروع کنیم»
      └─ /auth/phone ── POST /auth/otp/request ──┐
                                                  │  code sent (or echoed)

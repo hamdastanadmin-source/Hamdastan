@@ -1,14 +1,27 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * The two screens a visitor with no session can reach, and the routing rule
+ * The screens a visitor with no session can reach, and the routing rule
  * that keeps them from reaching anything else.
  */
 
-test('sends a visitor with no session to Welcome', async ({ page }) => {
+test('sends a visitor with no session to the landing page', async ({ page }) => {
   await page.context().clearCookies();
 
   await page.goto('/');
+
+  await expect(page).toHaveURL(/\/landing$/);
+});
+
+test('the landing page leads to Welcome', async ({ page }) => {
+  await page.goto('/landing');
+
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('پاترهدی؟');
+
+  await page.getByRole('radio', { name: /اسلیترین/ }).click();
+  await expect(page.locator('#invitation')).toContainText('اسلیترین');
+
+  await page.getByRole('link', { name: 'منم هم‌داستانم' }).click();
 
   await expect(page).toHaveURL(/\/welcome$/);
 });

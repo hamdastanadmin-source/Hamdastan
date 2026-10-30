@@ -10,7 +10,8 @@ import { HttpError, authService, refreshSession } from '@/services';
  * The routing table from the sign-in spec, in one place.
  *
  * ┌──────────────────────────────────┬──────────────────────┐
- * │ not signed in                    │ /welcome             │
+ * │ no session cookie                │ /landing             │
+ * │ session expired for good         │ /welcome             │
  * │ signed in, profile incomplete    │ /auth/basic-info     │
  * │ signed in, username not chosen   │ /auth/username       │
  * │ signed in, onboarding unfinished │ /onboarding/*        │
@@ -28,8 +29,8 @@ import { HttpError, authService, refreshSession } from '@/services';
  * the user object, because then the browser would be deciding.
  */
 
-/** Reachable with no session. Everything else redirects to `/welcome`. */
-const PUBLIC_PATHS = ['/welcome', '/auth/phone', '/auth/verify'];
+/** Reachable with no session. Everything else redirects to `/landing`. */
+const PUBLIC_PATHS = ['/landing', '/welcome', '/auth/phone', '/auth/verify'];
 
 /** Pages a completed account has no reason to be on. */
 const SIGNED_IN_EXITS = new Set([...PUBLIC_PATHS, NEXT_STEP_PATH.basic_info, NEXT_STEP_PATH.username]);
@@ -124,7 +125,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/preview/')) return proceed();
 
   if (!hasSessionCookie) {
-    return isPublic(pathname) ? proceed() : remember(redirectTo('/welcome'), pathname);
+    return isPublic(pathname) ? proceed() : remember(redirectTo('/landing'), pathname);
   }
 
   // A session cookie is present, so ask the API what it is worth. The access

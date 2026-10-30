@@ -42,7 +42,7 @@ const returnCookie = (response: Response) => response.headers.getSetCookie().fin
 describe('the way back from an invitation', () => {
   it('remembers the journey when a stranger is sent to the door', async () => {
     const response = await run(JOURNEY);
-    expect(location(response)).toBe('/welcome');
+    expect(location(response)).toBe('/landing');
     expect(decodeURIComponent(returnCookie(response) ?? '')).toContain(`hd_return_to=${JOURNEY}`);
     expect(returnCookie(response)).toContain('HttpOnly');
   });
@@ -67,14 +67,14 @@ describe('the way back from an invitation', () => {
 
   it('remembers an event’s page the same way', async () => {
     const response = await run('/events/hogwarts-music-night');
-    expect(location(response)).toBe('/welcome');
+    expect(location(response)).toBe('/landing');
     expect(decodeURIComponent(returnCookie(response) ?? '')).toContain('hd_return_to=/events/hogwarts-music-night');
   });
 
   it('remembers a world’s and an article’s page the same way', async () => {
     for (const path of ['/worlds/hogwarts', '/articles/news-1a2b3c4d']) {
       const response = await run(path);
-      expect(location(response)).toBe('/welcome');
+      expect(location(response)).toBe('/landing');
       expect(decodeURIComponent(returnCookie(response) ?? '')).toContain(`hd_return_to=${path}`);
     }
   });

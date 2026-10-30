@@ -25,3 +25,64 @@
    the OS preference. Tailwind v4 defaults `dark:` to prefers-color-scheme, so
    the variant is redefined here to follow the class instead. */
 @custom-variant dark (&:is(.dark *));
+
+/* ─── `/landing` scroll motion ───────────────────────────────────────────────
+   Driven by the scroll position with no JavaScript. A browser without
+   scroll timelines, or a person who asked for less movement, gets the
+   finished state: everything visible, the envelope open. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+
+  @supports (animation-timeline: view()) {
+    .landing-reveal {
+      animation: landing-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+    .landing-owl {
+      animation: landing-owl linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 100dvh;
+    }
+    .landing-header {
+      animation: landing-header linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 3rem;
+    }
+    .landing-progress {
+      animation: landing-progress linear both;
+      animation-timeline: scroll(root);
+    }
+    .landing-ticket {
+      animation: landing-ticket linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 45%;
+    }
+    .landing-flap {
+      animation: landing-flap linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 40%;
+    }
+  }
+}
+
+@keyframes landing-reveal {
+  from { opacity: 0; translate: 0 1.75rem; }
+}
+@keyframes landing-owl {
+  to { translate: 6rem 30dvh; rotate: 22deg; }
+}
+@keyframes landing-header {
+  from { background-color: transparent; }
+}
+@keyframes landing-progress {
+  from { transform: scaleX(0); }
+}
+@keyframes landing-ticket {
+  from { translate: 0 4rem; }
+}
+@keyframes landing-flap {
+  from { transform: rotateX(0deg); }
+}

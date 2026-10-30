@@ -58,7 +58,13 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            // Only a production build hashes these names by content. In
+            // development a CSS file keeps its name as it changes, so caching
+            // it would leave the browser on stale styles.
+            value:
+              process.env.NODE_ENV === "production"
+                ? "public, max-age=31536000, immutable"
+                : "no-store",
           },
         ],
       },
