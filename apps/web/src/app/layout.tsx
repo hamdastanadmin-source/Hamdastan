@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 
 import { APP_DIR, APP_NAME, APP_LANG } from "@hamdastan/config";
 import { DirectionProvider, Toaster } from "@hamdastan/ui";
-import { THEME_COLOR, THEME_INIT_SCRIPT } from "@hamdastan/ui/tokens";
+import { THEME_COLOR, THEME_STORAGE_KEY } from "@hamdastan/ui/tokens";
 
 import { MobileShell } from "@/components";
 import { AuthProvider } from "@/features/auth";
@@ -16,6 +16,13 @@ import "@/styles/globals.css";
 /** The toast's gap to the column's edge — the page gutter. */
 const TOAST_GUTTER = "1rem";
 const TOAST_MOBILE_INSET = `max(${TOAST_GUTTER}, calc((100vw - var(--shell-max-width)) / 2 + ${TOAST_GUTTER}))`;
+
+/**
+ * Light only for now: the markup ships light, and this clears a stored dark
+ * choice so the theme store reads light too. To bring dark back, render
+ * `THEME_INIT_SCRIPT` here again and set `SHOW_THEME_SWITCH` in `SettingsScreen`.
+ */
+const LIGHT_ONLY_SCRIPT = `try{localStorage.removeItem('${THEME_STORAGE_KEY}')}catch(e){}`;
 
 const yekanBakh = localFont({
   src: "../../public/fonts/YekanBakh-VF.woff2",
@@ -73,7 +80,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: LIGHT_ONLY_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body

@@ -585,7 +585,8 @@ the avatar is the person's image, and nothing in the product uses email.
 
 **Settings — `/profile/settings`.** «ظاهر»
 (حالت تاریک — a switch; per device, kept in the browser by the theme store,
-not on the account), «اعلان‌ها» (a row to `/profile/settings/notifications`,
+not on the account; hidden for now, while the product is light only, §9.1),
+«اعلان‌ها» (a row to `/profile/settings/notifications`,
 §4.11), «حریم خصوصی» (نمایش پروفایل اجتماعی به
 دیگران — a switch), «پشتیبانی» (راهنما و پشتیبانی → `/profile/help`), then,
 set apart, «خروج از حساب» in red text. An account switch saves when flipped
@@ -2703,7 +2704,7 @@ whitespace is dropped.
 | Font | Yekan Bakh (variable), loaded with `next/font/local` |
 | Radius | `--radius: 0.75rem` |
 | Column width | `--shell-max-width: 430px`, as `max-w-shell` and the `shell:` breakpoint |
-| Theme | Light by default; dark is a `.dark` class on `<html>`, chosen in settings and kept per device |
+| Theme | Light only for now: the product clears a stored dark choice before first paint and hides the settings switch; the dark tokens and the theme store stay. Dark is a `.dark` class on `<html>`, chosen in settings and kept per device. The admin panel still has both |
 | Layout | RTL |
 
 Colours are derived from the variables at the top of

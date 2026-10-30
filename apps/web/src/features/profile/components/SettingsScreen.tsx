@@ -25,6 +25,9 @@ import { SettingSwitch } from './SettingSwitch';
  * the dark surfaces.
  */
 
+/** Hidden while the product is light only — see `LIGHT_ONLY_SCRIPT` in the root layout. */
+const SHOW_THEME_SWITCH = false;
+
 export function SettingsScreen({ settings: saved }: { settings: AccountSettings }) {
   const { saveSettings } = useAccountActions();
   const theme = useTheme();
@@ -51,16 +54,18 @@ export function SettingsScreen({ settings: saved }: { settings: AccountSettings 
       <ScreenBody className="gap-8">
         <ScreenTitle title="تنظیمات" />
 
-        <ListGroup title="ظاهر">
-          <ListRow>
-            <Moon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-            <SettingSwitch
-              label="حالت تاریک"
-              checked={theme === 'dark'}
-              onChange={(dark) => setTheme(dark ? 'dark' : 'light')}
-            />
-          </ListRow>
-        </ListGroup>
+        {SHOW_THEME_SWITCH && (
+          <ListGroup title="ظاهر">
+            <ListRow>
+              <Moon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+              <SettingSwitch
+                label="حالت تاریک"
+                checked={theme === 'dark'}
+                onChange={(dark) => setTheme(dark ? 'dark' : 'light')}
+              />
+            </ListRow>
+          </ListGroup>
+        )}
 
         <ListGroup title="اعلان‌ها">
           <ListRow icon={Bell} label="اعلان‌ها و اعلان گوشی" href="/profile/settings/notifications" />

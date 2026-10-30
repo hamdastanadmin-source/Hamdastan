@@ -871,6 +871,9 @@ carries the direction across.
 
 ### Theme
 
+`apps/web` is light only for now (`LIGHT_ONLY_SCRIPT` in its root layout replaces
+`THEME_INIT_SCRIPT`; `SHOW_THEME_SWITCH` in `SettingsScreen` hides the switch).
+
 One dark theme, as a `.dark` class on `<html>`, defined entirely by the shadcn
 variables in `tokens.css`: `--background`, `--foreground`, `--card`,
 `--primary`, `--muted`, `--muted-foreground`, `--border`, `--input`, `--ring`,
